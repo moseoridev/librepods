@@ -1,0 +1,13 @@
+<!-- Tall controls follow the original wrap-content header and weighted remaining space. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_frame" android:clipToOutline="true" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_controls_surface">
+<FrameLayout android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/widget_controls_surface">
+<LinearLayout android:id="@+id/noise_control_widget" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_horizontal">
+<ImageView android:importantForAccessibility="no" android:id="@+id/widget_control_top_space" android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+<TextView android:id="@+id/widget_device_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="AirPods" android:textSize="16dp" android:fontFamily="sec" android:textFontWeight="600" android:textColor="@color/widget_foreground" android:includeFontPadding="true" android:maxLines="1" android:ellipsize="end"/>
+<ImageView android:importantForAccessibility="no" android:id="@+id/widget_control_title_gap" android:layout_width="0dp" android:layout_height="0dp"/>
+<LinearLayout android:id="@+id/widget_control_batteries" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+<ImageView android:importantForAccessibility="no" android:id="@+id/widget_control_bottom_space" android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+<FrameLayout android:id="@+id/widget_control_button_area" android:layout_width="match_parent" android:layout_height="wrap_content">
+<include layout="@layout/widget_control_buttons_tall" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center"/>
+</FrameLayout>
+</LinearLayout></FrameLayout></FrameLayout>

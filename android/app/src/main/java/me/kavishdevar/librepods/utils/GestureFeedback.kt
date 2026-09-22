@@ -34,6 +34,7 @@ class GestureFeedback(context: Context) {
 
     private val TAG = "GestureFeedback"
 
+    private var released = false
     private val soundsLoaded = AtomicBoolean(false)
 
     private val soundPool = SoundPool.Builder()
@@ -77,6 +78,7 @@ class GestureFeedback(context: Context) {
         confirmNoId = soundPool.load(context, R.raw.confirm_no, 1)
 
         soundPool.setOnLoadCompleteListener { _, _, _ ->
+            if (released) return@setOnLoadCompleteListener
             Log.d(TAG, "Sounds loaded")
             soundsLoaded.set(true)
 
@@ -86,6 +88,7 @@ class GestureFeedback(context: Context) {
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun playDirectional(isVertical: Boolean, value: Double) {
+        if (released) return
         if (!soundsLoaded.get()) {
             Log.d(TAG, "Sounds not yet loaded, skipping playback")
             return
@@ -163,6 +166,7 @@ class GestureFeedback(context: Context) {
     }
 
     fun playConfirmation(isYes: Boolean) {
+        if (released) return
         if (currentHorizontalStreamId > 0) {
             soundPool.stop(currentHorizontalStreamId)
         }
@@ -176,4 +180,12 @@ class GestureFeedback(context: Context) {
             Log.d(TAG, "Playing ${if (isYes) "YES" else "NO"} confirmation - streamID=$streamId")
         }
     }
+    fun release() {
+        if (released) return
+        released = true
+        soundsLoaded.set(false)
+        soundPool.setOnLoadCompleteListener(null)
+        soundPool.release()
+    }
+
 }

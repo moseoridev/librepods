@@ -1,0 +1,68 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" android:id="@android:id/background" android:layout_width="270.00dp" android:layout_height="52.00dp" android:background="@drawable/widget_battery_surface" android:backgroundTint="@color/widget_surface" tools:ignore="UseAppTint">
+  <FrameLayout android:id="@+id/battery_widget" android:layout_width="match_parent" android:layout_height="match_parent">
+    <FrameLayout android:id="@+id/widget_cell_0" android:layout_width="63.21dp" android:layout_height="45.76dp" android:layout_marginStart="6.24dp" android:layout_marginTop="3.12dp" android:importantForAccessibility="yes" android:visibility="visible">
+      <ImageView android:id="@+id/widget_arc_0" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_0" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" android:src="@drawable/widget_glyph_phone" android:tint="@color/widget_foreground" />
+      <LinearLayout android:id="@+id/widget_value_row_0" android:layout_width="63.21dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_0" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_0" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="9.36dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" android:text="—" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_1" android:layout_width="63.21dp" android:layout_height="45.76dp" android:layout_marginStart="71.01dp" android:layout_marginTop="3.12dp" android:importantForAccessibility="yes" android:visibility="visible">
+      <ImageView android:id="@+id/widget_arc_1" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_1" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" android:src="@drawable/airpods_pro_left_notification" android:tint="@color/widget_foreground" />
+      <LinearLayout android:id="@+id/widget_value_row_1" android:layout_width="63.21dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_1" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_1" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="9.36dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" android:text="—" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_2" android:layout_width="63.21dp" android:layout_height="45.76dp" android:layout_marginStart="135.78dp" android:layout_marginTop="3.12dp" android:importantForAccessibility="yes" android:visibility="visible">
+      <ImageView android:id="@+id/widget_arc_2" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_2" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" android:src="@drawable/airpods_pro_right_notification" android:tint="@color/widget_foreground" />
+      <LinearLayout android:id="@+id/widget_value_row_2" android:layout_width="63.21dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_2" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_2" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="9.36dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" android:text="—" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_3" android:layout_width="63.21dp" android:layout_height="45.76dp" android:layout_marginStart="200.55dp" android:layout_marginTop="3.12dp" android:importantForAccessibility="yes" android:visibility="visible">
+      <ImageView android:id="@+id/widget_arc_3" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_3" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" android:src="@drawable/airpods_pro_case_notification" android:tint="@color/widget_foreground" />
+      <LinearLayout android:id="@+id/widget_value_row_3" android:layout_width="63.21dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_3" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_3" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="9.36dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" android:text="—" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_4" android:layout_width="60.87dp" android:layout_height="45.76dp" android:layout_marginStart="6.24dp" android:layout_marginTop="53.56dp" android:importantForAccessibility="yes" android:visibility="gone">
+      <ImageView android:id="@+id/widget_arc_4" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_4" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" />
+      <LinearLayout android:id="@+id/widget_value_row_4" android:layout_width="60.87dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_4" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_4" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="12dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_5" android:layout_width="60.87dp" android:layout_height="45.76dp" android:layout_marginStart="71.79dp" android:layout_marginTop="53.56dp" android:importantForAccessibility="yes" android:visibility="gone">
+      <ImageView android:id="@+id/widget_arc_5" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_5" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" />
+      <LinearLayout android:id="@+id/widget_value_row_5" android:layout_width="60.87dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_5" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_5" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="12dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_6" android:layout_width="60.87dp" android:layout_height="45.76dp" android:layout_marginStart="137.34dp" android:layout_marginTop="53.56dp" android:importantForAccessibility="yes" android:visibility="gone">
+      <ImageView android:id="@+id/widget_arc_6" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_6" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" />
+      <LinearLayout android:id="@+id/widget_value_row_6" android:layout_width="60.87dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_6" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_6" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="12dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" />
+      </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/widget_cell_7" android:layout_width="60.87dp" android:layout_height="45.76dp" android:layout_marginStart="202.89dp" android:layout_marginTop="53.56dp" android:importantForAccessibility="yes" android:visibility="gone">
+      <ImageView android:id="@+id/widget_arc_7" android:layout_width="36.61dp" android:layout_height="36.61dp" android:layout_gravity="center" android:src="@drawable/widget_arc_preview" android:importantForAccessibility="no" />
+      <ImageView android:id="@+id/widget_icon_7" android:layout_width="15.10dp" android:layout_height="15.10dp" android:layout_gravity="top|center_horizontal" android:layout_marginTop="15.10dp" android:importantForAccessibility="no" />
+      <LinearLayout android:id="@+id/widget_value_row_7" android:layout_width="60.87dp" android:layout_height="12.81dp" android:layout_gravity="top" android:layout_marginTop="30.20dp" android:orientation="horizontal" android:gravity="center">
+        <ImageView android:id="@+id/widget_charge_7" android:layout_width="7dp" android:layout_height="10dp" android:src="@drawable/ic_power" android:visibility="gone" android:importantForAccessibility="no" />
+        <TextView android:id="@+id/widget_value_7" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:fontFamily="sec" android:textFontWeight="500" android:textSize="12dp" android:textColor="@color/widget_foreground" android:includeFontPadding="false" android:maxLines="1" android:importantForAccessibility="no" />
+      </LinearLayout>
+    </FrameLayout>
+  </FrameLayout>
+</FrameLayout>

@@ -18,6 +18,7 @@
 
 package me.kavishdevar.librepods.bluetooth
 
+import android.bluetooth.BluetoothSocket
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
@@ -39,17 +40,19 @@ enum class ATTCCCDHandles(val value: Int) {
 }
 
 class ATTManagerv2 {
-    val characteristicList = mutableMapOf<ATTHandles, ByteArray>()
+    val characteristicList = ConcurrentHashMap<ATTHandles, ByteArray>()
 
     private val responseQueues = ConcurrentHashMap<Byte, LinkedBlockingQueue<ByteArray>>()
 
     private val readerRunning = AtomicBoolean(false)
     private var readerThread: Thread? = null
+    @Volatile private var socket: BluetoothSocket? = null
 
     private var onNotificationReceived: ((handle: Byte, value: ByteArray) -> Unit)? = null
 
-    fun startReader() {
+    fun startReader(socket: BluetoothSocket) {
         if (readerRunning.getAndSet(true)) return
+        this.socket = socket
 
         readerThread = Thread {
             try {
@@ -66,6 +69,14 @@ class ATTManagerv2 {
 
     fun stopReader() {
         readerRunning.set(false)
+        val oldSocket = socket
+        socket = null
+        // interrupt() alone does not unblock a Bluetooth socket read.
+        try {
+            oldSocket?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "error closing socket: ${e.message}")
+        }
         readerThread?.interrupt()
         readerThread = null
     }
@@ -86,7 +97,7 @@ class ATTManagerv2 {
     }
 
     fun readCharacteristic(handle: ATTHandles, timeoutMillis: Long = 2000): ByteArray? {
-        val socket = BluetoothConnectionManager.attSocket ?: return null
+        val socket = this.socket ?: return null
         try {
             val output = socket.outputStream
             val pdu = byteArrayOf(0x0A, handle.value.toByte(), 0x00)
@@ -103,6 +114,7 @@ class ATTManagerv2 {
 
             Log.d(TAG, "read response: ${resp.joinToString(" ") { String.format("%02X", it) }}")
             val value = resp.copyOfRange(1, resp.size)
+            if (this.socket !== socket) return null
             characteristicList[handle] = value
             return value
         } catch (e: Exception) {
@@ -117,7 +129,7 @@ class ATTManagerv2 {
     }
 
     fun writeCharacteristic(handle: Byte, data: ByteArray, timeoutMillis: Long = 2000) {
-        val socket = BluetoothConnectionManager.attSocket ?: return
+        val socket = this.socket ?: return
         try {
             val output = socket.outputStream
             val pdu = byteArrayOf(0x12, handle, 0x00) + data // 0x00 for LE
@@ -139,19 +151,15 @@ class ATTManagerv2 {
     }
 
     fun disconnected() {
-        characteristicList.clear()
         stopReader()
-        val socket = BluetoothConnectionManager.attSocket?: return
-        try {
-            socket.close()
-        } catch (e: Exception) {
-            Log.w(TAG, "error closing socket: ${e.message}")
-        }
+        characteristicList.clear()
+        responseQueues.clear()
+        onNotificationReceived = null
         Log.d(TAG, "ATT disconnected")
     }
 
     private fun runReaderLoop() {
-        val socket = BluetoothConnectionManager.attSocket ?: run {
+        val socket = this.socket ?: run {
             Log.w(TAG, "ATT socket not available. stopping reader")
             readerRunning.set(false)
             return
@@ -163,6 +171,7 @@ class ATTManagerv2 {
         while (readerRunning.get()) {
             try {
                 val len = input.read(buffer)
+                if (!readerRunning.get()) break
                 if (len == -1) {
                     Log.w(TAG, "ATT input stream ended")
                     break

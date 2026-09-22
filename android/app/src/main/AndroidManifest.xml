@@ -7,9 +7,9 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
-        tools:ignore="ForegroundServicesPolicy" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-feature android:name="android.software.companion_device_setup" android:required="false" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.REQUEST_OBSERVE_COMPANION_DEVICE_PRESENCE" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -57,6 +57,7 @@
         tools:ignore="UnusedAttribute" >
         <receiver
             android:name=".presentation.widgets.NoiseControlWidget"
+            android:label="@string/widget_controls_name"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -69,6 +70,7 @@
 
         <receiver
             android:name=".presentation.widgets.BatteryWidget"
+            android:label="@string/widget_battery_name"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -78,6 +80,14 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/battery_widget_info" />
         </receiver>
+
+        <activity android:name=".presentation.widgets.WidgetSettingsActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.DayNight">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".MainActivity"
@@ -107,11 +117,23 @@
              />
 
         <service
+            android:name=".services.AirPodsCompanionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
+            <intent-filter>
+                <action android:name="android.companion.CompanionDeviceService" />
+            </intent-filter>
+        </service>
+        <service
             android:name=".services.AirPodsService"
             android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="connectedDevice"
+            android:exported="false"
             android:permission="android.permission.BLUETOOTH_CONNECT" />
+        <receiver android:name=".receivers.NearbyScanReceiver" android:exported="false" />
+        <service
+            android:name=".services.NearbyTakeoverService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
         <service
             android:name=".services.AirPodsQSService"
             android:exported="true"
@@ -134,6 +156,18 @@
 <!--                android:resource="@xml/app_listener_service_config" />-->
 <!--        </service>-->
         <receiver
+            android:name=".receivers.BluetoothConnectionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+                <action android:name="android.bluetooth.device.action.BOND_STATE_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED" />
+                <action android:name="android.bluetooth.headset.profile.action.CONNECTION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
             android:exported="true"
@@ -141,6 +175,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.USER_UNLOCKED" />
             </intent-filter>
         </receiver>
 

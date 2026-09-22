@@ -34,6 +34,24 @@ you can install the root module. This is optional and only provides extra featur
 > [!IMPORTANT]
 > When using the root module, do not install the Play Store version. There might be issues because of the signature mismatch between the Play Store version and the root module.
 
+## Background connections in this development branch
+
+In App settings, use **Set up background connection** to approve your AirPods with Android. LibrePods can then reconnect when they connect to the phone, without keeping its foreground service or BLE scanner running by default. If you skip approval, open LibrePods after connecting your AirPods.
+
+**The connection popup** appears once after fresh battery data arrives on a connection, when the screen is on and unlocked and overlay permission is granted. It does not require Nearby detection.
+
+**Nearby detection** is off by default. It receives nearby battery data and supports automatic takeover through a system-managed, low-power, batched BLE scan without a foreground service. It requires proximity keys from a successful AirPods connection and Bluetooth controller batching support; automatic takeover also requires the companion association. Scanning still consumes battery, and Android may delay delivery and takeover or miss brief call/media activity. Turning it off stops the scan.
+
+Short checks on the maintainer's Galaxy S26+ / One UI 9 covered disconnected shutdown, removal from the active-app list, screen-off recovery, process recreation, Bluetooth toggles and combined reboot/unlock recovery. They do not establish long-term reliability or battery savings; see the [lifecycle notes](../docs/android-background-lifecycle.md).
+
+## Home-screen widgets in this branch
+
+**AirPods battery** shows the phone (optional), left and right AirPods, and case in a strip or grid. **AirPods controls** combines batteries and noise-control buttons. Both support 2×1, 4×1, 2×2 and 4×2 layouts; narrow controls use one button that cycles the available modes. Connected updates follow received battery and mode changes, and disconnected controls are disabled.
+
+Long-press a widget and open **Settings** to adjust its background, light/dark appearance and opacity independently. Square widgets also offer corner shapes. Battery settings select and reorder components, with an automatic option to show only components with a current battery value. Unused slots are empty rings; manually selected unavailable components show a dash. Save applies changes; Cancel leaves the widget unchanged. Compatible One UI Home versions can provide their native wallpaper blur; other launchers use the translucent background without app-side blur processing.
+
+Widget state updates and noise-control commands do not start a background service or BLE scan. Tapping the header or battery opens LibrePods with its normal app lifecycle. While AirPods are disconnected, phone-battery updates depend on Android's periodic widget refresh and are not instant. The inspected Samsung battery-provider and central-reader paths require privileged access, so this fork supplies its own widgets. Galaxy Watch integration, including a separate watch app, is outside this fork's scope. See the [widget notes](../docs/android-widgets.md) for the tested rendering scope.
+
 ## Nightly/Development Builds
 
 Want to try the latest features before they're officially released? You can grab nightly builds from the [latest nightly release](https://github.com/kavishdevar/librepods/releases?q=nightly).

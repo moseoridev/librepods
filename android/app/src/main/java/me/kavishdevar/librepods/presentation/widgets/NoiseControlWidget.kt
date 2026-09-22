@@ -16,84 +16,57 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.presentation.widgets
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import android.widget.RemoteViews
+import android.os.Bundle
+import android.widget.Toast
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.bluetooth.AACPManager
 import me.kavishdevar.librepods.services.ServiceManager
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 class NoiseControlWidget : AppWidgetProvider() {
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        val views = RemoteViews(context.packageName, R.layout.noise_control_widget)
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        WidgetPublisher.update(context, forceIds = ids.toSet())
+    }
 
-        val offIntent = Intent(context, NoiseControlWidget::class.java).apply {
-            action = "ACTION_SET_ANC_MODE"
-            putExtra("ANC_MODE", 1)
-        }
-        val transparencyIntent = Intent(context, NoiseControlWidget::class.java).apply {
-            action = "ACTION_SET_ANC_MODE"
-            putExtra("ANC_MODE", 3)
-        }
-        val adaptiveIntent = Intent(context, NoiseControlWidget::class.java).apply {
-            action = "ACTION_SET_ANC_MODE"
-            putExtra("ANC_MODE", 4)
-        }
-        val ancIntent = Intent(context, NoiseControlWidget::class.java).apply {
-            action = "ACTION_SET_ANC_MODE"
-            putExtra("ANC_MODE", 2)
-        }
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) {
+        WidgetPublisher.update(context, forceIds = setOf(id))
+    }
 
-        views.setOnClickPendingIntent(
-            R.id.widget_off_button,
-            PendingIntent.getBroadcast(context, 0, offIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        )
-        views.setOnClickPendingIntent(
-            R.id.widget_transparency_button,
-            PendingIntent.getBroadcast(context, 1, transparencyIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        )
-        views.setOnClickPendingIntent(
-            R.id.widget_adaptive_button,
-            PendingIntent.getBroadcast(context, 2, adaptiveIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        )
-        views.setOnClickPendingIntent(
-            R.id.widget_anc_button,
-            PendingIntent.getBroadcast(context, 3, ancIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        )
-        ServiceManager.getService()?.updateNoiseControlWidget()
-        appWidgetManager.updateAppWidget(appWidgetIds, views)
+    override fun onDeleted(context: Context, ids: IntArray) {
+        WidgetPublisher.forget(ids)
+        WidgetPreferences.delete(context, ids, controls = true)
+    }
+
+    override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
+        WidgetPreferences.restore(context, oldIds, newIds, controls = true)
+        WidgetPublisher.forget(oldIds)
+        WidgetPublisher.update(context, forceIds = newIds.toSet())
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == "ACTION_SET_ANC_MODE") {
-            val mode = intent.getIntExtra("ANC_MODE", 1)
-            Log.d("NoiseControlWidget", "Setting ANC mode to $mode")
-            val service = ServiceManager.getService()
-
-            if (service == null) {
-                Log.w("NoiseControlWidget", "Service unavailable")
-                return
-            }
-
-             service.aacpManager
-                .sendControlCommand(
-                    AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE.value,
-                    mode.toByte()
-                )
+        if (intent.action != ACTION_MODE && intent.action != ACTION_CYCLE) return
+        val service = ServiceManager.getService()
+        val mode = if (intent.action == ACTION_CYCLE) {
+            val state = service?.getWidgetState()
+            val modes = if (state?.allowOff == true) listOf(1, 3, 4, 2) else listOf(3, 4, 2)
+            modes[(modes.indexOf(state?.mode) + 1) % modes.size]
+        } else intent.getIntExtra(EXTRA_MODE, -1)
+        if (mode !in 1..4) return
+        if (service?.setWidgetNoiseMode(mode) != true) {
+            Toast.makeText(context, R.string.widget_open_to_connect, Toast.LENGTH_SHORT).show()
+            WidgetPublisher.update(context)
         }
+        // Selection follows the AirPods acknowledgement, not an optimistic local value.
+    }
+
+    companion object {
+        const val ACTION_MODE = "me.kavishdevar.librepods.widget.SET_MODE"
+        const val ACTION_CYCLE = "me.kavishdevar.librepods.widget.CYCLE_MODE"
+        const val EXTRA_MODE = "mode"
     }
 }

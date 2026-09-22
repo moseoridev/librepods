@@ -33,6 +33,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * constructing and parsing packets for communication with AirPods.
  */
 class AACPManager {
+    @Volatile
+    internal var packetSender: ((ByteArray) -> Boolean)? = null
     private val TAG = "AACPManager[${System.identityHashCode(this)}]"
     companion object {
         @Suppress("unused")
@@ -1159,16 +1161,8 @@ class AACPManager {
                 )
             }
 
-            val socket = BluetoothConnectionManager.aacpSocket ?: return false
-
-            if (socket.isConnected) {
-                socket.outputStream?.write(packet)
-                socket.outputStream?.flush()
-                return true
-            } else {
-                Log.d(TAG, "Can't send packet: Socket not initialized or connected")
-                return false
-            }
+            // Sending is serialized by the session; never write a Bluetooth socket on main.
+            return packetSender?.invoke(packet) ?: false
         } catch (e: Exception) {
             Log.e(TAG, "Error sending packet: ${e.message}")
             return false
@@ -1270,6 +1264,7 @@ class AACPManager {
     }
 
     fun disconnected() {
+        packetSender = null
         Log.d(TAG, "Disconnected, clearing state")
         controlCommandStatusList.clear()
         controlCommandListeners.clear()

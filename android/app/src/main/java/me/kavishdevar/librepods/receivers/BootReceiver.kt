@@ -24,23 +24,19 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import kotlin.io.encoding.ExperimentalEncodingApi
-import me.kavishdevar.librepods.services.AirPodsService
+import me.kavishdevar.librepods.bluetooth.NearbyDetection
 
-class BootReceiver: BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
-        when (intent?.action) {
-            Intent.ACTION_MY_PACKAGE_REPLACED -> try { context?.startForegroundService(
-                Intent(
-                    context,
-                    AirPodsService::class.java
-                )
-            ) } catch (e: Exception) { e.printStackTrace() }
-            Intent.ACTION_BOOT_COMPLETED -> try { context?.startForegroundService(
-                Intent(
-                    context,
-                    AirPodsService::class.java
-                )
-            ) } catch (e: Exception) { e.printStackTrace() }
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action !in listOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_USER_UNLOCKED)) return
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit().remove("popup_connection_address").apply()
         }
+        me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(context)
+        val pending = goAsync()
+        var remaining = 2
+        val completed = { if (--remaining == 0) pending.finish() }
+        me.kavishdevar.librepods.bluetooth.CompanionConnection.reconcile(context, completed)
+        NearbyDetection.synchronize(context, completed)
     }
 }

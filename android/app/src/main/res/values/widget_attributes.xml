@@ -1,0 +1,13 @@
+<resources>
+<attr name="targetHost"><flag name="home" value="1"/></attr>
+<attr name="widgetStyle"><flag name="colorful" value="1"/></attr>
+<attr name="widgetSize"><flag name="small" value="2"/><flag name="wideSmall" value="4"/><flag name="medium" value="8"/><flag name="large" value="16"/></attr>
+<attr name="initialLayoutSmall" format="reference"/>
+<attr name="initialLayoutWideSmall" format="reference"/>
+<attr name="initialLayoutMedium" format="reference"/>
+<attr name="initialLayoutLarge" format="reference"/>
+<attr name="previewLayoutSmall" format="reference"/>
+<attr name="previewLayoutWideSmall" format="reference"/>
+<attr name="previewLayoutMedium" format="reference"/>
+<attr name="previewLayoutLarge" format="reference"/>
+</resources>

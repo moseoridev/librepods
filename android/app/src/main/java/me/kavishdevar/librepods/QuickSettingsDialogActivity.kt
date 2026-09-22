@@ -101,13 +101,16 @@ class QuickSettingsDialogActivity : ComponentActivity() {
 
     private var airPodsService: AirPodsService? = null
     private var isBound = false
+    private var bindingRequested = false
 
     private var isNoiseControlExpandedState by mutableStateOf(false)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             val binder = service as AirPodsService.LocalBinder
+            if (!bindingRequested) return
             airPodsService = binder.getService()
+            me.kavishdevar.librepods.bluetooth.CompanionConnection.reconcile(this@QuickSettingsDialogActivity)
             isBound = true
             Log.d("QSActivity", "Service bound")
             setContent {
@@ -151,7 +154,7 @@ class QuickSettingsDialogActivity : ComponentActivity() {
         window.setGravity(Gravity.BOTTOM)
 
         Intent(this, AirPodsService::class.java).also { intent ->
-            bindService(intent, connection, BIND_AUTO_CREATE)
+            bindingRequested = bindService(intent, connection, BIND_AUTO_CREATE)
         }
 
         setContent {
@@ -181,10 +184,10 @@ class QuickSettingsDialogActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isBound) {
-            unbindService(connection)
-            isBound = false
-        }
+        if (bindingRequested) unbindService(connection)
+        bindingRequested = false
+        isBound = false
+        airPodsService = null
     }
 }
 

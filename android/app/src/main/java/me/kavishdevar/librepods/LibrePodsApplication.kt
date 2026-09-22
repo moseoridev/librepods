@@ -7,7 +7,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import me.kavishdevar.librepods.billing.BillingManager
-import me.kavishdevar.librepods.billing.BillingProviderFactory
 import me.kavishdevar.librepods.utils.XposedServiceHolder
 import me.kavishdevar.librepods.utils.XposedState
 
@@ -15,10 +14,11 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
 
     override fun onCreate() {
         XposedServiceHelper.registerListener(this)
-        BillingManager.provider = BillingProviderFactory.create(this)
+        BillingManager.initialize(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
         super<Application>.onCreate()
+        me.kavishdevar.librepods.bluetooth.NearbyDetection.initialize(this)
 
     }
 

@@ -106,6 +106,7 @@
             android:textStyle="bold"
             tools:ignore="HardcodedText" />
 
+        <!-- IslandWindow inflates with the application context, without AppCompat view substitution. -->
         <ImageButton
             android:id="@+id/island_action_button"
             android:layout_width="64dp"
@@ -119,6 +120,7 @@
             android:tint="@android:color/white"
             android:elevation="8dp"
             android:translationZ="8dp"
-            android:visibility="gone" />
+            android:visibility="gone"
+            tools:ignore="UseAppTint" />
     </FrameLayout>
 </LinearLayout>

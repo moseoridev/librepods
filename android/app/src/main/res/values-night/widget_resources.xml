@@ -1,0 +1,8 @@
+<resources>
+  <color name="widget_controls_surface">#BF010102</color>
+  <color name="widget_surface">#A6010102</color>
+  <color name="widget_foreground">#FFFAFAFF</color>
+  <color name="widget_text_secondary">#CCFAFAFF</color>
+  <color name="widget_control_idle">#26FCFCFF</color>
+  <color name="widget_arc_track">#33FCFCFF</color>
+</resources>

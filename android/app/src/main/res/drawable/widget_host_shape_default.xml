@@ -1,0 +1,2 @@
+<!-- No explicit corners: One UI Home chooses the default outline from the widget's span. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#FFFFFFFF"/></shape>

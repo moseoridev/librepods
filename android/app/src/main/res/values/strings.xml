@@ -291,4 +291,14 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="i_agree">I agree</string>
     <string name="compatibility_check_bypassed">Compatibility check bypassed. Are you sure your device is compatible?</string>
+    <string name="background_connection_title">Background connection</string>
+    <string name="background_connection_notice">LibrePods now stops connection work when your AirPods disconnect. Approve your AirPods once to reconnect while the app is closed. Without approval, open LibrePods after connecting. The connection popup appears after fresh battery data arrives. Optional Nearby detection uses system-managed low-power scanning without a foreground service. Nearby battery updates and automatic takeover can be delayed by Android.</string>
+    <string name="background_connection_setup">Set up background connection</string>
+    <string name="background_connection_later">Later</string>
+    <string name="background_connection_setup_description">Approve your AirPods so Android can start LibrePods when they connect.</string>
+    <string name="background_connection_ready">Background connection approved</string>
+    <string name="background_connection_ready_description">Connection work runs while your selected AirPods are connected.</string>
+    <string name="background_detection_title">Nearby detection</string>
+    <string name="background_detection_description">Receives nearby battery data and supports automatic takeover using system-managed low-power scanning. No foreground service. Requires proximity keys from a successful connection and Bluetooth scan batching support. Android may delay updates and takeover; scanning still uses battery. Off by default.</string>
+    <string name="background_setup_unavailable">Companion device setup is unavailable on this device.</string>
 </resources>

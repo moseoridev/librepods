@@ -1,0 +1,33 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" android:id="@+id/widget_frame" android:clipToOutline="true" android:layout_width="270.000dp" android:layout_height="52.000dp" android:background="@drawable/widget_battery_surface" tools:ignore="UseAppTint" android:backgroundTint="@android:color/transparent">
+  <FrameLayout android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/widget_controls_surface">
+    <LinearLayout android:id="@+id/noise_control_widget" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="6.710dp" android:paddingEnd="7.548dp" android:paddingTop="6.500dp" android:paddingBottom="6.500dp">
+      <LinearLayout android:id="@+id/widget_control_buttons" android:layout_width="wrap_content" android:layout_height="38.581dp" android:orientation="horizontal" android:gravity="center_vertical">
+        <FrameLayout android:id="@+id/widget_off_button" android:layout_width="38.581dp" android:layout_height="38.581dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes" android:visibility="visible">
+          <ImageView android:id="@+id/widget_off_background" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no" android:background="@drawable/widget_mode_idle" android:backgroundTint="@color/widget_control_idle" />
+          <ImageView android:id="@+id/widget_off_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/noise_cancellation" android:importantForAccessibility="no" android:tint="#FFFFFFFF" />
+        </FrameLayout>
+        <ImageView android:id="@+id/widget_link_0" android:layout_width="11.448dp" android:layout_height="5.032dp" android:src="@drawable/widget_control_link" android:importantForAccessibility="no" android:visibility="visible" android:tint="@color/widget_control_idle" />
+        <FrameLayout android:id="@+id/widget_transparency_button" android:layout_width="38.581dp" android:layout_height="38.581dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes" android:visibility="visible">
+          <ImageView android:id="@+id/widget_transparency_background" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no" android:background="@drawable/widget_mode_idle" android:backgroundTint="@color/widget_control_idle" />
+          <ImageView android:id="@+id/widget_transparency_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/transparency" android:importantForAccessibility="no" android:tint="#FFFFFFFF" />
+        </FrameLayout>
+        <ImageView android:id="@+id/widget_link_1" android:layout_width="11.448dp" android:layout_height="5.032dp" android:src="@drawable/widget_control_link" android:importantForAccessibility="no" android:visibility="visible" android:tint="@color/widget_control_idle" />
+        <FrameLayout android:id="@+id/widget_adaptive_button" android:layout_width="38.581dp" android:layout_height="38.581dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes" android:visibility="visible">
+          <ImageView android:id="@+id/widget_adaptive_background" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no" android:background="@drawable/widget_mode_idle" android:backgroundTint="@color/widget_control_selected" />
+          <ImageView android:id="@+id/widget_adaptive_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/adaptive" android:importantForAccessibility="no" android:tint="#FFFFFFFF" />
+        </FrameLayout>
+        <ImageView android:id="@+id/widget_link_2" android:layout_width="11.448dp" android:layout_height="5.032dp" android:src="@drawable/widget_control_link" android:importantForAccessibility="no" android:visibility="visible" android:tint="@color/widget_control_idle" />
+        <FrameLayout android:id="@+id/widget_anc_button" android:layout_width="38.581dp" android:layout_height="38.581dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes" android:visibility="visible">
+          <ImageView android:id="@+id/widget_anc_background" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no" android:background="@drawable/widget_mode_idle" android:backgroundTint="@color/widget_control_idle" />
+          <ImageView android:id="@+id/widget_anc_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/noise_cancellation" android:importantForAccessibility="no" android:tint="#FFFFFFFF" />
+        </FrameLayout>
+      </LinearLayout>
+      <FrameLayout android:id="@+id/widget_control_gap" android:layout_width="0.000dp" android:layout_height="0dp" android:importantForAccessibility="no" />
+      <TextView android:id="@+id/widget_device_name" android:layout_width="61.431dp" android:layout_height="0.000dp" android:visibility="gone" android:layout_marginStart="201.020dp" android:layout_marginTop="0.000dp" android:textSize="0.000dp" android:gravity="center_vertical" />
+      <LinearLayout android:id="@+id/widget_control_batteries" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="5.645dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="L • R" android:textSize="10.065dp" android:textColor="@color/widget_control_foreground" android:fontFamily="sec" android:textFontWeight="600" android:includeFontPadding="true" android:maxLines="1" android:gravity="center_vertical" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="100%" android:textSize="10.065dp" android:textColor="@color/widget_control_foreground" android:fontFamily="sec" android:textFontWeight="600" android:includeFontPadding="true" android:maxLines="1" android:gravity="center_vertical" />
+      </LinearLayout>
+    </LinearLayout>
+  </FrameLayout>
+</FrameLayout>

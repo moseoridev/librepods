@@ -1,0 +1,4 @@
+<!-- Locally drawn separator; no extracted image. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#B3FFFFFF"/>
+</shape>

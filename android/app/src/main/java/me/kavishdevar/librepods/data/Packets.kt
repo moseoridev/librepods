@@ -173,21 +173,25 @@ class AirPodsNotifications {
         }
 
         fun setBatteryDirect(
-            leftLevel: Int,
-            leftCharging: Boolean,
-            rightLevel: Int,
-            rightCharging: Boolean,
-            caseLevel: Int,
-            caseCharging: Boolean
+            leftLevel: Int?, leftCharging: Boolean,
+            rightLevel: Int?, rightCharging: Boolean,
+            caseLevel: Int?, caseCharging: Boolean
         ) {
-            first = Battery(BatteryComponent.LEFT, leftLevel, if (leftCharging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING)
-            second = Battery(BatteryComponent.RIGHT, rightLevel, if (rightCharging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING)
-            case = Battery(BatteryComponent.CASE, caseLevel, if (caseCharging) BatteryStatus.CHARGING else BatteryStatus.NOT_CHARGING)
+            fun battery(component: Int, level: Int?, charging: Boolean) = Battery(component,
+                level ?: 0, when {
+                    level == null || level !in 0..100 -> BatteryStatus.DISCONNECTED
+                    charging -> BatteryStatus.CHARGING
+                    else -> BatteryStatus.NOT_CHARGING
+                })
+            first = battery(BatteryComponent.LEFT, leftLevel, leftCharging)
+            second = battery(BatteryComponent.RIGHT, rightLevel, rightCharging)
+            case = battery(BatteryComponent.CASE, caseLevel, caseCharging)
         }
 
-        fun setBattery(data: ByteArray) {
+        /** Returns true only when this packet replaces the cached battery snapshot. */
+        fun setBattery(data: ByteArray): Boolean {
             if (data.size != 22) {
-                return
+                return false
             }
 //            first = if (data[10].toInt() == BatteryStatus.DISCONNECTED) {
 //                Battery(first.component, first.level, data[10].toInt())
@@ -214,6 +218,7 @@ class AirPodsNotifications {
             case = Battery(
                 data[17].toInt(), data[19].toInt(), data[20].toInt()
             )
+            return true
         }
 
         fun getBattery(): List<Battery> {
@@ -243,23 +248,4 @@ class AirPodsNotifications {
             status = data[9]
         }
     }
-}
-
-fun isHeadTrackingData(data: ByteArray): Boolean {
-    if (data.size <= 60) return false
-
-    val prefixPattern = byteArrayOf(
-        0x04, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00,
-        0x10, 0x00
-    )
-
-    for (i in prefixPattern.indices) {
-        if (data[i] != prefixPattern[i]) return false
-    }
-
-    if (data[10] != 0x44.toByte() && data[10] != 0x45.toByte()) return false
-
-    if (data[11] != 0x00.toByte()) return false
-
-    return true
 }

@@ -58,6 +58,8 @@ class PopupWindow(
 ) {
     private val mView: View
     private var isClosing = false
+    private var closed = false
+    private var openingAnimation: Animator? = null
     private var autoCloseHandler = Handler(Looper.getMainLooper())
     private var autoCloseRunnable: Runnable? = null
     private var batteryUpdateReceiver: BroadcastReceiver? = null
@@ -142,15 +144,8 @@ class PopupWindow(
                 vid.setVideoPath("android.resource://me.kavishdevar.librepods/" + R.raw.connected)
                 vid.resolveAdjustedSize(vid.width, vid.height)
                 vid.start()
-                vid.setOnCompletionListener {
-                    vid.start()
-                }
 
-                try {
-                    mWindowManager.addView(mView, mParams)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                mWindowManager.addView(mView, mParams)
 
                 val displayMetrics = mView.context.resources.displayMetrics
                 val screenHeight = displayMetrics.heightPixels
@@ -160,7 +155,7 @@ class PopupWindow(
 
                 val translationY = PropertyValuesHolder.ofFloat(View.TRANSLATION_Y, screenHeight.toFloat(), 0f)
 
-                ObjectAnimator.ofPropertyValuesHolder(mView, translationY).apply {
+                openingAnimation = ObjectAnimator.ofPropertyValuesHolder(mView, translationY).apply {
                     duration = 500
                     interpolator = DecelerateInterpolator()
                     start()
@@ -173,7 +168,7 @@ class PopupWindow(
             }
         } catch (e: Exception) {
             Log.e("PopupWindow", "Error opening popup: ${e.message}")
-            onCloseCallback()
+            close(immediate = true)
         }
     }
 
@@ -181,6 +176,10 @@ class PopupWindow(
     private fun registerBatteryUpdateReceiver() {
         batteryUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                    close(immediate = true)
+                    return
+                }
                 if (intent?.action == AirPodsNotifications.BATTERY_DATA) {
                     val batteryList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         intent.getParcelableArrayListExtra("data", Battery::class.java)
@@ -195,7 +194,7 @@ class PopupWindow(
             }
         }
 
-        val filter = IntentFilter(AirPodsNotifications.BATTERY_DATA)
+        val filter = IntentFilter(AirPodsNotifications.BATTERY_DATA).apply { addAction(Intent.ACTION_SCREEN_OFF) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(batteryUpdateReceiver, filter, Context.RECEIVER_EXPORTED)
         } else {
@@ -250,40 +249,39 @@ class PopupWindow(
         updateBatteryStatusFromList(batteryStatus)
     }
 
-    fun close() {
+    fun close(immediate: Boolean = false) {
+        if (closed) return
+        if (isClosing) {
+            if (immediate) finishClose()
+            return
+        }
+        isClosing = true
+        openingAnimation?.cancel()
+        autoCloseRunnable?.let { autoCloseHandler.removeCallbacks(it) }
+        unregisterBatteryUpdateReceiver()
+        mView.findViewById<VideoView>(R.id.video).stopPlayback()
+        if (immediate || mView.parent == null) {
+            finishClose()
+            return
+        }
+        ObjectAnimator.ofFloat(mView, "translationY", mView.height.toFloat()).apply {
+            duration = 500
+            interpolator = AccelerateInterpolator()
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) = finishClose()
+            })
+            start()
+        }
+    }
+
+    private fun finishClose() {
+        if (closed) return
+        closed = true
         try {
-            if (isClosing) return
-            isClosing = true
-
-            autoCloseRunnable?.let { autoCloseHandler.removeCallbacks(it) }
-            unregisterBatteryUpdateReceiver()
-
-            val vid = mView.findViewById<VideoView>(R.id.video)
-            vid.stopPlayback()
-
-            ObjectAnimator.ofFloat(mView, "translationY", mView.height.toFloat()).apply {
-                duration = 500
-                interpolator = AccelerateInterpolator()
-                addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        try {
-                            mView.visibility = View.GONE
-                            if (mView.parent != null) {
-                                mWindowManager.removeView(mView)
-                            }
-                        } catch (e: Exception) {
-                            Log.e("PopupWindow", "Error removing view: ${e.message}")
-                        } finally {
-                            isClosing = false
-                            onCloseCallback()
-                        }
-                    }
-                })
-                start()
-            }
+            if (mView.parent != null) mWindowManager.removeView(mView)
         } catch (e: Exception) {
-            Log.e("PopupWindow", "Error closing popup: ${e.message}")
-            isClosing = false
+            Log.e("PopupWindow", "Error removing popup", e)
+        } finally {
             onCloseCallback()
         }
     }

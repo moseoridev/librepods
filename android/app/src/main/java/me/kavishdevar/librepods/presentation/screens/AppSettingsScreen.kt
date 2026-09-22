@@ -133,6 +133,8 @@ fun AppSettingsScreen(
     ) {
         Spacer(modifier = Modifier.height(topPadding))
 
+        me.kavishdevar.librepods.presentation.components.BackgroundConnectionSettings()
+        Spacer(modifier = Modifier.height(16.dp))
         val isDarkTheme = isSystemInDarkTheme()
 
         if (!state.isPremium && state.connectionSuccessful) {

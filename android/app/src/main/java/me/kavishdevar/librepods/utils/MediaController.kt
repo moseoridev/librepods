@@ -34,6 +34,7 @@ import me.kavishdevar.librepods.services.ServiceManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 object MediaController {
+    @Volatile private var initialized = false
     private var initialVolume: Int? = null
     private lateinit var audioManager: AudioManager
     var iPausedTheMedia = false
@@ -67,9 +68,10 @@ object MediaController {
     private var lastPlayTime: Long = 0L
 
     fun initialize(audioManager: AudioManager, sharedPreferences: SharedPreferences) {
-        if (this::audioManager.isInitialized) {
+        if (initialized) {
             return
         }
+        initialized = true
         this.audioManager = audioManager
         this.sharedPreferences = sharedPreferences
         Log.d("MediaController", "Initializing MediaController")
@@ -96,10 +98,31 @@ object MediaController {
         audioManager.registerAudioPlaybackCallback(cb, null)
     }
 
+    @Synchronized
+    fun release() {
+        if (!initialized) return
+        initialized = false
+        audioManager.unregisterAudioPlaybackCallback(cb)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+        handler.removeCallbacksAndMessages(null)
+        initialVolume?.let { audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, it, 0) }
+        initialVolume = null
+        iPausedTheMedia = false
+        userPlayedTheMedia = false
+        pausedWhileTakingOver = false
+        pausedForOtherDevice = false
+        recentlyLostOwnership = false
+        lastPlayWithReplay = false
+        lastKnownIsMusicActive = null
+        lastSelfActionAt = 0L
+        lastPlaybackCallbackAt = 0L
+    }
+
     val cb = object : AudioManager.AudioPlaybackCallback() {
         @RequiresApi(Build.VERSION_CODES.R)
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
             super.onPlaybackConfigChanged(configs)
+            if (!initialized) return
             val now = SystemClock.uptimeMillis()
             val isActive = audioManager.isMusicActive
             Log.d("MediaController", "Playback config changed, iPausedTheMedia: $iPausedTheMedia, isActive: $isActive, pausedForOtherDevice: $pausedForOtherDevice, lastKnownIsMusicActive: $lastKnownIsMusicActive")
@@ -204,11 +227,12 @@ object MediaController {
 
     @Synchronized
     fun getMusicActive(): Boolean {
-        return audioManager.isMusicActive
+        return initialized && audioManager.isMusicActive
     }
 
     @Synchronized
     fun sendPlayPause() {
+        if (!initialized) return
         if (audioManager.isMusicActive) {
             Log.d("MediaController", "Sending pause because music is active")
             sendPause()
@@ -220,6 +244,7 @@ object MediaController {
 
     @Synchronized
     fun sendPreviousTrack() {
+        if (!initialized) return
         Log.d("MediaController", "Sending previous track")
         audioManager.dispatchMediaKeyEvent(
             KeyEvent(
@@ -238,6 +263,7 @@ object MediaController {
 
     @Synchronized
     fun sendNextTrack() {
+        if (!initialized) return
         Log.d("MediaController", "Sending next track")
         audioManager.dispatchMediaKeyEvent(
             KeyEvent(
@@ -256,6 +282,7 @@ object MediaController {
 
     @Synchronized
     fun sendPause(force: Boolean = false) {
+        if (!initialized) return
         Log.d("MediaController", "Sending pause with iPausedTheMedia: $iPausedTheMedia, userPlayedTheMedia: $userPlayedTheMedia, isMusicActive: ${audioManager.isMusicActive}, force: $force")
         if ((audioManager.isMusicActive) && (!userPlayedTheMedia || force)) {
             iPausedTheMedia = if (force) audioManager.isMusicActive else true
@@ -278,6 +305,7 @@ object MediaController {
 
     @Synchronized
     fun sendPlay(replayWhenPaused: Boolean = false, force: Boolean = false) {
+        if (!initialized) return
         Log.d("MediaController", "Sending play with iPausedTheMedia: $iPausedTheMedia, replayWhenPaused: $replayWhenPaused, force: $force")
         if (replayWhenPaused) {
             lastPlayWithReplay = true
@@ -312,6 +340,7 @@ object MediaController {
 
     @Synchronized
     fun startSpeaking() {
+        if (!initialized) return
         Log.d("MediaController", "Starting speaking max vol: ${audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)}, current vol: ${audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)}, conversationalAwarenessVolume: $conversationalAwarenessVolume, relativeVolume: $relativeVolume")
 
         if (initialVolume == null) {
@@ -334,6 +363,7 @@ object MediaController {
 
     @Synchronized
     fun stopSpeaking() {
+        if (!initialized) return
         Log.d("MediaController", "Stopping speaking, initialVolume: $initialVolume")
         if (initialVolume != null) {
             smoothVolumeTransition(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC), initialVolume!!)

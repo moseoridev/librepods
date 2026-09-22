@@ -16,22 +16,40 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.presentation.widgets
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.os.Bundle
+import me.kavishdevar.librepods.data.Battery
 import me.kavishdevar.librepods.services.ServiceManager
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 class BatteryWidget : AppWidgetProvider() {
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        ServiceManager.getService()?.updateBattery()
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        ServiceManager.getService()?.synchronizeWidgetBatteryReceiver()
+        WidgetPublisher.update(context, forceIds = ids.toSet())
+    }
+
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) {
+        WidgetPublisher.update(context, forceIds = setOf(id))
+    }
+
+    override fun onEnabled(context: Context) { ServiceManager.getService()?.synchronizeWidgetBatteryReceiver() }
+    override fun onDisabled(context: Context) { ServiceManager.getService()?.synchronizeWidgetBatteryReceiver() }
+    override fun onDeleted(context: Context, ids: IntArray) {
+        WidgetPublisher.forget(ids)
+        WidgetPreferences.delete(context, ids, controls = false)
+        ServiceManager.getService()?.synchronizeWidgetBatteryReceiver()
+    }
+
+    override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
+        WidgetPreferences.restore(context, oldIds, newIds, controls = false)
+        WidgetPublisher.forget(oldIds)
+        WidgetPublisher.update(context, forceIds = newIds.toSet())
+    }
+
+    companion object {
+        fun update(context: Context, batteries: List<Battery>? = null) = WidgetPublisher.update(context, batteries)
     }
 }

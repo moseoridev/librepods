@@ -1,0 +1,4 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+ <ImageView android:id="@+id/widget_control_charge" android:layout_width="11dp" android:layout_height="16dp" android:src="@drawable/ic_power" android:importantForAccessibility="no"/>
+ <TextView android:id="@+id/widget_control_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12dp" android:fontFamily="sec" android:textFontWeight="600" android:gravity="top|start" android:includeFontPadding="true" android:maxLines="1"/>
+</LinearLayout>
