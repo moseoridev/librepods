@@ -37,7 +37,6 @@ data class AppSettingsUiState(
     val showBottomSheetPopup: Boolean = true,
     val showIslandPopup: Boolean = true,
     val timeUntilFOSSPremiumExpiry: Long = 0L,
-    val m3eEnabled: Boolean = false
 )
 
 class AppSettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -152,7 +151,6 @@ class AppSettingsViewModel(application: Application) : AndroidViewModel(applicat
                 connectionSuccessful = sharedPreferences.getBoolean("connection_successful", false),
                 showBottomSheetPopup = sharedPreferences.getBoolean("show_bottom_sheet_popup", true),
                 showIslandPopup = sharedPreferences.getBoolean("show_island_popup", true),
-                m3eEnabled = sharedPreferences.getBoolean("m3e_enabled", true)
             )
         }
     }
@@ -253,8 +251,4 @@ class AppSettingsViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.update { it.copy(showIslandPopup = enabled) }
     }
 
-    fun setm3eEnabled(enabled: Boolean) {
-        sharedPreferences.edit { putBoolean("m3e_enabled", enabled) }
-        _uiState.update { it.copy(m3eEnabled = enabled) }
-    }
 }

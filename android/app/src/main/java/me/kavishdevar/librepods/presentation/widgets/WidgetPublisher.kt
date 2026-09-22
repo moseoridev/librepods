@@ -431,10 +431,10 @@ object WidgetPublisher {
         }
     }
 
-    /** Rasterize LibrePods' existing icons into a bounded cache, preserving the widget's icon envelope. */
+    /** Rasterize inset upstream artwork; the shared drawables also size static previews. */
     private fun controlGlyph(context: Context, index: Int): Bitmap {
-        val resource = intArrayOf(R.drawable.noise_cancellation, R.drawable.transparency,
-            R.drawable.adaptive, R.drawable.noise_cancellation)[index]
+        val resource = intArrayOf(R.drawable.widget_glyph_noise_cancellation, R.drawable.widget_glyph_transparency,
+            R.drawable.widget_glyph_adaptive, R.drawable.widget_glyph_noise_cancellation)[index]
         val key = resource to context.resources.displayMetrics.densityDpi
         return controlGlyphs.get(key) ?: requireNotNull(context.getDrawable(resource)).let { drawable ->
             val edge = (80f * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)

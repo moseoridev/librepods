@@ -8,5 +8,5 @@ enum class DesignSystem {
 }
 
 val LocalDesignSystem = compositionLocalOf {
-    DesignSystem.Apple
+    DesignSystem.Material
 }

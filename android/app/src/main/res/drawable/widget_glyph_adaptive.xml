@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Upstream artwork has less internal whitespace than the original widget glyphs.
+     Fractional insets keep the same optical scale in every widget size and preview. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/adaptive"
+    android:insetLeft="15%" android:insetTop="15%"
+    android:insetRight="15%" android:insetBottom="15%" />

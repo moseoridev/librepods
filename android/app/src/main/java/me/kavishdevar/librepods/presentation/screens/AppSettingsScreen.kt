@@ -93,7 +93,6 @@ import me.kavishdevar.librepods.presentation.components.StyledSlider
 import me.kavishdevar.librepods.presentation.components.StyledToggle
 import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
-import me.kavishdevar.librepods.presentation.theme.MaterialTypography
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
 import me.kavishdevar.librepods.utils.XposedState
 import java.util.concurrent.TimeUnit
@@ -186,14 +185,6 @@ fun AppSettingsScreen(
                 )
             }
         }
-
-        StyledToggle(
-            title = stringResource(R.string.appearance),
-            label = stringResource(R.string.use_material3e),
-            checked = state.m3eEnabled,
-            onCheckedChange = viewModel::setm3eEnabled,
-            enabled = state.isPremium
-        )
 
         if (state.connectionSuccessful) {
             StyledToggle(
@@ -361,7 +352,7 @@ fun AppSettingsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.customizations_unavailable),
-                    style = MaterialTypography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                 )

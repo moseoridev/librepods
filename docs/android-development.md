@@ -49,6 +49,19 @@ Host tests protect cancellation, stale callbacks, ordered writes, retry limits, 
 
 The existing narrow `UseAppTint` exclusions cover framework RemoteViews and the framework overlay button. Preserve their required `android:tint`; do not replace them with AppCompat attributes or broaden the exclusions just to silence lint. Runtime evidence and open limits belong in the [lifecycle](android-background-lifecycle.md) and [widget](android-widgets.md) notes, not in a mandatory test checklist.
 
+## Emulator
+
+Use the external Android 17 (API 37.0) Google APIs ARM64 AVD `librepods-ui` for ordinary layout iteration. It has two CPU cores and 2 GiB RAM. Finish Gradle builds before starting it on the 16 GiB laptop. Start it with:
+
+```sh
+ANDROID_AVD_HOME=/Volumes/TESSERACT/Android/avd \
+  /Volumes/TESSERACT/Android/sdk/emulator/emulator @librepods-ui \
+  -port 5580 -no-window -no-audio -no-boot-anim -no-snapshot \
+  -gpu swiftshader -memory 2048 -cores 2
+```
+
+Wait for `adb -s emulator-5580 shell getprop sys.boot_completed` to return `1`. Inspect the visible result, not just Activity status; an error dialog can cover a resumed Activity. Stop the emulator when idle with `adb -s emulator-5580 emu kill`. AOSP does not reproduce Samsung fonts/framework behavior or phone performance. Galaxy access is for bounded OEM and real Bluetooth checks, not routine layout iteration.
+
 ## Reverse engineering and local evidence
 
 Use the existing ASC wrapper for targeted APK/JAR code queries:
@@ -65,6 +78,7 @@ Maintainer-local inputs and evidence live on TESSERACT. They are optional invest
 
 | Work | Location under `/Volumes/TESSERACT/programming/android/` |
 | --- | --- |
+| User-supplied iOS settings source archive, images and OCR | [librepodsDesignReference/ios-airpods/2026-09-21/README.md](/Volumes/TESSERACT/programming/android/librepodsDesignReference/ios-airpods/2026-09-21/README.md); read the [checked menu catalog](android-settings.md) first. |
 | Input/evidence index, firmware and Samsung investigations | [librepodsSamsungBatteryInvestigation/README.md](/Volumes/TESSERACT/programming/android/librepodsSamsungBatteryInvestigation/README.md) |
 
 For device work, select the device explicitly and verify the installed/local APK identity. Device operations still require task authorization.

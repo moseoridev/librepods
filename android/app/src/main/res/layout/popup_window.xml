@@ -44,13 +44,36 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:ignore="HardcodedText" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-    <VideoView
+    <!-- Reserve the bundled 1050:354 video's space before decoder preparation. -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/video"
-        android:contentDescription="AirPods"
-        android:src="@raw/connected"
-        tools:ignore="HardcodedText" />
+        android:layout_height="wrap_content">
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1050:354"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <VideoView
+                android:id="@+id/video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="AirPods"
+                tools:ignore="HardcodedText" />
+
+            <ImageView
+                android:id="@+id/video_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#FDFDFD"
+                android:scaleType="fitCenter"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

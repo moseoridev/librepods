@@ -17,258 +17,95 @@
 */
 
 
-// this is absolutely unnecessary, why did I make this. a simple toggle would've sufficed
-
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.presentation.screens
 
 import android.graphics.Paint
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.presentation.components.StyledButton
 import me.kavishdevar.librepods.presentation.components.StyledToggle
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
+import me.kavishdevar.librepods.presentation.components.StyledList
+import me.kavishdevar.librepods.presentation.components.StyledListItem
+import me.kavishdevar.librepods.presentation.viewmodel.AirPodsUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
 import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.utils.HeadTracking
-import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.abs
 
-@ExperimentalHazeMaterialsApi
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun HeadTrackingScreen(viewModel: AirPodsViewModel, navigateToPurchase: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
-    DisposableEffect(Unit) {
-        viewModel.startHeadTracking()
-        onDispose {
-            viewModel.stopHeadTracking()
+    HeadGesturesContent(state, viewModel::setHeadGesturesEnabled, navigateToPurchase) {
+        DisposableEffect(viewModel) {
+            viewModel.startHeadTracking()
+            onDispose { viewModel.stopHeadTracking() }
         }
+        HeadGestureDiagnostics { ServiceManager.getService()?.testHeadGestures() }
     }
-    val isDarkTheme = isSystemInDarkTheme()
-    if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-    val textColor = if (isDarkTheme) Color.White else Color.Black
+}
 
-    val backdrop = rememberLayerBackdrop()
-
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
-    val topPadding = if (m3eEnabled) 0.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 84.dp
-    val bottomPadding = if (m3eEnabled) 0.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 12.dp
-
-    var gestureText by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
-
-    var lastClickTime by remember { mutableLongStateOf(0L) }
-    var shouldExplode by remember { mutableStateOf(false) }
-
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .verticalScroll(scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(topPadding))
-
-        Column (
-            modifier = Modifier
-                .fillMaxWidth()
-                .layerBackdrop(backdrop)
-                .padding(top = 8.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-
-            if (!state.isPremium) {
-                StyledButton(
-                    onClick = navigateToPurchase,
-                    backdrop = rememberLayerBackdrop(),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxScale = 0.05f,
-                    surfaceColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(
-                        stringResource(R.string.unlock_advanced_features),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            StyledToggle(
-                label = "Head Gestures",
-                checked = state.headGesturesEnabled,
-                onCheckedChange = { viewModel.setHeadGesturesEnabled(it) },
-                enabled = state.isPremium || state.headGesturesEnabled,
-                description = stringResource(R.string.head_gestures_details),
-                header = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Velocity",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp, top = 8.dp)
-            )
-            Plot()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LaunchedEffect(gestureText) {
-                if (gestureText.isNotEmpty()) {
-                    lastClickTime = System.currentTimeMillis()
-                    delay(3000)
-                    if (System.currentTimeMillis() - lastClickTime >= 3000) {
-                        shouldExplode = true
-                    }
-                }
-            }
+@Composable
+fun HeadGesturesContent(state: AirPodsUiState, onEnabled: (Boolean) -> Unit,
+                        navigateToPurchase: () -> Unit, diagnostics: @Composable () -> Unit) {
+    var testing by remember { mutableStateOf(false) }
+    SettingsDetailColumn {
+        StyledToggle(label = stringResource(R.string.head_gestures), checked = state.headGesturesEnabled, header = true,
+            onCheckedChange = onEnabled, enabled = state.isPremium || state.headGesturesEnabled,
+            description = stringResource(R.string.head_gestures_details))
+        StyledList {
+            // Upstream supports fixed nod/shake call gestures, not configurable notification actions.
+            StyledListItem(name = stringResource(R.string.answer_call),
+                description = stringResource(R.string.gesture_up_down))
+            StyledListItem(name = stringResource(R.string.decline_call),
+                description = stringResource(R.string.gesture_side_side))
         }
-        val gestureTextValue = stringResource(R.string.shake_your_head_or_nod)
-        StyledButton(
-            onClick = {
-                gestureText = gestureTextValue
-                coroutineScope.launch {
-                    val accepted = ServiceManager.getService()?.testHeadGestures() ?: false
-                    gestureText = if (accepted) "\"Yes\" gesture detected." else "\"No\" gesture detected."
-                }
-            },
-            backdrop = backdrop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            maxScale = 0.05f
-        ) {
-            Text(
-                "Test Head Gestures",
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                ),
-            )
+        if (!state.isPremium) StyledButton(onClick = navigateToPurchase, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.unlock_advanced_features))
         }
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(top = 12.dp, bottom = 24.dp)
-        ) {
-            AnimatedContent(
-                targetState = gestureText,
-                transitionSpec = {
-                    (fadeIn(
-                        animationSpec = tween(300)
-                    ) + slideInVertically(
-                        initialOffsetY = { 40 },
-                        animationSpec = tween(300)
-                    )).togetherWith(fadeOut(animationSpec = tween(150)))
-                }
-            ) { text ->
-                if (shouldExplode) {
-                    LaunchedEffect(Unit) {
-                        CoroutineScope(coroutineScope.coroutineContext).launch {
-                            delay(750)
-                            gestureText = ""
-                        }
-                    }
-                    Text(
-                        text = text,
-                        style = TextStyle(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
-                            textAlign = TextAlign.Center
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                } else {
-                    Text(
-                        text = text,
-                        style = TextStyle(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
-                            color = textColor,
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(bottomPadding))
+        StyledListItem(name = stringResource(if (testing) R.string.close_gesture_test else R.string.try_head_gestures),
+            onClick = { testing = !testing }, enabled = state.isLocallyConnected)
+        if (testing && state.isLocallyConnected) diagnostics()
     }
+}
+
+@Composable
+private fun HeadGestureDiagnostics(test: suspend () -> Boolean?) {
+    val scope = rememberCoroutineScope()
+    var running by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<Boolean?>(null) }
+    var completed by remember { mutableStateOf(false) }
+    Text(stringResource(R.string.gesture_velocity), style = MaterialTheme.typography.titleSmall)
+    Plot()
+    StyledButton(onClick = {
+        running = true; completed = false
+        scope.launch {
+            try { result = test(); completed = true } finally { running = false }
+        }
+    }, enabled = !running, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.try_head_gestures))
+    }
+    if (running || completed) Text(stringResource(when {
+        running -> R.string.shake_your_head_or_nod
+        result == true -> R.string.gesture_yes_detected
+        result == false -> R.string.gesture_no_detected
+        else -> R.string.gesture_test_unavailable
+    }), style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable

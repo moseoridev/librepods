@@ -97,7 +97,7 @@
     <string name="microphone_always_left">Always Left</string>
     <string name="answer_call">Answer call</string>
     <string name="mute_unmute">Mute/Unmute</string>
-    <string name="hang_up">Hang Up</string>
+    <string name="hang_up">End Call</string>
     <string name="press_once">Press Once</string>
     <string name="press_twice">Press Twice</string>
     <string name="hearing_aid">Hearing Aid</string>
@@ -119,6 +119,8 @@
     <string name="band_label">Band %d</string>
     <string name="default_option">Default</string>
     <string name="slower">Slower</string>
+    <string name="shorter">Shorter</string>
+    <string name="shortest">Shortest</string>
     <string name="slowest">Slowest</string>
     <string name="longer">Longer</string>
     <string name="longest">Longest</string>
@@ -301,4 +303,21 @@
     <string name="background_detection_title">Nearby detection</string>
     <string name="background_detection_description">Receives nearby battery data and supports automatic takeover using system-managed low-power scanning. No foreground service. Requires proximity keys from a successful connection and Bluetooth scan batching support. Android may delay updates and takeover; scanning still uses battery. Off by default.</string>
     <string name="background_setup_unavailable">Companion device setup is unavailable on this device.</string>
+    <string name="audio_routing">Audio &amp; Routing</string>
+    <string name="controls_gestures">Controls &amp; Gestures</string>
+    <string name="navigate_back">Navigate back</string>
+    <string name="start_head_tracking">Start head tracking</string>
+    <string name="pause_head_tracking">Pause head tracking</string>
+    <string name="battery_unknown">Battery level unknown</string>
+    <string name="battery_charging">Charging</string>
+    <string name="battery_optimized_charging">Optimized charging</string>
+    <string name="gesture_up_down">Up and Down</string>
+    <string name="gesture_side_side">Side to Side</string>
+    <string name="decline_call">Decline Call</string>
+    <string name="try_head_gestures">Try Head Gestures</string>
+    <string name="close_gesture_test">Close Gesture Test</string>
+    <string name="gesture_velocity">Velocity</string>
+    <string name="gesture_yes_detected">Nod detected.</string>
+    <string name="gesture_no_detected">Head shake detected.</string>
+    <string name="gesture_test_unavailable">Gesture test unavailable. Check the AirPods connection.</string>
 </resources>

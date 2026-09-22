@@ -1,21 +1,21 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_control_buttons" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
 <FrameLayout android:id="@+id/widget_off_button" android:layout_width="46dp" android:layout_height="46dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes">
  <ImageView android:id="@+id/widget_off_background" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no"/>
- <ImageView android:id="@+id/widget_off_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/noise_cancellation" android:importantForAccessibility="no"/>
+ <ImageView android:id="@+id/widget_off_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/widget_glyph_noise_cancellation" android:importantForAccessibility="no"/>
 </FrameLayout>
 <ImageView android:id="@+id/widget_link_0" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:src="@drawable/widget_control_link" android:importantForAccessibility="no"/>
 <FrameLayout android:id="@+id/widget_transparency_button" android:layout_width="46dp" android:layout_height="46dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes">
  <ImageView android:id="@+id/widget_transparency_background" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no"/>
- <ImageView android:id="@+id/widget_transparency_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/transparency" android:importantForAccessibility="no"/>
+ <ImageView android:id="@+id/widget_transparency_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/widget_glyph_transparency" android:importantForAccessibility="no"/>
 </FrameLayout>
 <ImageView android:id="@+id/widget_link_1" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:src="@drawable/widget_control_link" android:importantForAccessibility="no"/>
 <FrameLayout android:id="@+id/widget_adaptive_button" android:layout_width="46dp" android:layout_height="46dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes">
  <ImageView android:id="@+id/widget_adaptive_background" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no"/>
- <ImageView android:id="@+id/widget_adaptive_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/adaptive" android:importantForAccessibility="no"/>
+ <ImageView android:id="@+id/widget_adaptive_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/widget_glyph_adaptive" android:importantForAccessibility="no"/>
 </FrameLayout>
 <ImageView android:id="@+id/widget_link_2" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:src="@drawable/widget_control_link" android:importantForAccessibility="no"/>
 <FrameLayout android:id="@+id/widget_anc_button" android:layout_width="46dp" android:layout_height="46dp" android:focusable="true" android:clickable="true" android:importantForAccessibility="yes">
  <ImageView android:id="@+id/widget_anc_background" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:scaleType="fitXY" android:importantForAccessibility="no"/>
- <ImageView android:id="@+id/widget_anc_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/noise_cancellation" android:importantForAccessibility="no"/>
+ <ImageView android:id="@+id/widget_anc_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/widget_glyph_noise_cancellation" android:importantForAccessibility="no"/>
 </FrameLayout>
 </LinearLayout>

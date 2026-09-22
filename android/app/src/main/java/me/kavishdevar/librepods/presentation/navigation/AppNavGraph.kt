@@ -20,6 +20,7 @@ import me.kavishdevar.librepods.data.updates.updates
 import me.kavishdevar.librepods.presentation.screens.AccessibilitySettingsScreen
 import me.kavishdevar.librepods.presentation.screens.AdaptiveStrengthScreen
 import me.kavishdevar.librepods.presentation.screens.AirPodsSettingsRoute
+import me.kavishdevar.librepods.presentation.screens.AirPodsSettingsPage
 import me.kavishdevar.librepods.presentation.screens.AppSettingsScreen
 import me.kavishdevar.librepods.presentation.screens.CallControlScreen
 import me.kavishdevar.librepods.presentation.screens.EqualizerRoute
@@ -84,11 +85,20 @@ fun AppNavGraph(
                                 backStack.remove(screen)
                             }
                         }
-                    Screen.AirPodsSettings ->
+                    Screen.AirPodsSettings, Screen.AudioRouting, Screen.ControlsGestures, Screen.Battery ->
                         NavEntry(screen) {
                             if (!airPodsViewModel.isReady) LoadingScreen()
                             AirPodsSettingsRoute(
                                 viewModel = airPodsViewModel,
+                                page = when (screen) {
+                                    Screen.AudioRouting -> AirPodsSettingsPage.AudioRouting
+                                    Screen.ControlsGestures -> AirPodsSettingsPage.ControlsGestures
+                                    Screen.Battery -> AirPodsSettingsPage.Battery
+                                    else -> AirPodsSettingsPage.Home
+                                },
+                                navigateToAudioRouting = { navigate(Screen.AudioRouting) },
+                                navigateToControlsGestures = { navigate(Screen.ControlsGestures) },
+                                navigateToBattery = { navigate(Screen.Battery) },
                                 navigateToRename = { navigate(Screen.Rename) },
                                 navigateToHearingProtection = { navigate(Screen.HearingProtection) },
                                 navigateToHearingAid = { navigate(Screen.HearingAid) },

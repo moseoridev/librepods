@@ -21,10 +21,6 @@
 package me.kavishdevar.librepods.presentation.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
@@ -39,8 +35,8 @@ fun CallControlSettings(
     val pressOnceText = stringResource(R.string.press_once)
     val pressTwiceText = stringResource(R.string.press_twice)
 
-    var singlePressAction by remember { mutableStateOf(if (flipped) pressTwiceText else pressOnceText) }
-    var doublePressAction by remember { mutableStateOf(if (flipped) pressOnceText else pressTwiceText) }
+    val singlePressAction = if (flipped) pressTwiceText else pressOnceText
+    val doublePressAction = if (flipped) pressOnceText else pressTwiceText
 
     val muteUnmuteText = stringResource(R.string.mute_unmute)
     val hangUpText = stringResource(R.string.hang_up)
@@ -64,26 +60,5 @@ fun CallControlSettings(
             onClick = { navigateToCallControlScreen(hangUpText) }
         )
 
-//        StyledListItem(
-//            name = pressOnceText,
-//            selected = doublePressAction == pressOnceText,
-//            onClick = {
-//                doublePressAction = pressOnceText
-//                singlePressAction = pressTwiceText
-//
-//                onCallControlValueChanged(true)
-//            }
-//        )
-//
-//        StyledListItem(
-//            name = pressTwiceText,
-//            selected = doublePressAction == pressTwiceText,
-//            onClick = {
-//                doublePressAction = pressTwiceText
-//                singlePressAction = pressOnceText
-//
-//                onCallControlValueChanged(false)
-//            }
-//        )
     }
 }

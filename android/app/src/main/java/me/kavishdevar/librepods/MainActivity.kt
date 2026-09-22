@@ -31,7 +31,6 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -81,24 +80,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val sharedPreferences = LocalContext.current.getSharedPreferences("settings", MODE_PRIVATE)
-            val m3eEnabled = remember { mutableStateOf(sharedPreferences.getBoolean("m3e_enabled", true)) }
-
-            val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-                when (key) {
-                    "m3e_enabled" -> m3eEnabled.value = sharedPreferences.getBoolean(key, true)
-                }
-            }
-
-            DisposableEffect(Unit) {
-                sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-                onDispose {
-                    sharedPreferences.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-                }
-            }
-            LibrePodsTheme(
-                m3eEnabled = m3eEnabled.value
-            ) {
+            LibrePodsTheme {
 //                For demo screenshots
 //                val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
 //                windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

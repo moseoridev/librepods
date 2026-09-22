@@ -4,15 +4,18 @@
 
 Keep Android improvements usable without root while preserving existing optional root features. Respect Android version and flavor compatibility. Treat battery efficiency and UI responsiveness as primary constraints, and make latency or feature tradeoffs explicit.
 
+For settings UI work, preserve the referenced iOS AirPods information structure and supported behavior while reproducing the actual Galaxy Buds 4 Manager appearance, not a generic One UI-inspired design. Derive layout, typography, colors and control geometry from the reference implementation; distinguish source-backed matches from unverified adaptations. Keep redesign changes in presentation and reuse upstream state and command paths so upstream updates remain practical. Reference screenshots describe observed UI, not proof of Android feature support; do not package vendor artwork from them.
+
 Carry authorized implementation through integration and proportionate verification. Investigations and design reviews should produce findings unless implementation is requested. Make routine local decisions without repeated approval; ask when missing information materially changes the outcome or the action exceeds the task's authorization. Existing authorization carries forward.
 
-The primary agent performs implementation, investigation and verification directly. Reuse a dedicated reviewer only for the final review after implementation and proportionate verification, immediately before committing. Do not request intermediate design or partial-patch reviews unless the user explicitly asks. The reviewer never implements changes; the primary agent applies review fixes and verifies them before any necessary final re-review.
+The primary agent performs implementation, investigation and verification directly. Reuse a dedicated reviewer only for the final review after implementation and proportionate verification, immediately before committing. Do not request intermediate design or partial-patch reviews unless the user explicitly asks. The reviewer never implements changes; the primary agent applies review fixes and verifies them before any necessary final re-review. Use an adversarial review stance: assume the implementation and its explanation may be wrong, and actively seek counterexamples, lost behavior, lifecycle/accessibility regressions, and unsupported verification claims. Require each finding to identify concrete code, a plausible trigger, and its consequence; reject speculative objections or demands for unrelated work. The reviewer is not an approval rubber stamp, and finding no defect is a valid result.
 
 Follow explicit user instructions over this file and skill guidance. If a skill blocks authorized work, identify the exact instruction. Communicate concise results, evidence, and limitations in Korean unless requested otherwise.
 
 ## Read according to the task
 
 - Android setup or builds: [development guide](docs/android-development.md).
+- Settings structure, iOS screenshot sources, or One UI redesign: [settings reference](docs/android-settings.md).
 - Android connection lifetime, reconnects, or background resource use: [lifecycle notes](docs/android-background-lifecycle.md).
 - Widget state, rendering, or Samsung parity: [widget notes](docs/android-widgets.md).
 - APK/JAR investigation: use ASC for code decompilation; use resource tools for resources. See [local tools and evidence](docs/android-development.md#reverse-engineering-and-local-evidence).
