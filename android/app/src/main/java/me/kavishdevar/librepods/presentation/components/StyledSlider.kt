@@ -26,20 +26,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedListItem
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.Font
@@ -47,9 +40,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers.GREEN_DOMINATED_EXAMPLE
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.presentation.theme.BudsStyle
 import me.kavishdevar.librepods.presentation.theme.LibrePodsTheme
 import kotlin.math.abs
 
@@ -60,140 +52,74 @@ fun StyledSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
-    backdrop: Backdrop = rememberLayerBackdrop(),
     snapPoints: List<Float> = emptyList(),
     snapThreshold: Float = 0.05f,
     startIcon: String? = null,
     endIcon: String? = null,
     startLabel: String? = null,
     endLabel: String? = null,
+    @Suppress("UNUSED_PARAMETER") // Upstream callers retain their signatures; grouping is by card.
     independent: Boolean = false,
     description: String? = null,
-    enabled: Boolean = true,
-    index: Int = 0,
-    count: Int = 1
+    enabled: Boolean = true
 ) {
-    val defaultShape = when {
-        count == 1 -> RoundedCornerShape(24.dp)
+    val alpha = if (enabled) 1f else .4f
+    StyledList(title = label) {
+        item { _, _ ->
+            Column(Modifier.fillMaxWidth()
+                .padding(horizontal = BudsStyle.RowInset)
+                .padding(vertical = BudsStyle.RowVerticalPadding)) {
+                description?.let {
+                    Text(it, style = BudsStyle.RowSummary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha))
+                }
 
-        index == 0 -> RoundedCornerShape(
-            topStart = 24.dp,
-            topEnd = 24.dp,
-            bottomStart = 8.dp,
-            bottomEnd = 8.dp
-        )
+                if (startLabel != null || endLabel != null) {
+                    Row(Modifier.fillMaxWidth()) {
+                        startLabel?.let {
+                            Text(it, style = BudsStyle.RowSummary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha))
+                        }
 
-        index == count - 1 -> RoundedCornerShape(
-            topStart = 8.dp,
-            topEnd = 8.dp,
-            bottomStart = 24.dp,
-            bottomEnd = 24.dp
-        )
+                        Spacer(Modifier.weight(1f))
 
-        else -> RoundedCornerShape(8.dp)
-    }
-
-    Column {
-        label?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelSmallEmphasized,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 4.dp, bottom = 12.dp)
-            )
-        }
-        SegmentedListItem(
-            shapes = ListItemDefaults.shapes().copy(
-                shape = defaultShape,
-                pressedShape = RoundedCornerShape(24.dp),
-                selectedShape = RoundedCornerShape(24.dp),
-                hoveredShape = RoundedCornerShape(24.dp),
-            ),
-            onClick = {},
-            enabled = enabled,
-            modifier = Modifier.heightIn(min = 58.dp),
-            content = {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    description?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    if (startLabel != null || endLabel != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            startLabel?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-
-                            Spacer(Modifier.weight(1f))
-
-                            endLabel?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
+                        endLabel?.let {
+                            Text(it, style = BudsStyle.RowSummary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha))
                         }
                     }
                 }
-            },
-            supportingContent = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
 
-                        startIcon?.let {
-                            Text(it, fontFamily = FontFamily(Font(R.font.sf_pro)))
-                            Spacer(Modifier.width(12.dp))
-                        }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    startIcon?.let {
+                        Text(it, fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+                        Spacer(Modifier.width(12.dp))
+                    }
 
-                        Slider(
-                            modifier = Modifier.weight(1f),
-                            value = value,
-                            onValueChange = { newValue ->
-                                val snapped =
-                                    if (snapPoints.isNotEmpty()) {
-                                        snapIfClose(
-                                            newValue,
-                                            snapPoints,
-                                            snapThreshold
-                                        )
-                                    } else {
-                                        newValue
-                                    }
+                    BudsSeekBar(
+                        value = value,
+                        onValueChange = { newValue ->
+                            onValueChange(
+                                if (snapPoints.isNotEmpty()) {
+                                    snapIfClose(newValue, snapPoints, snapThreshold)
+                                } else {
+                                    newValue
+                                }
+                            )
+                        },
+                        valueRange = valueRange,
+                        modifier = Modifier.weight(1f),
+                        enabled = enabled
+                    )
 
-                                onValueChange(snapped)
-                            },
-                            valueRange = valueRange,
-                            enabled = enabled
-                        )
-
-                        endIcon?.let {
-                            Spacer(Modifier.width(12.dp))
-                            Text(it, fontFamily = FontFamily(Font(R.font.sf_pro)))
-                        }
+                    endIcon?.let {
+                        Spacer(Modifier.width(12.dp))
+                        Text(it, fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
                     }
                 }
             }
-        )
-
-        if (index + 1 != count) {
-            Spacer(
-                modifier = Modifier.height(2.dp)
-            )
         }
     }
 }

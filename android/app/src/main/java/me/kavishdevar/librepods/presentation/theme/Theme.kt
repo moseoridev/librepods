@@ -36,6 +36,13 @@ val ColorScheme.toolbarSubtitle: Color
 val ColorScheme.switchThumb: Color
     get() = Color(0xFFFCFCFF)
 
+// SESL seekbar roles: sesl_seekbar_control_color_default(_dark) and
+// sesl_thumb_control_fill_color_activated -> sesl_gray_L1/D1.
+val ColorScheme.sliderTrack: Color
+    get() = if (onSurface == Color(0xFF010102)) Color(0x1A17171A) else Color(0x26FCFCFF)
+val ColorScheme.sliderThumbCore: Color
+    get() = if (onSurface == Color(0xFF010102)) Color(0xFFFCFCFF) else Color(0xFF010102)
+
 // ASC: xu.f -> nu.j -> ju.a case 12; resolved SESL resources in Buds 4 Manager.
 private val BudsLightColors = lightColorScheme(
     background = Color(0xFFF1F1F3), surfaceContainer = Color(0xFFF1F1F3),
