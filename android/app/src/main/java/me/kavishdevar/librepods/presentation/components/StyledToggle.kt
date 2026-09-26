@@ -37,6 +37,7 @@ fun StyledToggle(
     title: String? = null,
     label: String,
     description: String? = null,
+    descriptionIsState: Boolean = false,
     checked: Boolean = false,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
@@ -59,11 +60,11 @@ fun StyledToggle(
                 }
             }
             description?.let { Text(it, style = BudsStyle.RowSummary,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = BudsStyle.summaryColor(descriptionIsState, canClick = true, enabled = enabled),
                 modifier = Modifier.padding(horizontal = BudsStyle.RowInset).padding(top = BudsStyle.FooterTop)) }
         }
     } else {
-        StyledList(title = title) { StyledToggle(label, description, checked, enabled, onCheckedChange) }
+        StyledList(title = title) { StyledToggle(label, description, descriptionIsState, checked, enabled, onCheckedChange) }
     }
 }
 
@@ -71,6 +72,7 @@ fun StyledToggle(
 fun StyledListScope.StyledToggle(
     label: String,
     description: String? = null,
+    descriptionIsState: Boolean = false,
     checked: Boolean = false,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
@@ -85,8 +87,7 @@ fun StyledListScope.StyledToggle(
                 Text(label, style = BudsStyle.RowTitle,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else .4f))
                 description?.let {
-                    Text(it, style = BudsStyle.RowSummary,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else .4f))
+                    Text(it, style = BudsStyle.RowSummary, color = BudsStyle.summaryColor(descriptionIsState, canClick = true, enabled = enabled))
                 }
             }
             Spacer(Modifier.width(16.dp))

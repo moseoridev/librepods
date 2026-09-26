@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,6 +100,7 @@ import me.kavishdevar.librepods.data.Capability
 import me.kavishdevar.librepods.presentation.MaterialIcons
 import me.kavishdevar.librepods.presentation.components.AboutCard
 import me.kavishdevar.librepods.presentation.components.BatteryView
+import me.kavishdevar.librepods.presentation.components.BudsScrollReporter
 import me.kavishdevar.librepods.presentation.components.HearingHealthSettings
 import me.kavishdevar.librepods.presentation.components.NoiseControlSettings
 import me.kavishdevar.librepods.presentation.components.StyledButton
@@ -236,7 +238,10 @@ fun AirPodsSettingsScreen(
     if (state.isLocallyConnected) {
         val capabilities = state.capabilities
 
+        val listState = rememberLazyListState()
+        BudsScrollReporter(listState.canScrollForward)
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(horizontal = BudsStyle.pageInset()),
             contentPadding = PaddingValues(

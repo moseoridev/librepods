@@ -71,6 +71,11 @@ fun StyledScaffold(
     navigationIcon: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    // The bottom fading edge is the scaffold's own, not the caller's: the original enables it from
+    // the content's scroll state (`gm.w2` reads `ScrollState.d()`). The scaffold owns the holder and
+    // the scrolling screen reports into it through [BudsScrollReporter], so the edge tracks whether
+    // content remains below rather than being guessed per screen.
+    val scrollState = remember { BudsScrollState() }
     val configuration = LocalConfiguration.current
     val compact = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && configuration.screenHeightDp < 580
     val canExpand = visible && expandableHeader && configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
@@ -107,7 +112,7 @@ fun StyledScaffold(
                         }
                     }
                     Row(Modifier.align(Alignment.BottomStart).semantics { isTraversalGroup = true }.fillMaxWidth().height(if (compact) 56.dp else 64.dp)
-                        .padding(start = if (showBackButton) 24.dp else 28.dp, end = 18.dp),
+                        .padding(start = if (showBackButton) 24.dp else 36.dp, end = 18.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         if (showBackButton) {
                             val backLabel = androidx.compose.ui.res.stringResource(me.kavishdevar.librepods.R.string.navigate_back)
@@ -137,6 +142,8 @@ fun StyledScaffold(
                 }
             }
         }) { padding ->
-        Box(modifier.then(if (visible) Modifier.budsContentFade().padding(padding) else Modifier).fillMaxSize()) { content() }
+        Box(modifier.then(if (visible) Modifier.budsContentFade(scrollState.canScrollForward).padding(padding) else Modifier).fillMaxSize()) {
+            CompositionLocalProvider(LocalBudsScrollState provides scrollState) { content() }
+        }
     }
 }

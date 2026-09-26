@@ -44,6 +44,7 @@ fun StyledListItem(
     name: String,
     onClick: (() -> Unit)?,
     description: String? = null,
+    descriptionIsState: Boolean = false,
     height: Dp = BudsStyle.RowMinHeight,
     enabled: Boolean = true,
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
@@ -53,6 +54,7 @@ fun StyledListItem(
     StyledList(modifier = modifier, title = title) {
         item { _, _ ->
             BudsListRow(name, onClick, description, enabled, height = height,
+                accentDescription = descriptionIsState,
                 leadingContent = leadingContent, trailingContent = trailingContent)
         }
     }
@@ -65,6 +67,7 @@ fun StyledListScope.StyledListItem(
     name: String,
     onClick: (() -> Unit)? = null,
     description: String? = null,
+    descriptionIsState: Boolean = false,
     enabled: Boolean = onClick != null,
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
     selected: Boolean? = null,
@@ -73,6 +76,7 @@ fun StyledListScope.StyledListItem(
 ) {
     item { index, count ->
         BudsListRow(name, onClick, description, enabled, modifier, selected = selected,
+            accentDescription = descriptionIsState,
             leadingContent = leadingContent, trailingContent = trailingContent)
         if (index + 1 < count) BudsRowDivider()
     }
@@ -95,6 +99,7 @@ internal fun BudsListRow(
     modifier: Modifier = Modifier,
     height: Dp = BudsStyle.RowMinHeight,
     selected: Boolean? = null,
+    accentDescription: Boolean = false,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
@@ -112,8 +117,7 @@ internal fun BudsListRow(
             Text(name, style = BudsStyle.RowTitle,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled || !canClick) 1f else .4f))
             description?.let {
-                Text(it, style = BudsStyle.RowSummary,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled || !canClick) 1f else .4f))
+                Text(it, style = BudsStyle.RowSummary, color = BudsStyle.summaryColor(accentDescription, canClick, enabled))
             }
         }
         if (trailingContent != null) {

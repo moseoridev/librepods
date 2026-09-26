@@ -108,6 +108,7 @@ internal fun LazyListScope.audioRoutingSettings(
         StyledListItem(
             name = stringResource(R.string.microphone_mode),
             description = selectedModeText,
+            descriptionIsState = true,
             onClick = navigateToMicrophoneSettings
         )
     }
@@ -176,6 +177,7 @@ internal fun LazyListScope.controlsGesturesSettings(
             StyledListItem(
                 name = stringResource(R.string.head_gestures),
                 description = if (state.headGesturesEnabled) stringResource(R.string.on) else stringResource(R.string.off),
+                descriptionIsState = true,
                 onClick = navigateToHeadTracking
             )
         }
