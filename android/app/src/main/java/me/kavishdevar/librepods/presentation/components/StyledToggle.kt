@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -76,6 +77,7 @@ fun StyledListScope.StyledToggle(
     checked: Boolean = false,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
+    trailingDivider: Boolean = false,
 ) {
     item { index, count ->
         Row(Modifier.fillMaxWidth().heightIn(min = BudsStyle.RowMinHeight)
@@ -91,6 +93,18 @@ fun StyledListScope.StyledToggle(
                 }
             }
             Spacer(Modifier.width(16.dp))
+            // SESL sets a vertical rule between the label and the switch, sized from
+            // `sesl_switch_divider_height` (22dp) rather than a full-height one, and paints it
+            // from `sesl_switch_divider_color` -> the outline token. The rule follows the control
+            // the row actually shows: rows whose trailing slot is a chevron or a value text carry
+            // none, so it is opt-in rather than part of every row. Where a horizontal rule already
+            // separates the row from the next, SESL's divider is split with no rounded edge, so
+            // that combination is left alone.
+            if (trailingDivider && index + 1 >= count) {
+                VerticalDivider(Modifier.height(22.dp), thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.width(16.dp))
+            }
             BudsSwitch(checked = checked, enabled = enabled)
         }
         if (index + 1 < count) BudsRowDivider()
