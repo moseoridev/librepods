@@ -79,9 +79,7 @@ import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.updates.UpdateItem
 import me.kavishdevar.librepods.data.updates.updates
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LibrePodsTheme
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,9 +96,7 @@ fun ReleaseNotesScreen(
     val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
-
-    LibrePodsTheme(m3eEnabled = true) {
+    LibrePodsTheme() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -206,8 +202,7 @@ fun ReleaseNotesScreen(
                                         LocalDensity provides Density(
                                             density = LocalDensity.current.density * 0.8f,
                                             fontScale = LocalDensity.current.fontScale
-                                        ),
-                                        LocalDesignSystem provides if (m3eEnabled) DesignSystem.Material else DesignSystem.Apple
+                                        )
                                     ) {
                                         updateItem.demoComposeable()
                                     }
@@ -371,9 +366,7 @@ fun ReleaseNotesScreen(
 @Preview(uiMode = UI_MODE_NIGHT_NO, wallpaper = RED_DOMINATED_EXAMPLE, device = PIXEL_9_PRO_XL)
 @Composable
 fun ReleaseNotesScreenPreview() {
-    LibrePodsTheme(
-        m3eEnabled = false
-    ) {
+    LibrePodsTheme() {
         ReleaseNotesScreen(
             updates = updates,
             releaseNotesShown = { }

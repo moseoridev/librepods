@@ -40,8 +40,6 @@ import me.kavishdevar.librepods.presentation.screens.TroubleshootingScreen
 import me.kavishdevar.librepods.presentation.screens.UpdateHearingTestRoute
 import me.kavishdevar.librepods.presentation.screens.VersionScreen
 import me.kavishdevar.librepods.presentation.screens.onboarding.OnboardingScreen
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
 import me.kavishdevar.librepods.presentation.viewmodel.PurchaseViewModel
@@ -63,8 +61,6 @@ fun AppNavGraph(
     fun navigateToPurchase() {
         navigate(Screen.Purchase)
     }
-
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
 
     SharedTransitionLayout {
         NavDisplay(
@@ -291,43 +287,39 @@ fun AppNavGraph(
                 slideInHorizontally { -it / 4 } togetherWith slideOutHorizontally { it }
             },
             predictivePopTransitionSpec = { swipeEdge ->
-                if (m3eEnabled) {
-                    val enterOffset: (Int) -> Int =
-                        if (swipeEdge == EDGE_LEFT) {
-                            { -it / 6 }
-                        } else {
-                            { it / 6 }
-                        }
+                val enterOffset: (Int) -> Int =
+                    if (swipeEdge == EDGE_LEFT) {
+                        { -it / 6 }
+                    } else {
+                        { it / 6 }
+                    }
 
-                    val exitOffset: (Int) -> Int =
-                        if (swipeEdge == EDGE_LEFT) {
-                            { it / 8 }
-                        } else {
-                            { -it / 8 }
-                        }
+                val exitOffset: (Int) -> Int =
+                    if (swipeEdge == EDGE_LEFT) {
+                        { it / 8 }
+                    } else {
+                        { -it / 8 }
+                    }
 
-                    fadeIn(
+                fadeIn(
+                    animationSpec = tween(250)
+                ) +
+                    slideInHorizontally(
+                        initialOffsetX = enterOffset,
+                        animationSpec = tween(250)
+                    ) togetherWith
+                    fadeOut(
+                        targetAlpha = 0.75f,
                         animationSpec = tween(250)
                     ) +
-                        slideInHorizontally(
-                            initialOffsetX = enterOffset,
-                            animationSpec = tween(250)
-                        ) togetherWith
-                        fadeOut(
-                            targetAlpha = 0.75f,
-                            animationSpec = tween(250)
-                        ) +
-                        scaleOut(
-                            targetScale = 0.85f,
-                            animationSpec = tween(250)
-                        ) +
-                        slideOutHorizontally(
-                            targetOffsetX = exitOffset,
-                            animationSpec = tween(250)
-                        )
-                } else {
-                    slideInHorizontally { -it / 4 } togetherWith slideOutHorizontally { it }
-                }
+                    scaleOut(
+                        targetScale = 0.85f,
+                        animationSpec = tween(250)
+                    ) +
+                    slideOutHorizontally(
+                        targetOffsetX = exitOffset,
+                        animationSpec = tween(250)
+                    )
             },
         )
     }

@@ -281,10 +281,8 @@
     <string name="play_foss_premium_banner">Due to an error in billing, premium access will expire in %1$d days. If you already upgraded the app, please click on this message to email billing@kavish.xyz to restore or verify access. Apologies for the inconvenience.</string>
     <string name="custom">Custom</string>
     <string name="recommended">Recommended</string>
-    <string name="appearance">Appearance</string>
-    <string name="use_material3e">Use Material 3 Expressive</string>
     <string name="material3e">Material 3 Expressive</string>
-    <string name="update_m3e_description">LibrePods now supports a whole new look based on Material 3 Expressive including updated typography and adaptive color schemes.\nYou can switch back to the Apple look from the app\'s settings.</string>
+    <string name="update_m3e_description">LibrePods now uses a look based on Material 3 Expressive, including updated typography and adaptive color schemes.</string>
     <string name="update_equalizer_description">Available only on the latest AirPods Beta firmware. An Apple device running OS version 27 is required to install the beta firmware.</string>
     <string name="what_s_new">What\'s New</string>
     <string name="reconnecting">Reconnecting</string>

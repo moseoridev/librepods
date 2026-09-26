@@ -25,7 +25,6 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 val ColorScheme.sectionHeader: Color
@@ -59,20 +58,15 @@ private val BudsDarkColors = darkColorScheme(
     outlineVariant = Color(0x33FFFFFF),
 )
 
-@Suppress("UNUSED_PARAMETER") // Retain the upstream call signature during the screen migration.
 @Composable
 fun LibrePodsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    m3eEnabled: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // Unmigrated specialized controls still use their standard Compose branch.
-    CompositionLocalProvider(LocalDesignSystem provides DesignSystem.Material) {
-        MaterialExpressiveTheme(
-            colorScheme = if (darkTheme) BudsDarkColors else BudsLightColors,
-            motionScheme = MotionScheme.standard(),
-            typography = BudsTypography,
-            content = content
-        )
-    }
+    MaterialExpressiveTheme(
+        colorScheme = if (darkTheme) BudsDarkColors else BudsLightColors,
+        motionScheme = MotionScheme.standard(),
+        typography = BudsTypography,
+        content = content
+    )
 }

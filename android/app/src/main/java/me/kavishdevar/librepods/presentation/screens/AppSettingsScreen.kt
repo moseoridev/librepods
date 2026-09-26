@@ -31,14 +31,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -86,13 +82,12 @@ import me.kavishdevar.librepods.presentation.components.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.StyledBottomSheet
 import me.kavishdevar.librepods.presentation.components.StyledButton
 import me.kavishdevar.librepods.presentation.components.StyledIconButton
+import me.kavishdevar.librepods.presentation.components.InputFieldStyle
 import me.kavishdevar.librepods.presentation.components.StyledInputField
 import me.kavishdevar.librepods.presentation.components.StyledList
 import me.kavishdevar.librepods.presentation.components.StyledListItem
 import me.kavishdevar.librepods.presentation.components.StyledSlider
 import me.kavishdevar.librepods.presentation.components.StyledToggle
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
 import me.kavishdevar.librepods.utils.XposedState
 import java.util.concurrent.TimeUnit
@@ -117,10 +112,8 @@ fun AppSettingsScreen(
     val descriptionState = remember { TextFieldState() }
     val subjectFocusRequester = remember { FocusRequester() }
     val descriptionFocusRequester = remember { FocusRequester() }
-
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
-    val topPadding = if (m3eEnabled) 16.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 84.dp
-    val bottomPadding = if (m3eEnabled) 0.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 12.dp
+    val topPadding = 16.dp
+    val bottomPadding = 0.dp
 
     Column(
         modifier = Modifier
@@ -589,7 +582,7 @@ fun AppSettingsScreen(
                inputState = subjectState,
                focusRequester = subjectFocusRequester,
                placeholder = stringResource(R.string.subject),
-               forceApple = true
+               style = InputFieldStyle.Legacy
            )
 
            Spacer(modifier = Modifier.height(12.dp))
@@ -599,7 +592,7 @@ fun AppSettingsScreen(
                focusRequester = descriptionFocusRequester,
                placeholder = stringResource(R.string.describe_your_issue),
                singleLine = false,
-               forceApple = true
+               style = InputFieldStyle.Legacy
            )
         }
     }

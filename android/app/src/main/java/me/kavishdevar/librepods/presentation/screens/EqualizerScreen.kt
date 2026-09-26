@@ -31,17 +31,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -93,9 +89,7 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.presentation.components.StyledButton
 import me.kavishdevar.librepods.presentation.components.StyledList
 import me.kavishdevar.librepods.presentation.components.StyledListItem
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LibrePodsTheme
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
 import me.kavishdevar.librepods.presentation.viewmodel.demoState
@@ -106,10 +100,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun EqualizerRoute(viewModel: AirPodsViewModel) {
     val state by viewModel.uiState.collectAsState()
-
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
-    val topPadding = if (m3eEnabled) 0.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 84.dp
-    val bottomPadding = if (m3eEnabled) 0.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 12.dp
+    val topPadding = 0.dp
+    val bottomPadding = 0.dp
 
     Box (
         modifier = Modifier
@@ -722,30 +714,10 @@ fun EqualizerCard(
     }
 }
 
-@Preview(name = "Apple")
+@Preview
 @Composable
-fun EqualizerScreenPreviewApple() {
-    LibrePodsTheme(
-        m3eEnabled = false
-    ) {
-        Box (
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)
-        ) {
-            EqualizerScreen(
-                state = demoState,
-                setCustomEqEnabled = { },
-                setCustomEq = {_, _, _ -> }
-            )
-        }
-    }
-}
-
-@Preview(name = "Material")
-@Composable
-fun EqualizerScreenPreviewMaterial() {
-    LibrePodsTheme(
-        m3eEnabled = true
-    ) {
+fun EqualizerScreenPreview() {
+    LibrePodsTheme() {
         val state = remember { mutableStateOf(demoState) }
         Box (
             modifier = Modifier

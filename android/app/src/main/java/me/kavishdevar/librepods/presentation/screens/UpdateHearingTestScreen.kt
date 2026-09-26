@@ -25,14 +25,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
@@ -68,9 +64,7 @@ import me.kavishdevar.librepods.bluetooth.ATTHandles
 import me.kavishdevar.librepods.data.HearingAidSettings
 import me.kavishdevar.librepods.data.parseHearingAidSettingsResponse
 import me.kavishdevar.librepods.data.sendHearingAidSettings
-import me.kavishdevar.librepods.presentation.theme.DesignSystem
 import me.kavishdevar.librepods.presentation.theme.LibrePodsTheme
-import me.kavishdevar.librepods.presentation.theme.LocalDesignSystem
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
 import me.kavishdevar.librepods.presentation.viewmodel.demoState
@@ -80,9 +74,8 @@ private const val TAG = "UpdateHearingTestScreen"
 @Composable
 fun UpdateHearingTestRoute(viewModel: AirPodsViewModel) {
     val state by viewModel.uiState.collectAsState()
-    val m3eEnabled = LocalDesignSystem.current == DesignSystem.Material
-    val topPadding = if (m3eEnabled) 0.dp else WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 84.dp
-    val bottomPadding = if (m3eEnabled) 0.dp else WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 12.dp
+    val topPadding = 0.dp
+    val bottomPadding = 0.dp
 
     Box(
         modifier = Modifier
@@ -294,29 +287,10 @@ fun UpdateHearingTestScreen(
     }
 }
 
-@Preview(name = "Apple")
+@Preview
 @Composable
-fun UpdateHearingTestScreenPreviewApple() {
-    LibrePodsTheme(
-        m3eEnabled = false
-    ) {
-        Box (
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)
-        ) {
-            UpdateHearingTestScreen(
-                state = demoState,
-                setATTCharacteristicValue = { _, _ -> }
-            )
-        }
-    }
-}
-
-@Preview(name = "Material")
-@Composable
-fun UpdateHearingTestScreenPreviewMaterial() {
-    LibrePodsTheme(
-        m3eEnabled = true
-    ) {
+fun UpdateHearingTestScreenPreview() {
+    LibrePodsTheme() {
         Box (
             modifier = Modifier
                 .wrapContentHeight()

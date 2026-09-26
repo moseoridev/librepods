@@ -83,9 +83,7 @@ fun OnboardingScreen(
         }
     }
 
-    LibrePodsTheme(
-        m3eEnabled = true
-    ) {
+    LibrePodsTheme() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
