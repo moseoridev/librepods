@@ -94,9 +94,29 @@ internal fun Modifier.budsContentFade(bottomFade: Boolean = false): Modifier {
  * two together at the call site (`gm.w2` reads `ScrollState.d()`). This is that same wire: the
  * scaffold owns it, a scrolling screen reports into it, and any other screen leaves it false — and
  * so gets no bottom edge, which is exactly the gating the original applies.
+ *
+ * The holder outlives the screen, so a report is tied to the identity of the reporter that made it
+ * and cleared when that reporter goes away; without that, navigating from a scrolled list to a
+ * fixed-height screen would leave the edge on over content that has nothing below it. The identity
+ * is what makes the clear safe: navigation can compose the incoming screen before the outgoing one
+ * is disposed, and an unguarded clear would then wipe the value the new screen had just set.
  */
 class BudsScrollState {
+    private var owner: Any? = null
     internal var canScrollForward by mutableStateOf(false)
+        private set
+
+    internal fun report(owner: Any, value: Boolean) {
+        this.owner = owner
+        canScrollForward = value
+    }
+
+    /** Clears only if [owner] is still the reporter whose value is showing. */
+    internal fun clear(owner: Any) {
+        if (this.owner !== owner) return
+        this.owner = null
+        canScrollForward = false
+    }
 }
 
 /** The enclosing [StyledScaffold]'s scroll holder; null outside one. */
@@ -107,16 +127,15 @@ val LocalBudsScrollState = staticCompositionLocalOf<BudsScrollState?> { null }
  * exactly while there is content below. Call from a scrolling screen's composition with the state's
  * own `canScrollForward`, which both [ScrollState] and `LazyListState` expose:
  * `BudsScrollReporter(listState.canScrollForward)`. A screen that does not scroll does not call it.
- *
- * The holder outlives the screen, so the report is cleared when the screen leaves: without that,
- * navigating from a scrolled list to a fixed-height screen would leave the edge on over content
- * that has nothing below it. Screens that never report are unaffected — the value starts false.
  */
 @Composable
 fun BudsScrollReporter(canScrollForward: Boolean) {
     val holder = LocalBudsScrollState.current ?: return
-    holder.canScrollForward = canScrollForward
-    DisposableEffect(holder) { onDispose { holder.canScrollForward = false } }
+    // One reporter instance per call site within one screen; keying the effect on it, rather than on
+    // the boolean, keeps the owner stable as the value changes and distinct across screens.
+    val reporter = remember(holder) { Any() }
+    holder.report(reporter, canScrollForward)
+    DisposableEffect(holder, reporter) { onDispose { holder.clear(reporter) } }
 }
 
 /** Top edge: alpha rises from [TopFadeMinAlpha] to 1 across this height. */
