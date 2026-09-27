@@ -83,7 +83,7 @@ Maintainer-local inputs and evidence live on TESSERACT. They are optional invest
 
 For device work, select the device explicitly and verify the installed/local APK identity. Device operations still require task authorization.
 
-Do not commit extracted vendor artwork, fonts, APKs, decompiled source or screenshots containing those assets. Reuse upstream LibrePods resources for product artwork; use locally authored primitives where no resource exists. Keep vendor inputs and rendering evidence in the external investigation directories.
+Third-party material the project has no licence to redistribute stays outside the repository: product artwork comes from upstream LibrePods resources, or is locally authored where no resource exists, and investigation inputs, binaries and captures live in the external investigation directories.
 
 Retain original inputs, extraction/hash manifests, useful tool sources and final evidence. Generated build intermediates and superseded scratch outputs can be regenerated; do not delete the only input or evidence copy as routine cleanup. Large APKs, firmware and captures stay outside Git. Update the topic's current evidence summary when a result changes it; use Git history for the narrative of past implementation steps.
 
