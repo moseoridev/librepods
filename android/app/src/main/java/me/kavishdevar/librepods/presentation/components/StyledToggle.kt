@@ -95,14 +95,26 @@ fun StyledListScope.StyledToggle(
             Spacer(Modifier.width(16.dp))
             // SESL sets a vertical rule between the label and the switch, sized from
             // `sesl_switch_divider_height` (22dp) rather than a full-height one, and paints it
-            // from `sesl_switch_divider_color` -> the outline token. The rule follows the control
-            // the row actually shows: rows whose trailing slot is a chevron or a value text carry
-            // none, so it is opt-in rather than part of every row. Where a horizontal rule already
-            // separates the row from the next, SESL's divider is split with no rounded edge, so
-            // that combination is left alone.
-            if (trailingDivider && index + 1 >= count) {
+            // from `sesl_switch_divider_color` -> the outline token. It is opt-in through
+            // `trailingDivider` because it does not follow the row's slot: the captured Home draws
+            // it on the media row and on both pinch-and-hold rows, but not on the two call-control
+            // rows, which hold a switch just the same. Those two are the enabled-but-unchecked
+            // rows, so in this capture the rule tracks the checked control rather than the
+            // presence of a switch. That correlation is measured from the renders, not established
+            // in the decompiled row builder, so the caller states it explicitly instead.
+            //
+            // It is independent of the row's position: the first pinch-and-hold row carries one
+            // even though it is not the last of its group, so gating on position is wrong.
+            //
+            // It is part of the row's foreground, so a disabled row fades it by the same factor the
+            // title takes. Scaling the token's own alpha rather than replacing it is what makes the
+            // two agree: `outlineVariant` is already translucent (0x1A000000), so the checked row
+            // paints at 0.10 over the card -> (226,226,229) and the disabled row at 0.04 ->
+            // (242,242,245), which is exactly what the captured rows carry.
+            if (trailingDivider) {
+                val outline = MaterialTheme.colorScheme.outlineVariant
                 VerticalDivider(Modifier.height(22.dp), thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant)
+                    color = outline.copy(alpha = outline.alpha * if (enabled) 1f else .4f))
                 Spacer(Modifier.width(16.dp))
             }
             BudsSwitch(checked = checked, enabled = enabled)
