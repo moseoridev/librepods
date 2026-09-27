@@ -199,7 +199,21 @@ internal fun BudsNoiseControlRow(
                 captions.forEachIndexed { index, caption ->
                     val center = if (captions.size == 1) stripWidth / 2f
                         else diameter / 2f + (stripWidth - diameter) * index.toFloat() / (captions.size - 1)
-                    caption.placeRelative((center - caption.width / 2f).roundToInt(), 0)
+                    // The caption is centred on the disc above it and is wider than it, so for the
+                    // first option the centre constraint is over-satisfied and resolves to a
+                    // negative local x: at 3.75 the slack is (165 - 240) / 2 = -37.5. The source
+                    // lays this out through ConstraintLayout, whose solver writes that coordinate
+                    // as Math.round(-37.5) = -37 and then recovers the frame by adding a half and
+                    // truncating toward zero, so -36.5 becomes -36. Rounding the half once, as
+                    // Compose places it, lands on -37 instead — one pixel left of the source. The
+                    // second truncation is a no-op for a positive coordinate, which is why the
+                    // three captions that wrap to the full 64dp cap are already exact and only the
+                    // narrow one disagrees; and why it disagrees at 3.75, 2.8125 and 3.5 alike,
+                    // since all three leave the same negative half. Keyed on the sign rather than
+                    // on the option, so it stays correct if the strip or the labels change.
+                    val left = center - caption.width / 2f
+                    val rounded = left.roundToInt()
+                    caption.placeRelative(if (left < 0f) rounded + 1 else rounded, 0)
                 }
             }
         }
