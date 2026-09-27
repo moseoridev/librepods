@@ -126,12 +126,23 @@ internal fun BudsNoiseControlRow(
             }
             modes.forEach { mode ->
                 val isSelected = mode == selected
-                Column(Modifier.width(captionWidth).selectable(isSelected, role = Role.RadioButton,
-                    onClick = { if (!isSelected) onSelect(mode) }), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(44.dp).background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
+                Box(Modifier.width(captionWidth).selectable(isSelected, role = Role.RadioButton,
+                    onClick = { if (!isSelected) onSelect(mode) })) {
+                    Box(Modifier.size(44.dp).align(Alignment.TopCenter)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
                         contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
-                    Spacer(Modifier.height(8.dp))
-                    Text(label(mode), style = BudsStyle.RowTitle.copy(fontSize = 12.sp),
+                    // `gl.s` offsets the caption with one inset on the label's own modifier —
+                    // `r0.c.D(text, 0f, 52f, 0f, 0f)`, a single 52dp top padding measured from the
+                    // option's top — and sizes the artwork separately, rather than stacking a 44dp
+                    // box and an 8dp gap. The two are equal in exact arithmetic and differ once
+                    // rounded: at density 3.75 both reach 195px, but at 2.8125 the stack rounds
+                    // twice (124 + 23 = 147) where one inset rounds once (146). That one pixel,
+                    // applied to a caption, propagates down the page as a global vertical offset
+                    // and was the whole of the 1080p disagreement (2.224% -> 0.308%); at 3.75 the
+                    // change is pixel-identical. `captionWidth` still constrains the label, so the
+                    // alignment only moves it vertically.
+                    Text(label(mode), modifier = Modifier.align(Alignment.TopCenter).padding(top = 52.dp),
+                        style = BudsStyle.RowTitle.copy(fontSize = 12.sp),
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center)
