@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -104,6 +105,9 @@ internal fun BudsNoiseControlRow(
 ) {
     if (modes.isEmpty()) return
     val width = if (LocalConfiguration.current.screenWidthDp < 589) 320.dp else 392.dp
+    // A fifth of the strip, capped at 80dp. The width is load-bearing: it is what wraps
+    // "주변 소리 듣기" onto two lines and "액티브 노이즈 캔슬링" onto three, as the source
+    // does. Widening it collapses both to one line and shifts every row below the strip.
     val captionWidth = minOf(width.value * .2f, 80f).toInt().dp
     val track = if (isSystemInDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
     val tick = remember(track) { GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(track.toArgb()) } }
@@ -126,11 +130,14 @@ internal fun BudsNoiseControlRow(
             }
             modes.forEach { mode ->
                 val isSelected = mode == selected
+                // Artwork and label are placed independently below: the source hangs the 44dp disc
+                // on the track's own SpaceBetween slots and gives the label its own box, and at
+                // 3.75 the two sequences round apart by a pixel.
+                Box(Modifier.size(44.dp)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
+                    contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
                 Box(Modifier.width(captionWidth).selectable(isSelected, role = Role.RadioButton,
                     onClick = { if (!isSelected) onSelect(mode) })) {
-                    Box(Modifier.size(44.dp).align(Alignment.TopCenter)
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
-                        contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
                     // `gl.s` offsets the caption with one inset on the label's own modifier —
                     // `r0.c.D(text, 0f, 52f, 0f, 0f)`, a single 52dp top padding measured from the
                     // option's top — and sizes the artwork separately, rather than stacking a 44dp
@@ -151,16 +158,48 @@ internal fun BudsNoiseControlRow(
         }) { measurables, constraints ->
             val stripWidth = constraints.maxWidth
             val loose = constraints.copy(minWidth = 0, minHeight = 0)
-            val options = measurables.drop(1).map { it.measure(loose) }
+            // Content is exactly [track, (disc, caption) * n]; the pairing below depends on that
+            // order, so any child added to the content lambda must keep the disc/caption couplet
+            // intact or be appended after all pairs. The two are measured and placed separately
+            // because the source does not nest them: the disc rides the track's own slots, and the
+            // caption sits in its own box. Nesting the disc inside the caption box rounds twice —
+            // box origin, then the centring inside it — which is what put our first disc a pixel
+            // off at 3.75 while 2.8125 and 3.5 agreed.
             val line = measurables.first().measure(Constraints.fixed(stripWidth, 44.dp.roundToPx()))
-            val height = options.maxOf { it.height }
+            val discs = ArrayList<Placeable>(measurables.size / 2)
+            val captions = ArrayList<Placeable>(measurables.size / 2)
+            measurables.drop(1).forEachIndexed { index, measurable ->
+                val placeable = measurable.measure(loose)
+                if (index % 2 == 0) discs.add(placeable) else captions.add(placeable)
+            }
+            val height = captions.maxOf { it.height }
             val diameter = 44.dp.roundToPx()
+            // `gl.s` lays the discs out with Arrangement.SpaceBetween, which accumulates the
+            // fractional gap as a float and rounds each slot once, so at 3.75 the slot origins are
+            // 0/320/639/959 rather than the 0/283/602/922 a per-slot centre would give. Both are
+            // exact in dp; they differ only where roundToInt sees a fraction, which is why 2.8125
+            // and 3.5 already agreed and 3.75 did not.
+            val discLefts = IntArray(discs.size)
+            if (discs.size == 1) {
+                // Unreachable from the only caller (which always passes three or four modes), and
+                // deliberately not SpaceBetween's own single-child rule, which is position 0. The
+                // guard exists to keep the divisor below non-zero if that ever changes.
+                discLefts[0] = (stripWidth - diameter) / 2
+            } else {
+                val space = (stripWidth - diameter * discs.size).toFloat() / (discs.size - 1)
+                var position = 0f
+                for (i in discs.indices) {
+                    discLefts[i] = position.roundToInt()
+                    position += diameter + space
+                }
+            }
             layout(stripWidth, height) {
                 line.placeRelative(0, 0)
-                options.forEachIndexed { index, option ->
-                    val center = if (options.size == 1) stripWidth / 2f
-                        else diameter / 2f + (stripWidth - diameter) * index.toFloat() / (options.size - 1)
-                    option.placeRelative((center - option.width / 2f).roundToInt(), 0)
+                discs.forEachIndexed { index, disc -> disc.placeRelative(discLefts[index], 0) }
+                captions.forEachIndexed { index, caption ->
+                    val center = if (captions.size == 1) stripWidth / 2f
+                        else diameter / 2f + (stripWidth - diameter) * index.toFloat() / (captions.size - 1)
+                    caption.placeRelative((center - caption.width / 2f).roundToInt(), 0)
                 }
             }
         }
