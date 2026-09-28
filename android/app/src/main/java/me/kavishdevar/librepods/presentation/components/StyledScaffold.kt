@@ -112,7 +112,7 @@ fun StyledScaffold(
                         }
                     }
                     Row(Modifier.align(Alignment.BottomStart).semantics { isTraversalGroup = true }.fillMaxWidth().height(if (compact) 56.dp else 64.dp)
-                        .padding(start = if (showBackButton) 24.dp else 36.dp, end = 18.dp),
+                        .padding(start = if (showBackButton) 24.dp else 0.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         if (showBackButton) {
                             val backLabel = androidx.compose.ui.res.stringResource(me.kavishdevar.librepods.R.string.navigate_back)
@@ -121,6 +121,13 @@ fun StyledScaffold(
                                 .semantics { contentDescription = backLabel }, contentAlignment = Alignment.Center) {
                                 if (navigationIcon != null) navigationIcon() else Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
                             }
+                        } else {
+                            // ku.k3 reserves 28dp for the absent navigation slot. Captured
+                            // title bounds place it another 8dp in; keeping those measurements
+                            // separate yields 79+23px at density 2.8125, where a combined 36dp
+                            // inset rounds to 101px.
+                            Spacer(Modifier.width(28.dp))
+                            Spacer(Modifier.width(8.dp))
                         }
                         Column(Modifier.weight(1f)
                             .graphicsLayer { alpha = (1f - 2f * header.fraction).coerceIn(0f, 1f) }
@@ -136,7 +143,17 @@ fun StyledScaffold(
                                     maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             }
                         }
-                        actionButtons.forEach { it(rememberLayerBackdrop()) }
+                        actionButtons.forEachIndexed { index, action ->
+                            // The SESL action layout pads each 24dp action independently. The
+                            // last action has a 6dp end inset; the others have 8dp. Keeping these
+                            // as separate measurements also preserves their rounding at scaled
+                            // densities (gm.w3 / wu.a0).
+                            Box(Modifier.padding(start = 4.dp,
+                                end = if (index == actionButtons.lastIndex) 6.dp else 8.dp)) {
+                                action(rememberLayerBackdrop())
+                            }
+                        }
+                        Spacer(Modifier.width(18.dp))
                     }
                     }
                 }
