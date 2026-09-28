@@ -58,23 +58,23 @@ fun BatteryView(batteryList: List<Battery>, budsRes: Int, caseRes: Int) {
             contentScale = ContentScale.Fit, modifier = Modifier.size(120.dp, 80.dp))
         BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
             val count = if (combined != null) 2 else 3
-            val slotWidth = minOf(138.5.dp, (maxWidth - 3.dp * (count - 1)) / count)
+            val slotMinWidth = minOf(138.5.dp, (maxWidth - 3.dp * (count - 1)) / count)
             Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (combined != null) {
                     BatteryMeter(combined, stringResource(R.string.left) + "•" + stringResource(R.string.right),
-                        budsRes, slotWidth)
+                        budsRes, slotMinWidth)
                 } else {
-                    BatteryMeter(readings.left, stringResource(R.string.left), budsRes, slotWidth)
-                    BatteryMeter(readings.right, stringResource(R.string.right), budsRes, slotWidth)
+                    BatteryMeter(readings.left, stringResource(R.string.left), budsRes, slotMinWidth)
+                    BatteryMeter(readings.right, stringResource(R.string.right), budsRes, slotMinWidth)
                 }
-                BatteryMeter(readings.case, stringResource(R.string.case_alt), caseRes, slotWidth)
+                BatteryMeter(readings.case, stringResource(R.string.case_alt), caseRes, slotMinWidth)
             }
         }
     }
 }
 
 @Composable
-private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, width: Dp) {
+private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, minWidth: Dp) {
     val level = reading.level
     val charging = reading.status == BatteryStatus.CHARGING || reading.status == BatteryStatus.OPTIMIZED_CHARGING
     val value = level?.let {
@@ -105,7 +105,10 @@ private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, w
             strokeCap = Paint.Cap.ROUND
         }
     }
-    Column(Modifier.width(width).clearAndSetSemantics { contentDescription = description },
+    // The manager measures a minimum-width slot, then centers its content at its natural width.
+    // A fixed-width Column rounds the outer and inner centers differently at some densities.
+    Column(Modifier.widthIn(min = minWidth).widthIn(min = 92.dp)
+        .wrapContentSize(Alignment.Center).clearAndSetSemantics { contentDescription = description },
         horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(50.dp, 37.dp), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize()) {
