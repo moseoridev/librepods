@@ -342,16 +342,16 @@ fun AirPodsSettingsScreen(
                     item(key = "settings_navigation") {
                         Spacer(Modifier.height(BudsStyle.GroupSpacing))
                         StyledList {
-                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
-                                name = stringResource(R.string.controls_gestures), onClick = navigateToControlsGestures)
-                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
-                                name = stringResource(R.string.audio_routing), onClick = navigateToAudioRouting)
-                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
-                                name = stringResource(R.string.accessibility), onClick = navigateToAccessibility)
+                            StyledListItem(name = stringResource(R.string.controls_gestures),
+                                onClick = navigateToControlsGestures, homeMenu = true)
+                            StyledListItem(name = stringResource(R.string.audio_routing),
+                                onClick = navigateToAudioRouting, homeMenu = true)
+                            StyledListItem(name = stringResource(R.string.accessibility),
+                                onClick = navigateToAccessibility, homeMenu = true)
                         }
                         Spacer(Modifier.height(BudsStyle.GroupSpacing))
-                        StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
-                            name = stringResource(R.string.battery), onClick = navigateToBattery)
+                        StyledListItem(name = stringResource(R.string.battery),
+                            onClick = navigateToBattery, homeMenu = true)
                     }
 
                     item(key = "name") {

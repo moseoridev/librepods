@@ -80,14 +80,19 @@ fun StyledListScope.StyledToggle(
     onCheckedChange: (Boolean) -> Unit,
     trailingDivider: Boolean = false,
     minHeight: Dp = BudsStyle.RowMinHeight,
+    homeMenu: Boolean = false,
 ) {
     item { index, count ->
+        val rowPadding = if (homeMenu) Modifier.padding(horizontal = BudsStyle.RowInset,
+            vertical = BudsStyle.HomeMenuVerticalPadding)
+        else Modifier.padding(horizontal = BudsStyle.RowInset)
+        val textPadding = if (homeMenu) Modifier else Modifier.padding(vertical = BudsStyle.RowVerticalPadding)
         Row(Modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, BudsStyle.RowMinHeight))
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = BudsStyle.RowInset),
+            .then(rowPadding),
             verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).heightIn(min = BudsStyle.RowMinHeight)
-                .padding(vertical = BudsStyle.RowVerticalPadding)) {
+            Column(Modifier.weight(1f).heightIn(min = BudsStyle.RowMinHeight).then(textPadding),
+                verticalArrangement = if (homeMenu) Arrangement.Center else Arrangement.Top) {
                 Text(label, style = BudsStyle.RowTitle,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else .4f))
                 description?.let {

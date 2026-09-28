@@ -49,13 +49,15 @@ fun StyledListItem(
     enabled: Boolean = true,
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
     leadingContent: (@Composable () -> Unit)? = null,
-    trailingContent: (@Composable () -> Unit)? = null
+    trailingContent: (@Composable () -> Unit)? = null,
+    homeMenu: Boolean = false,
 ) {
     StyledList(modifier = modifier, title = title) {
         item { _, _ ->
             BudsListRow(name, onClick, description, enabled, height = height,
                 accentDescription = descriptionIsState,
-                leadingContent = leadingContent, trailingContent = trailingContent)
+                leadingContent = leadingContent, trailingContent = trailingContent,
+                homeMenu = homeMenu)
         }
     }
 }
@@ -72,12 +74,14 @@ fun StyledListScope.StyledListItem(
     orientation: ListItemOrientation = ListItemOrientation.Horizontal,
     selected: Boolean? = null,
     leadingContent: (@Composable () -> Unit)? = null,
-    trailingContent: (@Composable () -> Unit)? = null
+    trailingContent: (@Composable () -> Unit)? = null,
+    homeMenu: Boolean = false,
 ) {
     item { index, count ->
         BudsListRow(name, onClick, description, enabled, modifier, selected = selected,
             accentDescription = descriptionIsState,
-            leadingContent = leadingContent, trailingContent = trailingContent)
+            leadingContent = leadingContent, trailingContent = trailingContent,
+            homeMenu = homeMenu)
         if (index + 1 < count) BudsRowDivider()
     }
 }
@@ -102,18 +106,25 @@ internal fun BudsListRow(
     accentDescription: Boolean = false,
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
+    homeMenu: Boolean = false,
 ) {
     val canClick = onClick != null
+    // The Home menu wraps its 28dp content in 14dp vertical padding. Rounding
+    // these three pieces separately differs from rounding one 56dp minimum.
+    val rowPadding = if (homeMenu) Modifier.padding(horizontal = BudsStyle.RowInset,
+        vertical = BudsStyle.HomeMenuVerticalPadding)
+    else Modifier.padding(horizontal = BudsStyle.RowInset)
+    val textPadding = if (homeMenu) Modifier else Modifier.padding(vertical = BudsStyle.RowVerticalPadding)
     Row(modifier.fillMaxWidth().heightIn(min = maxOf(height, BudsStyle.RowMinHeight))
         .then(if (canClick) Modifier.clickable(enabled = enabled,
             role = if (selected != null) Role.RadioButton else Role.Button,
             onClick = onClick) else Modifier)
         .then(if (selected != null) Modifier.semantics { this.selected = selected } else Modifier)
-        .padding(horizontal = BudsStyle.RowInset),
+        .then(rowPadding),
         verticalAlignment = Alignment.CenterVertically) {
         leadingContent?.let { it(); Spacer(Modifier.width(18.dp)) }
-        Column(Modifier.weight(1f).heightIn(min = BudsStyle.RowMinHeight)
-            .padding(vertical = BudsStyle.RowVerticalPadding)) {
+        Column(Modifier.weight(1f).heightIn(min = BudsStyle.RowMinHeight).then(textPadding),
+            verticalArrangement = if (homeMenu) Arrangement.Center else Arrangement.Top) {
             Text(name, style = BudsStyle.RowTitle,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled || !canClick) 1f else .4f))
             description?.let {

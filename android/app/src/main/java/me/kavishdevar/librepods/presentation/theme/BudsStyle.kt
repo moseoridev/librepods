@@ -21,6 +21,7 @@ internal object BudsStyle {
     val GroupShape = BudsGroupShape(GroupRadius)
     val RowInset = 18.dp
     val RowVerticalPadding = 12.dp
+    val HomeMenuVerticalPadding = 14.dp
     // The source constrains the row before padding its text, not the whole row to 48dp.
     // Compose's clickable/toggleable still expand the touch target to the platform minimum.
     val RowMinHeight = 28.dp

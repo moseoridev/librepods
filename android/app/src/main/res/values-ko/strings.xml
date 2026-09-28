@@ -1,0 +1,5 @@
+<resources>
+    <string name="left">왼쪽</string>
+    <string name="right">오른쪽</string>
+    <string name="case_alt">케이스</string>
+</resources>

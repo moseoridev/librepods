@@ -86,7 +86,7 @@ fun NoiseControlSettings(
                     enabled = conversationAwarenessEnabled,
                     onCheckedChange = onConversationAwarenessChanged,
                     trailingDivider = true,
-                    minHeight = 56.dp,
+                    homeMenu = true,
                 )
             }
         }

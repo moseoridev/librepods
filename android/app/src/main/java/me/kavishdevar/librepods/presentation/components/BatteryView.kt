@@ -20,6 +20,7 @@ package me.kavishdevar.librepods.presentation.components
 
 import android.graphics.Paint
 import android.graphics.RectF
+import java.util.Locale
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,14 +41,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.Battery
 import me.kavishdevar.librepods.data.BatteryStatus
-import me.kavishdevar.librepods.presentation.theme.BudsFontFamily
 
 @Composable
 fun BatteryView(batteryList: List<Battery>, budsRes: Int, caseRes: Int) {
@@ -61,7 +61,7 @@ fun BatteryView(batteryList: List<Battery>, budsRes: Int, caseRes: Int) {
             val slotWidth = minOf(138.5.dp, (maxWidth - 3.dp * (count - 1)) / count)
             Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (combined != null) {
-                    BatteryMeter(combined, stringResource(R.string.left) + "·" + stringResource(R.string.right),
+                    BatteryMeter(combined, stringResource(R.string.left) + "•" + stringResource(R.string.right),
                         budsRes, slotWidth)
                 } else {
                     BatteryMeter(readings.left, stringResource(R.string.left), budsRes, slotWidth)
@@ -77,7 +77,9 @@ fun BatteryView(batteryList: List<Battery>, budsRes: Int, caseRes: Int) {
 private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, width: Dp) {
     val level = reading.level
     val charging = reading.status == BatteryStatus.CHARGING || reading.status == BatteryStatus.OPTIMIZED_CHARGING
-    val value = level?.let { "$it%" } ?: "—"
+    val value = level?.let {
+        if (Locale.getDefault().language == "tr") " %$it" else " $it%"
+    } ?: "—"
     val spokenValue = level?.let { "$it%" } ?: stringResource(R.string.battery_unknown)
     val chargeLabel = when (reading.status) {
         BatteryStatus.CHARGING -> stringResource(R.string.battery_charging)
@@ -91,6 +93,7 @@ private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, w
         else -> Color(0xFF26E26D)
     }
     val density = LocalDensity.current
+    val textSize = with(density) { 12.dp.toSp() }
     val stroke = with(density) { 7.dp.toPx() }
     val diameter = with(density) { 50.dp.toPx() }
     val arc = remember(stroke, diameter) {
@@ -121,14 +124,14 @@ private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, w
         }
         Spacer(Modifier.height(7.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, fontFamily = BudsFontFamily, fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(name, fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold,
+                fontSize = textSize, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(2.dp))
-            Text(value, fontFamily = BudsFontFamily, fontSize = 12.sp,
+            Text(value, fontFamily = FontFamily.Default, fontSize = textSize,
                 color = MaterialTheme.colorScheme.onSurface)
         }
         if (charging) {
-            Text(chargeLabel, fontFamily = BudsFontFamily, fontSize = 12.sp,
+            Text(chargeLabel, fontFamily = FontFamily.Default, fontSize = textSize,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
