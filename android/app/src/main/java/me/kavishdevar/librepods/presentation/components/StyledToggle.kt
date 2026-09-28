@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.presentation.theme.BudsStyle
 
@@ -78,9 +79,10 @@ fun StyledListScope.StyledToggle(
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
     trailingDivider: Boolean = false,
+    minHeight: Dp = BudsStyle.RowMinHeight,
 ) {
     item { index, count ->
-        Row(Modifier.fillMaxWidth().heightIn(min = BudsStyle.RowMinHeight)
+        Row(Modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, BudsStyle.RowMinHeight))
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(horizontal = BudsStyle.RowInset),
             verticalAlignment = Alignment.CenterVertically) {

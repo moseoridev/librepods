@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
@@ -159,7 +160,17 @@ fun StyledScaffold(
                 }
             }
         }) { padding ->
-        Box(modifier.then(if (visible) Modifier.budsContentFade(scrollState.canScrollForward).padding(padding) else Modifier).fillMaxSize()) {
+        val layoutDirection = LocalLayoutDirection.current
+        // The source scroll content remains beneath the navigation bar. Scaffold's bottom inset
+        // would stop our content at its upper edge, leaving only the page background under the
+        // fading edge. Keep the header and horizontal insets while drawing through the bottom.
+        val contentPadding = PaddingValues(
+            start = padding.calculateStartPadding(layoutDirection),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(layoutDirection),
+            bottom = 0.dp,
+        )
+        Box(modifier.then(if (visible) Modifier.budsContentFade(scrollState.canScrollForward).padding(contentPadding) else Modifier).fillMaxSize()) {
             CompositionLocalProvider(LocalBudsScrollState provides scrollState) { content() }
         }
     }

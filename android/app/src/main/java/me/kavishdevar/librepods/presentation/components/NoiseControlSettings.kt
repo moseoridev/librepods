@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -84,6 +85,8 @@ internal fun BudsNoiseControlRow(
     selected: NoiseControlMode?,
     onSelect: (NoiseControlMode) -> Unit,
     modifier: Modifier = Modifier,
+    stripWidth: Dp? = null,
+    captionWidth: Dp? = null,
     label: @Composable (NoiseControlMode) -> String = { mode ->
         stringResource(when (mode) {
             NoiseControlMode.OFF -> R.string.off
@@ -104,18 +107,21 @@ internal fun BudsNoiseControlRow(
     }
 ) {
     if (modes.isEmpty()) return
-    val width = if (LocalConfiguration.current.screenWidthDp < 589) 320.dp else 392.dp
+    val width = stripWidth ?: if (LocalConfiguration.current.screenWidthDp < 589) 320.dp else 392.dp
     // A fifth of the strip, capped at 80dp. The width is load-bearing: it is what wraps
     // "주변 소리 듣기" onto two lines and "액티브 노이즈 캔슬링" onto three, as the source
     // does. Widening it collapses both to one line and shifts every row below the strip.
-    val captionWidth = minOf(width.value * .2f, 80f).toInt().dp
+    val measuredCaptionWidth = captionWidth ?: minOf(width.value * .2f, 80f).toInt().dp
     val track = if (isSystemInDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
     val tick = remember(track) { GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(track.toArgb()) } }
     // The source centers a responsive strip, rather than giving each caption a share of the card.
     Box(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopCenter) {
         Layout(modifier = Modifier.width(width).padding(horizontal = 10.dp).selectableGroup(), content = {
             Canvas(Modifier.fillMaxWidth().height(44.dp)) {
-                val radius = 22.dp.toPx()
+                // The native background reads the tick drawable's intrinsic 44dp width in
+                // integer pixels, then halves it for the first/last centres and oval bounds.
+                // At density 2.8125 that is 124 / 2, rather than 22dp = 61.875px.
+                val radius = 44.dp.roundToPx() / 2f
                 if (modes.size > 1) drawLine(track, Offset(radius, size.height / 2),
                     Offset(size.width - radius, size.height / 2), strokeWidth = 6.dp.toPx())
                 // The native track draws oval ticks underneath the Compose option backgrounds.
@@ -136,7 +142,7 @@ internal fun BudsNoiseControlRow(
                 Box(Modifier.size(44.dp)
                     .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
                     contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
-                Box(Modifier.width(captionWidth).selectable(isSelected, role = Role.RadioButton,
+                Box(Modifier.width(measuredCaptionWidth).selectable(isSelected, role = Role.RadioButton,
                     onClick = { if (!isSelected) onSelect(mode) })) {
                     // `gl.s` offsets the caption with one inset on the label's own modifier —
                     // `r0.c.D(text, 0f, 52f, 0f, 0f)`, a single 52dp top padding measured from the
