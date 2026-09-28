@@ -18,39 +18,118 @@
 
 package me.kavishdevar.librepods.presentation.components
 
+import android.graphics.Paint
+import android.graphics.RectF
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.Battery
+import me.kavishdevar.librepods.data.BatteryStatus
+import me.kavishdevar.librepods.presentation.theme.BudsFontFamily
 
 @Composable
 fun BatteryView(batteryList: List<Battery>, budsRes: Int, caseRes: Int) {
     val readings = SettingsBatteries.from(batteryList)
     val combined = readings.combined
-    Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Image(painterResource(budsRes), contentDescription = null,
-                contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().height(128.dp))
-            Spacer(Modifier.height(12.dp))
-            if (combined != null) {
-                BatteryIndicator(combined.level, combined.status, stringResource(R.string.buds))
-            } else {
-                BatteryIndicator(readings.left.level, readings.left.status, stringResource(R.string.left))
-                BatteryIndicator(readings.right.level, readings.right.status, stringResource(R.string.right))
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Image(painterResource(budsRes), contentDescription = null,
+            contentScale = ContentScale.Fit, modifier = Modifier.size(120.dp, 80.dp))
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+            val count = if (combined != null) 2 else 3
+            val slotWidth = minOf(138.5.dp, (maxWidth - 3.dp * (count - 1)) / count)
+            Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                if (combined != null) {
+                    BatteryMeter(combined, stringResource(R.string.left) + "·" + stringResource(R.string.right),
+                        budsRes, slotWidth)
+                } else {
+                    BatteryMeter(readings.left, stringResource(R.string.left), budsRes, slotWidth)
+                    BatteryMeter(readings.right, stringResource(R.string.right), budsRes, slotWidth)
+                }
+                BatteryMeter(readings.case, stringResource(R.string.case_alt), caseRes, slotWidth)
             }
         }
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Image(painterResource(caseRes), contentDescription = null,
-                contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().height(128.dp))
-            Spacer(Modifier.height(12.dp))
-            BatteryIndicator(readings.case.level, readings.case.status, stringResource(R.string.case_alt))
+    }
+}
+
+@Composable
+private fun BatteryMeter(reading: SettingsBattery, name: String, artwork: Int, width: Dp) {
+    val level = reading.level
+    val charging = reading.status == BatteryStatus.CHARGING || reading.status == BatteryStatus.OPTIMIZED_CHARGING
+    val value = level?.let { "$it%" } ?: "—"
+    val spokenValue = level?.let { "$it%" } ?: stringResource(R.string.battery_unknown)
+    val chargeLabel = when (reading.status) {
+        BatteryStatus.CHARGING -> stringResource(R.string.battery_charging)
+        BatteryStatus.OPTIMIZED_CHARGING -> stringResource(R.string.battery_optimized_charging)
+        else -> ""
+    }
+    val description = listOf(name, spokenValue, chargeLabel).filter { it.isNotEmpty() }.joinToString(", ")
+    val progressColor = when {
+        level != null && level <= 20 -> MaterialTheme.colorScheme.error
+        isSystemInDarkTheme() -> Color(0xFF22CA61)
+        else -> Color(0xFF26E26D)
+    }
+    val density = LocalDensity.current
+    val stroke = with(density) { 7.dp.toPx() }
+    val diameter = with(density) { 50.dp.toPx() }
+    val arc = remember(stroke, diameter) {
+        RectF(stroke / 2f, stroke / 2f, diameter - stroke / 2f, diameter - stroke / 2f)
+    }
+    val paint = remember {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+        }
+    }
+    Column(Modifier.width(width).clearAndSetSemantics { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(50.dp, 37.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                paint.strokeWidth = stroke
+                drawIntoCanvas { canvas ->
+                    paint.color = android.graphics.Color.argb(102, 202, 202, 202)
+                    canvas.nativeCanvas.drawArc(arc, 147.73f, 244.54f, false, paint)
+                    if (level != null) {
+                        paint.color = progressColor.toArgb()
+                        canvas.nativeCanvas.drawArc(arc, 147.73f, 244.54f * level / 100f, false, paint)
+                    }
+                }
+            }
+            Image(painterResource(artwork), contentDescription = null, contentScale = ContentScale.Fit,
+                modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-4).dp).size(30.dp, 18.dp))
+        }
+        Spacer(Modifier.height(7.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, fontFamily = BudsFontFamily, fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.width(2.dp))
+            Text(value, fontFamily = BudsFontFamily, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface)
+        }
+        if (charging) {
+            Text(chargeLabel, fontFamily = BudsFontFamily, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

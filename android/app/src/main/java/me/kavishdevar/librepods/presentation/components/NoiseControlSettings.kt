@@ -59,7 +59,11 @@ import me.kavishdevar.librepods.presentation.theme.BudsStyle
 fun NoiseControlSettings(
     showOffListeningMode: Boolean,
     noiseControlModeValue: Int,
-    onNoiseControlModeChanged: (Int) -> Unit
+    onNoiseControlModeChanged: (Int) -> Unit,
+    showSectionLabel: Boolean = true,
+    conversationAwarenessChecked: Boolean? = null,
+    conversationAwarenessEnabled: Boolean = true,
+    onConversationAwarenessChanged: (Boolean) -> Unit = {},
 ) {
     val modes = buildList {
         if (showOffListeningMode) add(NoiseControlMode.OFF)
@@ -69,10 +73,21 @@ fun NoiseControlSettings(
     }
     val selected = NoiseControlMode.entries.getOrNull(noiseControlModeValue - 1)
     Column {
-        BudsSectionLabel(stringResource(R.string.noise_control))
+        if (showSectionLabel) BudsSectionLabel(stringResource(R.string.noise_control))
         StyledList {
             item { _, _ ->
                 BudsNoiseControlRow(modes, selected, { onNoiseControlModeChanged(it.ordinal + 1) })
+                if (conversationAwarenessChecked != null) BudsRowDivider()
+            }
+            if (conversationAwarenessChecked != null) {
+                StyledToggle(
+                    label = stringResource(R.string.conversational_awareness),
+                    checked = conversationAwarenessChecked,
+                    enabled = conversationAwarenessEnabled,
+                    onCheckedChange = onConversationAwarenessChanged,
+                    trailingDivider = true,
+                    minHeight = 56.dp,
+                )
             }
         }
     }
@@ -107,15 +122,17 @@ internal fun BudsNoiseControlRow(
     }
 ) {
     if (modes.isEmpty()) return
-    val width = stripWidth ?: if (LocalConfiguration.current.screenWidthDp < 589) 320.dp else 392.dp
-    // A fifth of the strip, capped at 80dp. The width is load-bearing: it is what wraps
-    // "주변 소리 듣기" onto two lines and "액티브 노이즈 캔슬링" onto three, as the source
-    // does. Widening it collapses both to one line and shifts every row below the strip.
-    val measuredCaptionWidth = captionWidth ?: minOf(width.value * .2f, 80f).toInt().dp
     val track = if (isSystemInDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
     val tick = remember(track) { GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(track.toArgb()) } }
-    // The source centers a responsive strip, rather than giving each caption a share of the card.
-    Box(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopCenter) {
+    // The Home strip follows the card width. Its content starts after the same 18dp
+    // inset used by rows on either side. The caption width is calculated separately
+    // from the display width by the source: min(screenWidthDp * .2f, 80f), truncated
+    // to integer dp before measurement. Keeping it independent of the constrained
+    // strip also preserves the density-dependent Korean line break at 384dp width.
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    BoxWithConstraints(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopCenter) {
+        val width = stripWidth ?: minOf(maxWidth - BudsStyle.RowInset * 2, 392.dp)
+        val measuredCaptionWidth = captionWidth ?: minOf(screenWidthDp * .2f, 80f).toInt().dp
         Layout(modifier = Modifier.width(width).padding(horizontal = 10.dp).selectableGroup(), content = {
             Canvas(Modifier.fillMaxWidth().height(44.dp)) {
                 // The native background reads the tick drawable's intrinsic 44dp width in

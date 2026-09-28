@@ -140,7 +140,7 @@ fun AirPodsSettingsRoute(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    val topPadding = 16.dp
+    val topPadding = 12.dp
     val bottomPadding = 12.dp
 
     Box (
@@ -197,7 +197,7 @@ fun AirPodsSettingsRoute(
 fun AirPodsSettingsScreen(
         state: AirPodsUiState,
 
-        topPadding: Dp = 16.dp,
+        topPadding: Dp = 12.dp,
         bottomPadding: Dp = 16.dp,
 
         setControlCommandInt: (AACPManager.Companion.ControlCommandIdentifiers, Int) -> Unit,
@@ -308,11 +308,54 @@ fun AirPodsSettingsScreen(
                             caseRes = state.instance?.model?.caseRes ?: R.drawable.airpods_pro_2_case
                         )
                     }
-                    item(key = "spacer_battery") {
-                        Spacer(modifier = Modifier.height(32.dp))
+
+                    if (capabilities.contains(Capability.LISTENING_MODE)) {
+                        item(key = "noise_control") {
+                            NoiseControlSettings(
+                                showOffListeningMode = state.offListeningMode,
+                                noiseControlModeValue = state.controlStates[AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE]?.getOrNull(
+                                    0
+                                )?.toInt() ?: 0,
+                                onNoiseControlModeChanged = {
+                                    setControlCommandInt(
+                                        AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE, it
+                                    )
+                                },
+                                showSectionLabel = false,
+                                conversationAwarenessChecked =
+                                    if (capabilities.contains(Capability.CONVERSATION_AWARENESS)) {
+                                        state.isPremium && state.controlStates[
+                                            AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG
+                                        ]?.getOrNull(0) == 0x01.toByte()
+                                    } else null,
+                                conversationAwarenessEnabled = state.isPremium,
+                                onConversationAwarenessChanged = { checked ->
+                                    setControlCommandBoolean(
+                                        AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG,
+                                        checked,
+                                    )
+                                },
+                            )
+                        }
+                    }
+
+                    item(key = "settings_navigation") {
+                        Spacer(Modifier.height(BudsStyle.GroupSpacing))
+                        StyledList {
+                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
+                                name = stringResource(R.string.controls_gestures), onClick = navigateToControlsGestures)
+                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
+                                name = stringResource(R.string.audio_routing), onClick = navigateToAudioRouting)
+                            StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
+                                name = stringResource(R.string.accessibility), onClick = navigateToAccessibility)
+                        }
+                        Spacer(Modifier.height(BudsStyle.GroupSpacing))
+                        StyledListItem(modifier = Modifier.heightIn(min = 56.dp),
+                            name = stringResource(R.string.battery), onClick = navigateToBattery)
                     }
 
                     item(key = "name") {
+                        Spacer(Modifier.height(BudsStyle.GroupSpacing))
                         StyledListItem(
                             name = stringResource(R.string.name),
                             description = state.deviceName,
@@ -328,7 +371,7 @@ fun AirPodsSettingsScreen(
                     if (hasHearingAidCapability || hasPPECapability) {
                         if (hasPPECapability || state.vendorIdHook) {
                             item(key = "spacer_hearing_health") {
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(BudsStyle.GroupSpacing))
                             }
                         }
                         item(key = "hearing_health") {
@@ -340,36 +383,6 @@ fun AirPodsSettingsScreen(
                                 navigateToHearingAid = navigateToHearingAid
                             )
                         }
-                    }
-
-                    if (capabilities.contains(Capability.LISTENING_MODE)) {
-                        item(key = "spacer_noise") {
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                        item(key = "noise_control") {
-                            NoiseControlSettings(
-                                showOffListeningMode = state.offListeningMode,
-                                noiseControlModeValue = state.controlStates[AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE]?.getOrNull(
-                                    0
-                                )?.toInt() ?: 0,
-                                onNoiseControlModeChanged = {
-                                    setControlCommandInt(
-                                        AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE, it
-                                    )
-                                },
-                            )
-                        }
-                    }
-
-                    item(key = "settings_navigation") {
-                        Spacer(Modifier.height(16.dp))
-                        StyledList {
-                            StyledListItem(name = stringResource(R.string.audio_routing), onClick = navigateToAudioRouting)
-                            StyledListItem(name = stringResource(R.string.controls_gestures), onClick = navigateToControlsGestures)
-                            StyledListItem(name = stringResource(R.string.accessibility), onClick = navigateToAccessibility)
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        StyledListItem(name = stringResource(R.string.battery), onClick = navigateToBattery)
                     }
 
                     item(key = "upgrade_button") {

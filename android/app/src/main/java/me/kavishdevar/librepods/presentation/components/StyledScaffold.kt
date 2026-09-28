@@ -41,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import android.content.res.Configuration
+import android.os.Build
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -89,7 +90,11 @@ fun StyledScaffold(
         topBar = {
             if (visible) {
                 // ASC ku.i0.J/R, ku.w2, SESL top padding: 64+8dp (compact landscape 56+0).
-                Column(Modifier.offset(y = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 0.dp else (-6).dp)
+                // The One UI 9 top bar moves 6dp above its inset. The One UI 8.5
+                // renderer on Android 16 keeps the compact bar at the inset.
+                val portraitOffset = if (Build.MANUFACTURER.equals("samsung", ignoreCase = true) &&
+                    Build.VERSION.SDK_INT == Build.VERSION_CODES.BAKLAVA) 0.dp else (-6).dp
+                Column(Modifier.offset(y = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 0.dp else portraitOffset)
                     .windowInsetsPadding(TopAppBarDefaults.windowInsets)
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(top = if (compact) 0.dp else 8.dp)) {
