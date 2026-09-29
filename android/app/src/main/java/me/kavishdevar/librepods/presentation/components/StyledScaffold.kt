@@ -117,15 +117,23 @@ fun StyledScaffold(
                                 maxLines = 3, overflow = TextOverflow.Ellipsis)
                         }
                     }
-                    Row(Modifier.align(Alignment.BottomStart).semantics { isTraversalGroup = true }.fillMaxWidth().height(if (compact) 56.dp else 64.dp)
-                        .padding(start = if (showBackButton) 24.dp else 0.dp),
+                    Row(Modifier.align(Alignment.BottomStart).semantics { isTraversalGroup = true }.fillMaxWidth().height(if (compact) 56.dp else 64.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         if (showBackButton) {
                             val backLabel = androidx.compose.ui.res.stringResource(me.kavishdevar.librepods.R.string.navigate_back)
-                            Box(Modifier.padding(end = 20.dp).size(24.dp)
-                                .clickable(role = Role.Button, onClick = onNavigateBack)
-                                .semantics { contentDescription = backLabel }, contentAlignment = Alignment.Center) {
-                                if (navigationIcon != null) navigationIcon() else Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
+                            // The SESL bar measures its leading spacer, navigation padding,
+                            // button, and two trailing gaps independently (zu.x2, em.h, lv.i0).
+                            // At 450 dpi the 8dp + 12dp gaps round to 23 + 34px, while a
+                            // single 20dp gap rounds to 56px and moves only the title.
+                            Spacer(Modifier.width(12.dp))
+                            Row(Modifier.padding(start = 12.dp, end = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(24.dp)
+                                    .clickable(role = Role.Button, onClick = onNavigateBack)
+                                    .semantics { contentDescription = backLabel }, contentAlignment = Alignment.Center) {
+                                    if (navigationIcon != null) navigationIcon() else Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
+                                }
+                                Spacer(Modifier.width(8.dp))
                             }
                         } else {
                             // ku.k3 reserves 28dp for the absent navigation slot. Captured
