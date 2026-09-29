@@ -30,6 +30,9 @@ internal object BudsStyle {
     val SectionBottom = 8.dp
     val FooterTop = 14.dp
     val DividerInset = 16.dp
+    // The Home list's separator starts after the leading artwork and its text gutter.
+    // Measured from the stock card edge at 450, 480, 560 and 600 dpi.
+    val HomeMenuDividerInset = 62.dp
 
     /** gm.g2 -> m3.i.x: responsive page width, independent of row text insets. */
     @Composable

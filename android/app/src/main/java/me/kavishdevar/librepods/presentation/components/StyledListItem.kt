@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,13 +52,14 @@ fun StyledListItem(
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     homeMenu: Boolean = false,
+    trailingDivider: Boolean = false,
 ) {
     StyledList(modifier = modifier, title = title) {
         item { _, _ ->
             BudsListRow(name, onClick, description, enabled, height = height,
                 accentDescription = descriptionIsState,
                 leadingContent = leadingContent, trailingContent = trailingContent,
-                homeMenu = homeMenu)
+                homeMenu = homeMenu, trailingDivider = trailingDivider)
         }
     }
 }
@@ -76,21 +78,24 @@ fun StyledListScope.StyledListItem(
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     homeMenu: Boolean = false,
+    trailingDivider: Boolean = false,
 ) {
     item { index, count ->
         BudsListRow(name, onClick, description, enabled, modifier, selected = selected,
             accentDescription = descriptionIsState,
             leadingContent = leadingContent, trailingContent = trailingContent,
-            homeMenu = homeMenu)
-        if (index + 1 < count) BudsRowDivider()
+            homeMenu = homeMenu, trailingDivider = trailingDivider)
+        if (index + 1 < count) BudsRowDivider(
+            startInset = if (homeMenu && leadingContent != null) BudsStyle.HomeMenuDividerInset
+            else BudsStyle.DividerInset)
     }
 }
 
 enum class ListItemOrientation { Horizontal, Vertical }
 
 @Composable
-internal fun BudsRowDivider() {
-    HorizontalDivider(Modifier.padding(horizontal = BudsStyle.DividerInset),
+internal fun BudsRowDivider(startInset: Dp = BudsStyle.DividerInset) {
+    HorizontalDivider(Modifier.padding(start = startInset, end = BudsStyle.DividerInset),
         thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }
 
@@ -107,6 +112,7 @@ internal fun BudsListRow(
     leadingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     homeMenu: Boolean = false,
+    trailingDivider: Boolean = false,
 ) {
     val canClick = onClick != null
     // The Home menu wraps its 28dp content in 14dp vertical padding. Rounding
@@ -132,7 +138,16 @@ internal fun BudsListRow(
             }
         }
         if (trailingContent != null) {
-            Spacer(Modifier.width(12.dp)); trailingContent()
+            if (trailingDivider) {
+                // The Home gesture switch uses the same 22dp rule and 16dp gap as a
+                // grouped switch row; reserve that space inside the trailing slot.
+                val outline = MaterialTheme.colorScheme.outlineVariant
+                VerticalDivider(Modifier.height(22.dp), thickness = 1.dp,
+                    color = outline.copy(alpha = outline.alpha *
+                        (if (enabled || !canClick) 1f else .4f)))
+                Spacer(Modifier.width(16.dp))
+            } else Spacer(Modifier.width(12.dp))
+            trailingContent()
         } else if (selected == true) {
             Spacer(Modifier.width(12.dp))
             Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
