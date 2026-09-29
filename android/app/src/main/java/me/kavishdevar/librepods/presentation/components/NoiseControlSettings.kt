@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -130,114 +131,118 @@ internal fun BudsNoiseControlRow(
     // to integer dp before measurement. Keeping it independent of the constrained
     // strip also preserves the density-dependent Korean line break at 384dp width.
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    BoxWithConstraints(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopCenter) {
-        val width = stripWidth ?: minOf(maxWidth - BudsStyle.RowInset * 2, 392.dp)
+    BoxWithConstraints(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopStart) {
+        val density = LocalDensity.current
+        // The source constrains each 18dp side separately. Its negative anchor values use
+        // Math.round, so a half-pixel inset resolves toward the start at 600 dpi.
+        val sideInsetPx = -with(density) { (-BudsStyle.RowInset.toPx()).roundToInt() }
+        val availableWidthPx = constraints.maxWidth - sideInsetPx * 2
+        val widthPx = with(density) {
+            stripWidth?.roundToPx() ?: minOf(availableWidthPx, 392.dp.roundToPx())
+        }
+        val width = with(density) { widthPx.toDp() }
+        val fixedStrip = stripWidth != null
         val measuredCaptionWidth = captionWidth ?: minOf(screenWidthDp * .2f, 80f).toInt().dp
-        Layout(modifier = Modifier.width(width).padding(horizontal = 10.dp).selectableGroup(), content = {
-            Canvas(Modifier.fillMaxWidth().height(44.dp)) {
-                // The native background reads the tick drawable's intrinsic 44dp width in
-                // integer pixels, then halves it for the first/last centres and oval bounds.
-                // At density 2.8125 that is 124 / 2, rather than 22dp = 61.875px.
-                val radius = 44.dp.roundToPx() / 2f
-                if (modes.size > 1) drawLine(track, Offset(radius, size.height / 2),
-                    Offset(size.width - radius, size.height / 2), strokeWidth = 6.dp.toPx())
-                // The native track draws oval ticks underneath the Compose option backgrounds.
-                drawIntoCanvas { canvas ->
-                    modes.indices.forEach { index ->
-                        val center = if (modes.size == 1) size.width / 2
-                            else radius + (size.width - 2 * radius) * index / (modes.size - 1)
-                        tick.setBounds((center - radius).toInt(), 0, (center + radius).toInt(), size.height.toInt())
-                        tick.draw(canvas.nativeCanvas)
+        Layout(modifier = Modifier.fillMaxWidth(), content = {
+            Layout(modifier = Modifier.width(width).padding(horizontal = 10.dp).selectableGroup(), content = {
+                Canvas(Modifier.fillMaxWidth().height(44.dp)) {
+                    // The native background reads the tick drawable's intrinsic 44dp width in
+                    // integer pixels, then halves it for the first/last centres and oval bounds.
+                    // At density 2.8125 that is 124 / 2, rather than 22dp = 61.875px.
+                    val radius = 44.dp.roundToPx() / 2f
+                    if (modes.size > 1) drawLine(track, Offset(radius, size.height / 2),
+                        Offset(size.width - radius, size.height / 2), strokeWidth = 6.dp.toPx())
+                    // The native track draws oval ticks underneath the Compose option backgrounds.
+                    drawIntoCanvas { canvas ->
+                        modes.indices.forEach { index ->
+                            val center = if (modes.size == 1) size.width / 2
+                                else radius + (size.width - 2 * radius) * index / (modes.size - 1)
+                            tick.setBounds((center - radius).toInt(), 0, (center + radius).toInt(), size.height.toInt())
+                            tick.draw(canvas.nativeCanvas)
+                        }
+                    }
+                }
+                modes.forEach { mode ->
+                    val isSelected = mode == selected
+                    // Artwork and label are placed independently below: the source hangs the 44dp disc
+                    // on the track's own SpaceBetween slots and gives the label its own box, and at
+                    // 3.75 the two sequences round apart by a pixel.
+                    Box(Modifier.size(44.dp)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
+                        contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
+                    Box(Modifier.width(measuredCaptionWidth).selectable(isSelected, role = Role.RadioButton,
+                        onClick = { if (!isSelected) onSelect(mode) })) {
+                        // The source gives the caption a single 52dp top inset from the option's
+                        // origin. Rounding a stacked 44dp artwork box and 8dp gap separately puts
+                        // it one pixel lower at density 2.8125.
+                        Text(label(mode), modifier = Modifier.align(Alignment.TopCenter).padding(top = 52.dp),
+                            style = BudsStyle.RowTitle.copy(fontSize = 12.sp),
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center)
+                    }
+                }
+            }) { measurables, constraints ->
+                val stripWidth = constraints.maxWidth
+                val loose = constraints.copy(minWidth = 0, minHeight = 0)
+                // Content is exactly [track, (disc, caption) * n]; the pairing below depends on that
+                // order, so any child added to the content lambda must keep the disc/caption couplet
+                // intact or be appended after all pairs. The two are measured and placed separately
+                // because the source does not nest them: the disc rides the track's own slots, and the
+                // caption sits in its own box. Nesting the disc inside the caption box rounds twice —
+                // box origin, then the centring inside it — which is what put our first disc a pixel
+                // off at 3.75 while 2.8125 and 3.5 agreed.
+                val line = measurables.first().measure(Constraints.fixed(stripWidth, 44.dp.roundToPx()))
+                val discs = ArrayList<Placeable>(measurables.size / 2)
+                val captions = ArrayList<Placeable>(measurables.size / 2)
+                measurables.drop(1).forEachIndexed { index, measurable ->
+                    val placeable = measurable.measure(loose)
+                    if (index % 2 == 0) discs.add(placeable) else captions.add(placeable)
+                }
+                val height = captions.maxOf { it.height }
+                val diameter = 44.dp.roundToPx()
+                // `gl.s` accumulates the fractional SpaceBetween gap as a float and rounds each
+                // disc origin once. Deriving each origin independently would change half-pixel slots.
+                val discLefts = IntArray(discs.size)
+                if (discs.size == 1) {
+                    // Unreachable from the only caller (which always passes three or four modes), and
+                    // deliberately not SpaceBetween's own single-child rule, which is position 0. The
+                    // guard exists to keep the divisor below non-zero if that ever changes.
+                    discLefts[0] = (stripWidth - diameter) / 2
+                } else {
+                    val space = (stripWidth - diameter * discs.size).toFloat() / (discs.size - 1)
+                    var position = 0f
+                    for (i in discs.indices) {
+                        discLefts[i] = position.roundToInt()
+                        position += diameter + space
+                    }
+                }
+                layout(stripWidth, height) {
+                    line.placeRelative(0, 0)
+                    discs.forEachIndexed { index, disc -> disc.placeRelative(discLefts[index], 0) }
+                    captions.forEachIndexed { index, caption ->
+                        val center = if (captions.size == 1) stripWidth / 2f
+                            else (if (fixedStrip) diameter / 2f else (diameter / 2).toFloat()) +
+                                (stripWidth - diameter) * index.toFloat() / (captions.size - 1)
+                        // The Home path anchors captions to integer option frames, then recovers
+                        // the ConstraintLayout coordinate by adding a half before truncation.
+                        // The measured fixed-width detail path retains its float-half anchor and
+                        // separate negative-coordinate recovery.
+                        val left = center - caption.width / 2f
+                        val captionLeft = if (fixedStrip) {
+                            val rounded = left.roundToInt()
+                            if (left < 0f) rounded + 1 else rounded
+                        } else (left + 0.5f).toInt()
+                        caption.placeRelative(captionLeft, 0)
                     }
                 }
             }
-            modes.forEach { mode ->
-                val isSelected = mode == selected
-                // Artwork and label are placed independently below: the source hangs the 44dp disc
-                // on the track's own SpaceBetween slots and gives the label its own box, and at
-                // 3.75 the two sequences round apart by a pixel.
-                Box(Modifier.size(44.dp)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else track, CircleShape),
-                    contentAlignment = Alignment.Center) { artwork(mode, isSelected) }
-                Box(Modifier.width(measuredCaptionWidth).selectable(isSelected, role = Role.RadioButton,
-                    onClick = { if (!isSelected) onSelect(mode) })) {
-                    // `gl.s` offsets the caption with one inset on the label's own modifier —
-                    // `r0.c.D(text, 0f, 52f, 0f, 0f)`, a single 52dp top padding measured from the
-                    // option's top — and sizes the artwork separately, rather than stacking a 44dp
-                    // box and an 8dp gap. The two are equal in exact arithmetic and differ once
-                    // rounded: at density 3.75 both reach 195px, but at 2.8125 the stack rounds
-                    // twice (124 + 23 = 147) where one inset rounds once (146). That one pixel,
-                    // applied to a caption, propagates down the page as a global vertical offset
-                    // and was the whole of the 1080p disagreement (2.224% -> 0.308%); at 3.75 the
-                    // change is pixel-identical. `captionWidth` still constrains the label, so the
-                    // alignment only moves it vertically.
-                    Text(label(mode), modifier = Modifier.align(Alignment.TopCenter).padding(top = 52.dp),
-                        style = BudsStyle.RowTitle.copy(fontSize = 12.sp),
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center)
-                }
-            }
         }) { measurables, constraints ->
-            val stripWidth = constraints.maxWidth
-            val loose = constraints.copy(minWidth = 0, minHeight = 0)
-            // Content is exactly [track, (disc, caption) * n]; the pairing below depends on that
-            // order, so any child added to the content lambda must keep the disc/caption couplet
-            // intact or be appended after all pairs. The two are measured and placed separately
-            // because the source does not nest them: the disc rides the track's own slots, and the
-            // caption sits in its own box. Nesting the disc inside the caption box rounds twice —
-            // box origin, then the centring inside it — which is what put our first disc a pixel
-            // off at 3.75 while 2.8125 and 3.5 agreed.
-            val line = measurables.first().measure(Constraints.fixed(stripWidth, 44.dp.roundToPx()))
-            val discs = ArrayList<Placeable>(measurables.size / 2)
-            val captions = ArrayList<Placeable>(measurables.size / 2)
-            measurables.drop(1).forEachIndexed { index, measurable ->
-                val placeable = measurable.measure(loose)
-                if (index % 2 == 0) discs.add(placeable) else captions.add(placeable)
-            }
-            val height = captions.maxOf { it.height }
-            val diameter = 44.dp.roundToPx()
-            // `gl.s` lays the discs out with Arrangement.SpaceBetween, which accumulates the
-            // fractional gap as a float and rounds each slot once, so at 3.75 the slot origins are
-            // 0/320/639/959 rather than the 0/283/602/922 a per-slot centre would give. Both are
-            // exact in dp; they differ only where roundToInt sees a fraction, which is why 2.8125
-            // and 3.5 already agreed and 3.75 did not.
-            val discLefts = IntArray(discs.size)
-            if (discs.size == 1) {
-                // Unreachable from the only caller (which always passes three or four modes), and
-                // deliberately not SpaceBetween's own single-child rule, which is position 0. The
-                // guard exists to keep the divisor below non-zero if that ever changes.
-                discLefts[0] = (stripWidth - diameter) / 2
-            } else {
-                val space = (stripWidth - diameter * discs.size).toFloat() / (discs.size - 1)
-                var position = 0f
-                for (i in discs.indices) {
-                    discLefts[i] = position.roundToInt()
-                    position += diameter + space
-                }
-            }
-            layout(stripWidth, height) {
-                line.placeRelative(0, 0)
-                discs.forEachIndexed { index, disc -> disc.placeRelative(discLefts[index], 0) }
-                captions.forEachIndexed { index, caption ->
-                    val center = if (captions.size == 1) stripWidth / 2f
-                        else diameter / 2f + (stripWidth - diameter) * index.toFloat() / (captions.size - 1)
-                    // The caption is centred on the disc above it and is wider than it, so for the
-                    // first option the centre constraint is over-satisfied and resolves to a
-                    // negative local x: at 3.75 the slack is (165 - 240) / 2 = -37.5. The source
-                    // lays this out through ConstraintLayout, whose solver writes that coordinate
-                    // as Math.round(-37.5) = -37 and then recovers the frame by adding a half and
-                    // truncating toward zero, so -36.5 becomes -36. Rounding the half once, as
-                    // Compose places it, lands on -37 instead — one pixel left of the source. The
-                    // second truncation is a no-op for a positive coordinate, which is why the
-                    // three captions that wrap to the full 64dp cap are already exact and only the
-                    // narrow one disagrees; and why it disagrees at 3.75, 2.8125 and 3.5 alike,
-                    // since all three leave the same negative half. Keyed on the sign rather than
-                    // on the option, so it stays correct if the strip or the labels change.
-                    val left = center - caption.width / 2f
-                    val rounded = left.roundToInt()
-                    caption.placeRelative(if (left < 0f) rounded + 1 else rounded, 0)
-                }
+            val strip = measurables.single().measure(constraints.copy(minWidth = 0, minHeight = 0))
+            layout(constraints.maxWidth, strip.height) {
+                val left = if (stripWidth == null && widthPx == availableWidthPx) sideInsetPx
+                    else (constraints.maxWidth - strip.width) / 2
+                strip.placeRelative(left, 0)
             }
         }
     }
