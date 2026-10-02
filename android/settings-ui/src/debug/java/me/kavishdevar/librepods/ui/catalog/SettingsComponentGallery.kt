@@ -25,6 +25,8 @@ fun SettingsComponentGallery() {
     var mode by remember { mutableStateOf("Adaptive") }
     var dialog by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
+    var choices by remember { mutableStateOf(false) }
+    var selectedModes by remember { mutableStateOf(setOf("Ambient", "Cancellation")) }
     var gains by remember { mutableStateOf(listOf(50, 50, 50)) }
     val field = rememberTextFieldState("Device name")
     val scroll = rememberScrollState()
@@ -72,10 +74,21 @@ fun SettingsComponentGallery() {
                 SettingsButton({ sheet = true }, style = SettingsButtonStyle.Tonal) { Text("Sheet") }
                 SettingsIconButton({ dialog = true }, "Open dialog") { Text("+") }
             }
+            SettingsButton({ choices = true }) { Text("Multiple choices") }
         }
     }
     SettingsConfirmationDialog(dialog, "Confirm action", "The action is supplied by the caller.",
         "Confirm", "Cancel", onConfirm = { dialog = false }, onDismiss = { dialog = false })
+    SettingsDialog(choices, "Select modes", { choices = false },
+        presentation = SettingsDialogPresentation.Selection,
+        message = "The caller controls selection and validation.",
+        actions = listOf(SettingsDialogAction("Close", { choices = false }))) {
+        listOf("Off", "Ambient", "Adaptive", "Cancellation").forEach { label ->
+            SettingsMultiChoiceRow(label, label in selectedModes, { checked ->
+                selectedModes = if (checked) selectedModes + label else selectedModes - label
+            })
+        }
+    }
     SettingsBottomSheet(sheet, { sheet = false }) { _ ->
         Text("Sheet content", Modifier.padding(14.dp))
         SettingsButton({ sheet = false }, style = SettingsButtonStyle.Text) { Text("Close") }

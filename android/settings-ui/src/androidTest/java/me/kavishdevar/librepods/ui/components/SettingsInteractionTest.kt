@@ -54,6 +54,46 @@ import org.junit.Test
 class SettingsInteractionTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun multipleChoicesKeepIndependentStateAndSingleNamedActions() {
+        var first by mutableStateOf(false)
+        var second by mutableStateOf(false)
+        var enabled by mutableStateOf(true)
+        var changes = 0
+        var saves = 0
+        compose.setContent {
+            SettingsTheme {
+                SettingsDialog(true, "Select modes", {},
+                    presentation = SettingsDialogPresentation.Selection,
+                    message = "Select at least two", actions = listOf(
+                        SettingsDialogAction("Save", { saves++ }, enabled = first && second))) {
+                    SettingsMultiChoiceRow("First mode", first, { first = it; changes++ }, enabled = enabled)
+                    SettingsMultiChoiceRow("Second mode", second, { second = it; changes++ })
+                }
+            }
+        }
+        val choice = SemanticsMatcher.expectValue(SemanticsProperties.Role,
+            androidx.compose.ui.semantics.Role.Checkbox)
+        compose.onAllNodes(choice, useUnmergedTree = true).assertCountEquals(2)
+        compose.onAllNodes(hasClickAction() and hasText("First mode"), useUnmergedTree = false).assertCountEquals(1)
+        compose.onNodeWithText("First mode").assertIsOff().performClick().assertIsOn()
+        compose.onNodeWithText("Second mode").assertIsOff().performClick().assertIsOn()
+        compose.onNodeWithText("First mode").assertIsOn()
+        compose.onNodeWithText("Save").assertIsEnabled().performClick()
+        compose.onNodeWithText("First mode").performClick().assertIsOff()
+        compose.onNodeWithText("Second mode").assertIsOn()
+        compose.onNodeWithText("Save").assertIsNotEnabled().performClick()
+        compose.runOnIdle { enabled = false }
+        compose.onNodeWithText("First mode").assertIsNotEnabled().performClick().assertIsOff()
+        compose.runOnIdle {
+            assertEquals(3, changes)
+            assertEquals(1, saves)
+            // External state updates must not invoke a change callback.
+            first = true
+        }
+        compose.onNodeWithText("First mode").assertIsOn()
+        compose.runOnIdle { assertEquals(3, changes) }
+    }
+
     @Test fun sheetOutsideTouchKeepsCallerStateAndDarkContentColor() {
         var dismissals = 0
         var contentColor = androidx.compose.ui.graphics.Color.Unspecified

@@ -60,7 +60,7 @@ data class SettingsDialogAction(
 )
 
 /** The native Compose prompt and the platform text-entry prompt have distinct metrics. */
-enum class SettingsDialogPresentation { Confirmation, TextEntry }
+enum class SettingsDialogPresentation { Confirmation, TextEntry, Selection }
 
 /** Caller-owned visibility and actions; no automatic confirmation or dismissal. */
 @Composable
@@ -72,12 +72,14 @@ fun SettingsDialog(
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     actions: List<SettingsDialogAction> = emptyList(),
     presentation: SettingsDialogPresentation = SettingsDialogPresentation.Confirmation,
+    message: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!visible) return
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val textEntry = presentation == SettingsDialogPresentation.TextEntry
+    val selection = presentation == SettingsDialogPresentation.Selection
     val entryMetrics = settingsTextEntryMetrics(configuration)
     val outerVertical = if (textEntry) 8.dp else 16.dp
     // wm.k0 uses the host's available constraints, rather than rounded screen dp.
@@ -164,8 +166,16 @@ fun SettingsDialog(
                         fontSize = 17.sp, textMotion = TextMotion.Static,
                         platformStyle = PlatformTextStyle(includeFontPadding = false)),
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp))
+                    message?.let {
+                        Text(it, Modifier.padding(horizontal = 24.dp),
+                            style = SettingsStyle.RowTitle.copy(fontSize = 14.sp),
+                            color = if (dark) Color(0xFFE9E9EC) else Color(0xFF252528))
+                    }
                     Column(Modifier.weight(1f, fill = false).fillMaxWidth()
-                        .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
+                        .then(if (selection) Modifier.padding(horizontal = 10.dp) else Modifier)
+                        .verticalScroll(rememberScrollState())
+                        // a1.f3 and o1.h0 round their 10dp and 6dp insets separately.
+                        .padding(horizontal = if (selection) 6.dp else 24.dp)) {
                         ProvideTextStyle(SettingsStyle.RowTitle.copy(fontSize = 14.sp, lineHeight = 21.sp,
                             color = if (dark) Color(0xFFE9E9EC) else Color(0xFF252528))) { content() }
                     }
