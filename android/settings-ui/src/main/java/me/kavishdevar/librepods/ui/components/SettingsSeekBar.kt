@@ -19,13 +19,19 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -45,8 +51,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
@@ -55,6 +64,7 @@ import androidx.compose.ui.unit.offset
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.sliderThumbCore
 import me.kavishdevar.librepods.ui.theme.sliderTrack
+import me.kavishdevar.librepods.ui.theme.sliderFeedback
 import kotlin.math.roundToInt
 
 /** `dimen/sesl_seekbar_track_height`. */
@@ -116,6 +126,9 @@ private fun SettingsStandardSeekBar(
     val interactionSource = remember { MutableInteractionSource() }
     val measurement = remember { SettingsSeekBarMeasurement() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val dragged by interactionSource.collectIsDraggedAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
     val state = remember(valueRange, steps) {
         SliderState(value, steps = steps, valueRange = valueRange)
     }
@@ -124,10 +137,29 @@ private fun SettingsStandardSeekBar(
     state.onValueChangeFinished = onValueChangeFinished?.let { { if (enabled) it() } }
     state.value = value
     val trackHeight by animateDpAsState(
-        if (enabled && (pressed || state.isDragging)) 22.dp else 14.dp,
+        // ww.m / kw.d2: pressing alone retains the 14dp track.
+        if (enabled && dragged) 22.dp else 14.dp,
         tween(350, easing = CubicBezierEasing(.22f, .25f, 0f, 1f)),
         label = "Settings slider track")
     val colors = MaterialTheme.colorScheme
+    // wm.n0 → nw.w0/nw.n0: scale the thumb content while feedback keeps
+    // its original size. Preserve source state priority and enter/exit timing.
+    val thumbScale by animateFloatAsState(
+        if (enabled && (pressed || dragged)) .98f else 1f,
+        tween(if (pressed || dragged) 100 else 350,
+            easing = if (pressed || dragged) LinearEasing else CubicBezierEasing(.22f, .25f, 0f, 1f)),
+        label = "Settings slider thumb scale")
+    val feedbackAlpha by animateFloatAsState(
+        if (!enabled) 0f else when {
+            pressed -> 1f
+            focused -> .6f
+            hovered -> .8f
+            dragged -> 1f
+            else -> 0f
+        },
+        tween(if (pressed || dragged) 100 else 350,
+            easing = if (pressed || dragged) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
+        label = "Settings slider feedback")
     val progressColor = if (activeTrackColor == Color.Unspecified) colors.primary else activeTrackColor
     // wm.k1.D dims the completed content once; preserve the translucent track's own alpha.
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
@@ -144,6 +176,19 @@ private fun SettingsStandardSeekBar(
                         val distance = (measurement.trackWidth - thumb.width).coerceAtLeast(0) *
                             state.coercedValueAsFraction
                         thumb.placeRelative(distance.toInt() - distance.roundToInt(), 0)
+                    }
+                }.hoverable(interactionSource, enabled).drawWithContent {
+                    scale(if (enabled) thumbScale else 1f) { this@drawWithContent.drawContent() }
+                    if (enabled && feedbackAlpha > 0f) {
+                        // nw.n0 rounds the summed margins for outline size,
+                        // but translates by the unrounded leading margin.
+                        val extra = 12.dp.roundToPx().toFloat()
+                        val feedbackSize = Size(size.width + extra, size.height + extra)
+                        val radius = feedbackSize.minDimension / 2f
+                        drawRoundRect(colors.sliderFeedback,
+                            topLeft = Offset(-6.dp.toPx(), -6.dp.toPx()),
+                            size = feedbackSize, cornerRadius = CornerRadius(radius),
+                            alpha = feedbackAlpha)
                     }
                 }.shadow(1.dp, CircleShape)
                     .border(2.dp, colors.primary, CircleShape)

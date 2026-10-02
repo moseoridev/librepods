@@ -49,6 +49,10 @@ val ColorScheme.sliderTrack: Color
 val ColorScheme.sliderThumbCore: Color
     get() = if (onSurface == Color(0xFF010102)) Color(0xFFFCFCFF) else Color(0xFF010102)
 
+// sesl_ripple_color → basic_token_state_pressed_on_surface_{light,dark}.
+internal val ColorScheme.sliderFeedback: Color
+    get() = if (onSurface == Color(0xFF010102)) Color(0x1A000000) else Color(0x33FFFFFF)
+
 // ASC: xu.f -> nu.j -> ju.a case 12; resolved SESL resources in the reference manager.
 private val SettingsLightColors = lightColorScheme(
     background = Color(0xFFF3F3F5), surfaceContainer = Color(0xFFF3F3F5),
