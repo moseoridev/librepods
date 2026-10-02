@@ -3,6 +3,8 @@ package me.kavishdevar.librepods.ui.components
 import android.content.res.Configuration
 import android.view.Gravity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
@@ -199,9 +202,8 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
                 LocalDensity provides Density(density.density,
                     if (textEntry) density.fontScale else density.fontScale.coerceAtMost(1.3f))) {
                 val tint = if (action.tint == Color.Unspecified) colors.onSurface else action.tint
-                Surface(onClick = { if (action.enabled) action.onClick() }, enabled = action.enabled,
-                    modifier = Modifier.semantics { role = Role.Button },
-                    shape = if (textEntry) RoundedCornerShape(4.dp) else SettingsStyle.PillShape, color = Color.Transparent,
+                SettingsDialogActionSurface(textEntry = textEntry, enabled = action.enabled,
+                    onClick = { if (action.enabled) action.onClick() },
                     contentColor = tint.copy(alpha = tint.alpha * if (textEntry || action.enabled) 1f else .4f)) {
                     Box(Modifier.defaultMinSize(minWidth = if (textEntry) 42.dp else Dp.Unspecified,
                         minHeight = if (textEntry) 36.dp else 40.dp)
@@ -263,6 +265,26 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsDialogActionSurface(textEntry: Boolean, enabled: Boolean, onClick: () -> Unit,
+    contentColor: Color, content: @Composable () -> Unit) {
+    if (textEntry) {
+        Surface(onClick = onClick, enabled = enabled,
+            modifier = Modifier.semantics { role = Role.Button },
+            shape = RoundedCornerShape(4.dp), color = Color.Transparent,
+            contentColor = contentColor, content = content)
+    } else {
+        val interactionSource = remember { MutableInteractionSource() }
+        // kw.t.s explicitly chooses CornerFull (v1.i → t1.l1), then delegates to
+        // the same kw.t.g feedback as ordinary buttons. Its corner is circular.
+        val feedback = settingsButtonFeedback(enabled, interactionSource, CircleShape)
+        Surface(modifier = Modifier.clickable(interactionSource = interactionSource,
+            indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(feedback), shape = CircleShape, color = Color.Transparent,
+            contentColor = contentColor, content = content)
     }
 }
 

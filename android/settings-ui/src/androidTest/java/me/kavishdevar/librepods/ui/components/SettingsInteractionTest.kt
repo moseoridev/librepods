@@ -341,9 +341,19 @@ class SettingsInteractionTest {
                     onConfirm = { confirmed++; visible = false }, onDismiss = { dismissed++; visible = false })
             }
         }
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onAllNodes(hasClickAction()).assertCountEquals(2)
+        for (label in listOf("Cancel", "Confirm")) {
+            compose.onNodeWithText(label).performTouchInput {
+                down(center)
+                advanceEventTime(200)
+                cancel()
+            }
+        }
+        compose.onNodeWithText("Confirm action").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, confirmed); assertEquals(0, dismissed) }
+        compose.onNodeWithText("Cancel").performTouchInput { click() }
         compose.runOnIdle { assertEquals(0, confirmed); assertEquals(1, dismissed); visible = true }
-        compose.onNodeWithText("Confirm").performClick()
+        compose.onNodeWithText("Confirm").performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, confirmed); assertEquals(1, dismissed) }
         compose.onNodeWithText("Confirm action").assertDoesNotExist()
     }

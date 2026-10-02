@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -71,22 +70,7 @@ fun SettingsButton(
     val shape = SettingsStyle.PillShape
     val density = LocalDensity.current
     val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val focused by interactionSource.collectIsFocusedAsState()
-    val hovered by interactionSource.collectIsHoveredAsState()
-    // kw.o → vw.a.c / nw.t0: scale content and feedback together around the center.
-    val scale by animateFloatAsState(if (enabled && pressed) .96f else 1f,
-        tween(if (pressed) 100 else 350,
-            easing = if (pressed) LinearEasing else CubicBezierEasing(.22f, .25f, 0f, 1f)),
-        label = "Settings button scale")
-    val feedbackAlpha by animateFloatAsState(if (!enabled) 0f else when {
-        pressed -> 1f
-        focused -> .6f
-        hovered -> .8f
-        else -> 0f
-    }, tween(if (pressed) 100 else 350,
-        easing = if (pressed) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
-        label = "Settings button feedback")
+    val feedback = settingsButtonFeedback(enabled, interactionSource, shape)
     // ku.i0.i caps button text scaling at 1.3. Do not alter the Activity configuration.
     CompositionLocalProvider(
         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f)),
@@ -97,14 +81,7 @@ fun SettingsButton(
     ) {
         Box(modifier.clickable(interactionSource = interactionSource, indication = null,
             enabled = enabled, role = Role.Button, onClick = onClick)
-            .drawWithContent {
-                scale(if (enabled) scale else 1f) {
-                    this@drawWithContent.drawContent()
-                    if (enabled && feedbackAlpha > 0f) drawOutline(
-                        shape.createOutline(size, layoutDirection, this), colors.interactionFeedback,
-                        alpha = feedbackAlpha)
-                }
-            }.background(container.copy(alpha = container.alpha * alpha), shape),
+            .then(feedback).background(container.copy(alpha = container.alpha * alpha), shape),
             propagateMinConstraints = true) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
