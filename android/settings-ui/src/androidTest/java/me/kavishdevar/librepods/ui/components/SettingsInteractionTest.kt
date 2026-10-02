@@ -444,6 +444,19 @@ class SettingsInteractionTest {
             }
         }
         compose.onAllNodes(isSelectable()).assertCountEquals(3)
+        // Cancelling a press on either hit area must not request a mode change.
+        compose.onNodeWithContentDescription("Ambient").performTouchInput {
+            down(Offset(center.x, 22.dp.toPx()))
+            advanceEventTime(200)
+            cancel()
+        }.assertIsNotSelected()
+        compose.onNodeWithContentDescription("Cancel").performTouchInput {
+            down(Offset(center.x, height - 2f))
+            advanceEventTime(200)
+            cancel()
+        }.assertIsNotSelected()
+        compose.onNodeWithContentDescription("Off").assertIsSelected()
+        compose.runOnIdle { assertTrue(requested.isEmpty()) }
         // Touch the artwork half of an option, then the caption half of another.
         compose.onNodeWithContentDescription("Ambient").performTouchInput {
             click(Offset(center.x, 22.dp.toPx()))
