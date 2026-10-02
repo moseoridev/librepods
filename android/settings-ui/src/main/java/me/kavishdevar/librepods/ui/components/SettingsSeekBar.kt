@@ -64,7 +64,7 @@ import androidx.compose.ui.unit.offset
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.sliderThumbCore
 import me.kavishdevar.librepods.ui.theme.sliderTrack
-import me.kavishdevar.librepods.ui.theme.sliderFeedback
+import me.kavishdevar.librepods.ui.theme.interactionFeedback
 import kotlin.math.roundToInt
 
 /** `dimen/sesl_seekbar_track_height`. */
@@ -185,7 +185,7 @@ private fun SettingsStandardSeekBar(
                         val extra = 12.dp.roundToPx().toFloat()
                         val feedbackSize = Size(size.width + extra, size.height + extra)
                         val radius = feedbackSize.minDimension / 2f
-                        drawRoundRect(colors.sliderFeedback,
+                        drawRoundRect(colors.interactionFeedback,
                             topLeft = Offset(-6.dp.toPx(), -6.dp.toPx()),
                             size = feedbackSize, cornerRadius = CornerRadius(radius),
                             alpha = feedbackAlpha)

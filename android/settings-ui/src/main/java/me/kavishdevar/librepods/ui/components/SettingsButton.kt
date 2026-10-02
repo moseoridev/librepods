@@ -1,21 +1,33 @@
 package me.kavishdevar.librepods.ui.components
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextMotion
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
+import me.kavishdevar.librepods.ui.theme.interactionFeedback
 
 enum class SettingsButtonStyle { Text, Tonal, Filled }
 
@@ -55,16 +68,42 @@ fun SettingsButton(
     // n1.l.d → rw.a: the shared smooth corner at 50%, rather than a circular arc.
     val shape = SettingsStyle.PillShape
     val density = LocalDensity.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
+    // kw.o → vw.a.c / nw.t0: scale content and feedback together around the center.
+    val scale by animateFloatAsState(if (enabled && pressed) .96f else 1f,
+        tween(if (pressed) 100 else 350,
+            easing = if (pressed) LinearEasing else CubicBezierEasing(.22f, .25f, 0f, 1f)),
+        label = "Settings button scale")
+    val feedbackAlpha by animateFloatAsState(if (!enabled) 0f else when {
+        pressed -> 1f
+        focused -> .6f
+        hovered -> .8f
+        else -> 0f
+    }, tween(if (pressed) 100 else 350,
+        easing = if (pressed) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
+        label = "Settings button feedback")
     // ku.i0.i caps button text scaling at 1.3. Do not alter the Activity configuration.
     CompositionLocalProvider(
         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f)),
         // Let text and separately rounded padding determine the visual height.
         // Compose's clickable expands the hit region without enlarging the pill.
         LocalMinimumInteractiveComponentSize provides Dp.Unspecified,
+        LocalContentColor provides foreground.copy(alpha = foreground.alpha * alpha),
     ) {
-        Surface(onClick = onClick, enabled = enabled, modifier = modifier.semantics { role = Role.Button },
-            shape = shape, color = container.copy(alpha = container.alpha * alpha),
-            contentColor = foreground.copy(alpha = foreground.alpha * alpha)) {
+        Box(modifier.clickable(interactionSource = interactionSource, indication = null,
+            enabled = enabled, role = Role.Button, onClick = onClick)
+            .drawWithContent {
+                scale(if (enabled) scale else 1f) {
+                    this@drawWithContent.drawContent()
+                    if (enabled && feedbackAlpha > 0f) drawOutline(
+                        shape.createOutline(size, layoutDirection, this), colors.interactionFeedback,
+                        alpha = feedbackAlpha)
+                }
+            }.background(container.copy(alpha = container.alpha * alpha), shape),
+            propagateMinConstraints = true) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 // The current manager's common button defaults are 15sp and 16/10dp
