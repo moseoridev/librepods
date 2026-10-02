@@ -237,10 +237,11 @@ class SettingsInteractionTest {
     @Test fun disabledChoiceKeepsItsIndependentTrailingActionAndIconSize() {
         var choices = 0
         var actions = 0
+        var style by mutableStateOf(SettingsChoiceRowStyle.Menu)
         compose.setContent {
             SettingsTheme {
                 SettingsList {
-                    SettingsChoiceRow("Unavailable choice", false, { choices++ }, enabled = false,
+                    SettingsChoiceRow("Unavailable choice", false, { choices++ }, enabled = false, style = style,
                         trailingAction = {
                             SettingsIconButton({ actions++ }, "Configure choice") {
                                 Box(Modifier.size(24.dp).testTag("action-artwork"))
@@ -249,13 +250,16 @@ class SettingsInteractionTest {
                 }
             }
         }
-        compose.onNodeWithText("Unavailable choice").assertIsNotEnabled().performClick()
-        compose.onNodeWithTag("action-artwork", useUnmergedTree = true)
-            .assertWidthIsEqualTo(24.dp).assertHeightIsEqualTo(24.dp)
-        compose.onNodeWithContentDescription("Configure choice").assertIsEnabled()
-            .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
-            .performTouchInput { click() }
-        compose.runOnIdle { assertEquals(0, choices); assertEquals(1, actions) }
+        for ((index, choiceStyle) in SettingsChoiceRowStyle.entries.withIndex()) {
+            compose.runOnIdle { style = choiceStyle }
+            compose.onNodeWithText("Unavailable choice").assertIsNotEnabled().performClick()
+            compose.onNodeWithTag("action-artwork", useUnmergedTree = true)
+                .assertWidthIsEqualTo(24.dp).assertHeightIsEqualTo(24.dp)
+            compose.onNodeWithContentDescription("Configure choice").assertIsEnabled()
+                .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+                .performTouchInput { click() }
+            compose.runOnIdle { assertEquals(0, choices); assertEquals(index + 1, actions) }
+        }
     }
 
     @Test fun menuRowAndCompactSwitchKeepSeparateActions() {

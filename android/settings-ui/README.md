@@ -11,7 +11,7 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 | 색상·글꼴·간격·모서리·창 그림자 | `SettingsTheme`, `SettingsStyle`, `SettingsGroupShape`, `SettingsWindowTheme`, `SettingsWindowOverlay` |
 | 화면·헤더·스크롤 페이드 | `SettingsScaffold`, `SettingsScrollReporter` |
 | 카드·섹션·구분선 | `SettingsCard`, `SettingsList`, `SettingsSectionLabel`, `SettingsRowDivider` |
-| 일반 행·선택 행·토글 행 | `SettingsListItem`, `SettingsChoiceRow`, `SettingsToggle` |
+| 일반 행·선택 행·토글 행 | `SettingsListItem`, `SettingsChoiceRow`, `SettingsChoiceRowStyle`, `SettingsToggle` |
 | 독립 스위치 | `SettingsSwitch` |
 | 가로·세로 슬라이더 | `SettingsSeekBar`, `SettingsSeekBarRow`, `SettingsSeekBarStyle`, `SettingsVerticalSeekBar` |
 | 일반·아이콘 버튼 | `SettingsButton`, `SettingsIconButton` |
@@ -66,6 +66,8 @@ SettingsTheme {
 스크롤 화면은 호출자가 기억하는 `ScrollState`를 `SettingsScaffold`에 전달합니다. Scaffold가 전체 화면의 스크롤 영역과 내부 헤더·시스템 인셋·20dp 끝 여백을 배치하므로, 본문에 별도의 `verticalScroll`을 붙이지 않습니다. 본문이 헤더 아래로 올라가면 제목을 숨기고 뒤로가기·액션을 떠 있는 영역에 표시합니다. 호출자의 `Modifier`는 scaffold 전체에 적용됩니다.
 
 기존 방식으로 호출자가 스크롤을 소유하는 화면은 `scrollState` 없이 같은 scaffold 안에서 `SettingsScrollReporter(scroll.canScrollForward)`를 호출할 수 있습니다. 이 방식은 고정 헤더 아래의 본문 영역을 사용하며 떠 있는 헤더 동작을 제공하지 않습니다. 고정 화면은 스크롤 상태를 전달하거나 보고하지 않습니다.
+
+`SettingsChoiceRow`의 기본 `Menu`는 일반 설정 선택 행입니다. 길게 누르기 등 제어 설정의 표현은 `style = SettingsChoiceRowStyle.Control`로 선택합니다. `Control`은 행 전체의 위아래 14dp 여백, 라디오 뒤 14dp 간격, 아이콘 뒤 16dp 간격과 62dp 구분선 시작 여백을 사용합니다. 비활성 글자·그림은 .4로 표시하고, 라디오는 원본처럼 비활성 색에 별도의 .4 레이어를 더합니다. 아이콘과 설명 문구는 호출자가 공급합니다. 원본 아이콘 크기는 `leadingContent` 안에서 `Modifier.size(28.dp)`로 지정합니다. 빈 설명 문자열도 원본처럼 한 줄을 차지합니다. 원본 길게 누르기 경로의 비활성 첫 선택 카드는 450·480·560·600dpi 어두운 테마와 480dpi 밝은 테마 모두에서 일치했습니다. 카드 5개·1,287,334픽셀의 정확한 RGB 차이가 0이며, 활성 상태·다른 행·전환 프레임까지 대조한 결과는 아닙니다.
 
 선택 행의 `trailingAction`은 행과 별도의 클릭·접근성 동작을 유지합니다. 28dp 장식 슬롯 안에서도 동작 버튼의 48dp 영역과 아이콘 크기를 압축하지 않습니다. 행이 비활성인 상태에서도 별도 동작은 호출자가 공급한 활성 상태를 따릅니다.
 
