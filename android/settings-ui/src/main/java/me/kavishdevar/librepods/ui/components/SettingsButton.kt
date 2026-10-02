@@ -45,7 +45,9 @@ fun SettingsButton(
         else -> Color.Transparent
     }
     val foreground = if (tint != Color.Unspecified) tint else when (style) {
-        SettingsButtonStyle.Filled -> Color(0xFFFAFAFF)
+        // wm.a0 explicitly supplies the current filled label token, overriding
+        // kw.w0's generic content color.
+        SettingsButtonStyle.Filled -> Color(0xFFFCFCFF)
         SettingsButtonStyle.Tonal -> colors.onSurface
         else -> LocalContentColor.current
     }
@@ -56,14 +58,14 @@ fun SettingsButton(
     // ku.i0.i caps button text scaling at 1.3. Do not alter the Activity configuration.
     CompositionLocalProvider(
         LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f)),
-        // Preserve the source's 40dp visual minimum. Compose's clickable still expands
-        // its hit region; the clickable Surface clips its indication to the pill.
+        // Let text and separately rounded padding determine the visual height.
+        // Compose's clickable expands the hit region without enlarging the pill.
         LocalMinimumInteractiveComponentSize provides Dp.Unspecified,
     ) {
         Surface(onClick = onClick, enabled = enabled, modifier = modifier.semantics { role = Role.Button },
             shape = shape, color = container.copy(alpha = container.alpha * alpha),
             contentColor = foreground.copy(alpha = foreground.alpha * alpha)) {
-            Row(Modifier.defaultMinSize(minHeight = 40.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 // The current manager's common button defaults are 15sp and 16/10dp
                 // content padding (wm.k1.g → kw.w0). Screen-specific 52dp heights
