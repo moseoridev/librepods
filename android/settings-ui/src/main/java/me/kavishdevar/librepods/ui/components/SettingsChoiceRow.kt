@@ -1,13 +1,18 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -21,7 +26,12 @@ enum class SettingsChoiceRowStyle { Menu, Control }
 fun SettingsListScope.SettingsChoiceRow(name: String, selected: Boolean, onClick: () -> Unit,
     description: String? = null, enabled: Boolean = true, leadingContent: (@Composable () -> Unit)? = null,
     trailingAction: (@Composable () -> Unit)? = null,
-    divider: Boolean = true, style: SettingsChoiceRowStyle = SettingsChoiceRowStyle.Menu) {
+    divider: Boolean = true, style: SettingsChoiceRowStyle = SettingsChoiceRowStyle.Menu,
+    // Control's optional app-icon surface stays opaque while its artwork dims.
+    leadingIconBackdrop: Boolean = false) {
+    require(!leadingIconBackdrop || (style == SettingsChoiceRowStyle.Control && leadingContent != null)) {
+        "leadingIconBackdrop requires a Control row with leadingContent"
+    }
     item { index, count ->
         val control = style == SettingsChoiceRowStyle.Control
         val dim = if (enabled) 1f else .4f
@@ -40,7 +50,14 @@ fun SettingsListScope.SettingsChoiceRow(name: String, selected: Boolean, onClick
             }
             Spacer(Modifier.width(if (control) 14.dp else 18.dp))
             leadingContent?.let {
-                if (control) Box(contentAlpha) { it() } else it()
+                if (control) {
+                    val backdrop = if (leadingIconBackdrop) {
+                        val shape = RoundedCornerShape(11.dp)
+                        Modifier.size(28.dp).clip(shape).border(.1.dp, Color(0xFFE0E0E0), shape)
+                            .background(Color.White).padding(.8.dp)
+                    } else Modifier
+                    Box(backdrop.then(contentAlpha)) { it() }
+                } else it()
                 Spacer(Modifier.width(16.dp))
             }
             Column(Modifier.weight(1f)
