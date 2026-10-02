@@ -71,6 +71,9 @@ fun SettingsButton(
                 // content padding (wm.k1.g → kw.w0). Screen-specific 52dp heights
                 // are supplied by the caller (nm.d), through modifier.
                 ProvideTextStyle(SettingsStyle.RowTitle.copy(fontSize = 15.sp,
+                    // wm.a0 keeps the filled label's explicit color even when
+                    // kw.t.g dims its background and generic content color.
+                    color = if (style == SettingsButtonStyle.Filled) foreground else Color.Unspecified,
                     fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                     textMotion = TextMotion.Animated)) { content() }
             }
