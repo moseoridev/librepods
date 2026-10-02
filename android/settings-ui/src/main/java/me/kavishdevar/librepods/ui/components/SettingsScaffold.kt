@@ -19,12 +19,9 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.Density
 import androidx.compose.foundation.gestures.Orientation
@@ -168,10 +165,8 @@ fun SettingsScaffold(
                             // Its center and end must be measured as one slot: at 450dpi it
                             // is 135px wide, while 12+24+12dp rounds separately to 136px.
                             Spacer(Modifier.width(12.dp))
-                            Box(Modifier.size(48.dp)
-                                    .clickable(role = Role.Button, onClick = onNavigateBack)
-                                    .semantics { contentDescription = backLabel }, contentAlignment = Alignment.Center) {
-                                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                SettingsIconButtonContent(onNavigateBack, backLabel) {
                                     if (navigationIcon != null) navigationIcon() else Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
                                 }
                             }

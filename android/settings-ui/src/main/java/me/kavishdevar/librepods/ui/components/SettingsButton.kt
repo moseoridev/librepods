@@ -11,7 +11,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -22,6 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalDensity
@@ -131,16 +133,70 @@ fun SettingsIconButton(
     containerColor: Color = Color.Transparent,
     content: @Composable () -> Unit,
 ) {
+    // Keep the independently rounded padding for the natural action layout.
+    SettingsIconButtonContent(onClick, contentDescription,
+        modifier.background(containerColor, CircleShape)
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+        enabled, tint, contentPadding = 12.dp, content = content)
+}
+
+/** The same 24dp control also fits the compact header's separately measured 48dp slot. */
+@Composable
+internal fun SettingsIconButtonContent(
+    onClick: () -> Unit,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    tint: Color = Color.Unspecified,
+    contentPadding: Dp = 0.dp,
+    content: @Composable () -> Unit,
+) {
     val ink = if (tint == Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint
-    // kw.t.u uses a padded icon box rather than a clickable Material Surface.
-    // The separate 24dp icon and 12dp insets retain its natural pixel rounding.
-    Box(modifier.clip(CircleShape).background(containerColor)
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-        .semantics { this.contentDescription = contentDescription }
-        .sizeIn(minWidth = 48.dp, minHeight = 48.dp).padding(12.dp),
-        contentAlignment = Alignment.Center) {
-        CompositionLocalProvider(LocalContentColor provides ink.copy(alpha = ink.alpha * if (enabled) 1f else .4f)) {
-            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { content() }
+    val feedbackColor = MaterialTheme.colorScheme.interactionFeedback
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val contentScale by animateFloatAsState(if (enabled && pressed) .96f else 1f,
+        tween(if (pressed) 100 else 350,
+            easing = if (pressed) LinearEasing else CubicBezierEasing(.22f, .25f, 0f, 1f)),
+        label = "Settings icon scale")
+    val feedbackAlpha by animateFloatAsState(if (!enabled) 0f else when {
+        pressed -> 1f
+        focused -> .6f
+        hovered -> .8f
+        else -> 0f
+    }, tween(if (pressed) 100 else 350,
+        easing = if (pressed) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
+        label = "Settings icon feedback")
+    // kw.t.u → vw.a.d / nw.s0: only the icon content scales. Feedback is
+    // drawn afterwards with a rounded sum of margins and unrounded translation.
+    // Keep caller parent data (align/weight) on the outer layout. Measure the
+    // artwork first; the tooltip's interaction anchor then covers that layout.
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Box(Modifier.padding(contentPadding).size(24.dp)
+            .drawWithContent {
+                scale(if (enabled) contentScale else 1f) { this@drawWithContent.drawContent() }
+                if (enabled && feedbackAlpha > 0f) {
+                    val extra = 24.dp.roundToPx().toFloat()
+                    val feedbackSize = Size(size.width + extra, size.height + extra)
+                    drawRoundRect(feedbackColor, topLeft = Offset(-12.dp.toPx(), -12.dp.toPx()),
+                        size = feedbackSize, cornerRadius = CornerRadius(feedbackSize.minDimension / 2f),
+                        alpha = feedbackAlpha)
+                }
+            },
+            contentAlignment = Alignment.Center) {
+            CompositionLocalProvider(LocalContentColor provides ink.copy(alpha = ink.alpha * if (enabled) 1f else .4f)) {
+                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { content() }
+            }
+        }
+        Box(Modifier.matchParentSize()) {
+            // TooltipBox adds its long-click semantics and input handlers to this
+            // same anchor, so accessibility exposes one named button with both actions.
+            SettingsIconTooltip(contentDescription, enabled, focused,
+                Modifier.fillMaxSize().clickable(interactionSource = interactionSource, indication = null,
+                    enabled = enabled, role = Role.Button, onClick = onClick)
+                    .semantics { this.contentDescription = contentDescription })
         }
     }
 }
