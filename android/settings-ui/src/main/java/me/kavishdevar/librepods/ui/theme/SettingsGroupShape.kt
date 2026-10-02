@@ -11,7 +11,27 @@ import androidx.compose.ui.unit.LayoutDirection
 
 /** The three-segment smooth corner used by the reference rw.a; a circular arc is not equivalent. */
 data class SettingsGroupShape(val radius: Dp) : Shape {
+    private data class CachedOutline(
+        val size: Size,
+        val direction: LayoutDirection,
+        val density: Float,
+        val fontScale: Float,
+        val outline: Outline,
+    )
+
+    private var cachedOutline: CachedOutline? = null
+
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        cachedOutline?.let {
+            if (it.size == size && it.direction == layoutDirection &&
+                it.density == density.density && it.fontScale == density.fontScale) return it.outline
+        }
+        return buildOutline(size, density).also {
+            cachedOutline = CachedOutline(size, layoutDirection, density.density, density.fontScale, it)
+        }
+    }
+
+    private fun buildOutline(size: Size, density: Density): Outline {
         val half = size.minDimension / 2f
         if (half <= 0f) return Outline.Rectangle(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height))
         val r = with(density) { radius.toPx() }.coerceIn(0f, half)

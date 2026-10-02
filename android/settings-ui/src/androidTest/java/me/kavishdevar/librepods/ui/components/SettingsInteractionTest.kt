@@ -624,7 +624,15 @@ class SettingsInteractionTest {
         compose.waitUntil(timeoutMillis = 3_000) {
             compose.onAllNodesWithContentDescription("Go back").fetchSemanticsNodes().size == 1
         }
-        compose.onNodeWithContentDescription("Go back").assertHasClickAction().performClick()
-        compose.runOnIdle { assertEquals(1, backCalls) }
+        val back = compose.onNodeWithContentDescription("Go back").assertHasClickAction()
+        val viewport = compose.onNodeWithTag("settings-viewport")
+        val center = back.fetchSemanticsNode().boundsInRoot.center -
+            viewport.fetchSemanticsNode().boundsInRoot.topLeft
+        // The floating icon's 24dp artwork must retain its expanded 48dp target.
+        viewport.performTouchInput {
+            click(center + Offset(-20.dp.toPx(), 0f))
+            click(center + Offset(20.dp.toPx(), 0f))
+        }
+        compose.runOnIdle { assertEquals(2, backCalls) }
     }
 }
