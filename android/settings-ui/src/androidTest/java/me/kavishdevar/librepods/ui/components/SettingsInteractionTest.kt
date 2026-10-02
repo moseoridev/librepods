@@ -16,6 +16,7 @@ import android.widget.ProgressBar
 import android.text.method.PasswordTransformationMethod
 import android.view.accessibility.AccessibilityNodeInfo
 import android.graphics.drawable.Animatable
+import android.accessibilityservice.AccessibilityServiceInfo
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -34,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -360,6 +364,7 @@ class SettingsInteractionTest {
 
     @Test fun textEntryKeepsNamedActionsAndCallerOwnedValidation() {
         val state = TextFieldState()
+        lateinit var inputMode: InputModeManager
         var requests = 0
         var visible by mutableStateOf(true)
         compose.setContent {
@@ -369,6 +374,7 @@ class SettingsInteractionTest {
                     presentation = SettingsDialogPresentation.TextEntry,
                     actions = listOf(SettingsDialogAction("Cancel", { visible = false }),
                         SettingsDialogAction("Save", { requests++; visible = false }, enabled = state.text.isNotBlank()))) {
+                    inputMode = LocalInputModeManager.current
                     SettingsInputField(state, keyboardOptions = KeyboardOptions(showKeyboardOnFocus = false))
                 }
             }
@@ -376,17 +382,69 @@ class SettingsInteractionTest {
         compose.onNodeWithTag("editor-dialog").assertWidthIsEqualTo(240.dp)
         compose.onNodeWithText("Save").assertHasClickAction().assertIsNotEnabled().performClick()
         compose.runOnIdle { assertEquals(0, requests) }
+        fun assertAndroidActions(saveEnabled: Boolean) {
+            compose.waitForIdle()
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            val serviceInfo = automation.serviceInfo
+            val originalFlags = serviceInfo.flags
+            try {
+                serviceInfo.flags = originalFlags and AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS.inv()
+                automation.serviceInfo = serviceInfo
+                val nodes = mutableListOf<AccessibilityNodeInfo>()
+                fun collect(node: AccessibilityNodeInfo) {
+                    nodes += node
+                    for (index in 0 until node.childCount) node.getChild(index)?.let(::collect)
+                }
+                var root: AccessibilityNodeInfo? = null
+                compose.waitUntil(3_000) {
+                    root = automation.rootInActiveWindow
+                    root != null
+                }
+                collect(requireNotNull(root))
+                for (label in listOf("Cancel", "Save")) {
+                    val named = nodes.filter { it.text?.toString() == label }
+                    assertEquals("One Android accessibility name for $label", 1, named.size)
+                    val action = named.single()
+                    assertTrue("The named node owns the click", action.isClickable)
+                    assertEquals(label == "Cancel" || saveEnabled, action.isEnabled)
+                }
+            } finally {
+                serviceInfo.flags = originalFlags
+                automation.serviceInfo = serviceInfo
+            }
+        }
+        assertAndroidActions(saveEnabled = false)
         onView(isAssignableFrom(EditText::class.java)).perform(replaceText("Changed"))
-        compose.onNodeWithText("Save").assertIsEnabled().performClick()
+        assertAndroidActions(saveEnabled = true)
+        compose.onAllNodes(hasClickAction()).assertCountEquals(2)
+        for (label in listOf("Cancel", "Save")) {
+            compose.onNodeWithText(label).performTouchInput { down(center); advanceEventTime(200); cancel() }
+            compose.runOnIdle { assertTrue(visible); assertEquals(0, requests) }
+            compose.onNodeWithTag("editor-dialog").assertIsDisplayed()
+        }
+        compose.onNodeWithText("Save").assertIsEnabled().performTouchInput { click() }
         compose.runOnIdle { assertEquals("Changed", state.text.toString()); assertEquals(1, requests) }
         compose.onNodeWithTag("editor-dialog").assertDoesNotExist()
         compose.runOnIdle { visible = true }
         compose.onNodeWithTag("editor-dialog").assertIsDisplayed()
         compose.onNodeWithText("Save").assertIsEnabled()
         onView(isAssignableFrom(EditText::class.java)).perform(replaceText("Reopened"))
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Cancel").performTouchInput { click() }
         compose.onNodeWithTag("editor-dialog").assertDoesNotExist()
         compose.runOnIdle { assertEquals("Reopened", state.text.toString()); assertEquals(1, requests) }
+        compose.runOnIdle { visible = true }
+        compose.onNodeWithTag("editor-dialog").assertIsDisplayed()
+        val originalInputMode = compose.runOnIdle { inputMode.inputMode }
+        try {
+            compose.runOnIdle { assertTrue(inputMode.requestInputMode(InputMode.Keyboard)) }
+            compose.onNodeWithText("Save").performSemanticsAction(SemanticsActions.RequestFocus) { assertTrue(it()) }
+            compose.onNodeWithText("Save").assertIsFocused().performKeyInput { pressKey(Key.Enter) }
+            compose.onNodeWithTag("editor-dialog").assertDoesNotExist()
+            compose.runOnIdle { assertEquals("Reopened", state.text.toString()); assertEquals(2, requests) }
+        } finally {
+            // Android touch mode outlives the dialog and can affect subsequent tests.
+            InstrumentationRegistry.getInstrumentation().setInTouchMode(originalInputMode == InputMode.Touch)
+        }
     }
 
     @Test fun longDialogBodyScrollsWithoutMovingTitleOrActions() {

@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -48,8 +47,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -202,7 +199,7 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
                 LocalDensity provides Density(density.density,
                     if (textEntry) density.fontScale else density.fontScale.coerceAtMost(1.3f))) {
                 val tint = if (action.tint == Color.Unspecified) colors.onSurface else action.tint
-                SettingsDialogActionSurface(textEntry = textEntry, enabled = action.enabled,
+                SettingsDialogActionSurface(textEntry = textEntry, label = action.label, enabled = action.enabled,
                     onClick = { if (action.enabled) action.onClick() },
                     contentColor = tint.copy(alpha = tint.alpha * if (textEntry || action.enabled) 1f else .4f)) {
                     Box(Modifier.defaultMinSize(minWidth = if (textEntry) 42.dp else Dp.Unspecified,
@@ -210,8 +207,7 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
                         .padding(horizontal = if (textEntry) 4.dp else 16.dp,
                             vertical = if (textEntry) 0.dp else 8.dp),
                         contentAlignment = if (textEntry) PlatformTextCenter else Alignment.Center) {
-                        if (textEntry) SettingsDialogLabel(action.label,
-                            Modifier.fillMaxWidth().graphicsLayer { alpha = if (action.enabled) 1f else 1f - .6f })
+                        if (textEntry) SettingsDialogActionMeasure(action.label, Modifier.fillMaxWidth())
                         else Text(action.label, modifier = Modifier,
                             style = SettingsStyle.RowTitle.copy(fontSize = if (textEntry) 17.sp else 18.sp,
                             fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
@@ -269,13 +265,10 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
 }
 
 @Composable
-private fun SettingsDialogActionSurface(textEntry: Boolean, enabled: Boolean, onClick: () -> Unit,
+private fun SettingsDialogActionSurface(textEntry: Boolean, label: String, enabled: Boolean, onClick: () -> Unit,
     contentColor: Color, content: @Composable () -> Unit) {
     if (textEntry) {
-        Surface(onClick = onClick, enabled = enabled,
-            modifier = Modifier.semantics { role = Role.Button },
-            shape = RoundedCornerShape(4.dp), color = Color.Transparent,
-            contentColor = contentColor, content = content)
+        SettingsTextEntryAction(label, enabled, onClick, contentColor, content)
     } else {
         val interactionSource = remember { MutableInteractionSource() }
         // kw.t.s explicitly chooses CornerFull (v1.i → t1.l1), then delegates to

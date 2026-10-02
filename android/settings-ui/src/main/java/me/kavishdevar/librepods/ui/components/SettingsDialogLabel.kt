@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalFontFamilyResolver
@@ -32,25 +33,16 @@ import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import kotlin.math.roundToInt
 
-/** Platform single-line button text, with Compose measurement and accessibility. */
+/** Intrinsic action measurement; its parent owns the accessible label and the platform view draws it. */
 @Composable
-internal fun SettingsDialogLabel(label: String, modifier: Modifier = Modifier) {
+internal fun SettingsDialogActionMeasure(label: String, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     val paint = rememberDialogTextPaint()
     val platformLayout = remember(label, paint) {
         dialogTextLayout(label, paint, ScrollingTextWidth, Layout.Alignment.ALIGN_CENTER)
     }
-    Text(label, modifier.height(with(density) { platformLayout.height.toDp() }).drawWithContent {
-        // TextView's horizontally-scrolling button uses a large layout and integer scrollX.
-        // Keeping that coordinate space preserves its glyph-advance float rounding.
-        val scrollX = ((platformLayout.getLineLeft(0) + platformLayout.getLineRight(0)) / 2f).toInt() - size.width.toInt() / 2
-        drawIntoCanvas { canvas ->
-            val native = canvas.nativeCanvas
-            val saved = native.save()
-            native.translate(-scrollX.toFloat(), 0f)
-            platformLayout.draw(native)
-            native.restoreToCount(saved)
-        }
+    Text(label, modifier.height(with(density) { platformLayout.height.toDp() }).clearAndSetSemantics {}.drawWithContent {
+        // Keep measurement without a second visual or accessible copy of the label.
     }, maxLines = 1, softWrap = false, style = SettingsStyle.RowTitle.copy(
         fontSize = with(density) { paint.textSize.toSp() }, fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center, textMotion = TextMotion.Animated,
@@ -77,7 +69,7 @@ internal fun SettingsDialogTitle(title: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun rememberDialogTextPaint(): TextPaint {
+internal fun rememberDialogTextPaint(): TextPaint {
     val density = LocalDensity.current
     val locales = LocalConfiguration.current.locales
     val resolvedTypeface = LocalFontFamilyResolver.current.resolve(
