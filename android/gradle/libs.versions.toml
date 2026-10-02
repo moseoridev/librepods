@@ -9,6 +9,7 @@ composeBom = "2026.05.00"
 annotations = "26.1.0"
 navigationCompose = "2.9.8"
 constraintlayout = "2.2.1"
+constraintlayoutCompose = "1.1.2"
 haze = "1.7.2"
 hazeMaterials = "1.7.2"
 dynamicanimation = "1.1.0"
@@ -44,6 +45,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3",
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "hazeMaterials" }
 androidx-dynamicanimation = { group = "androidx.dynamicanimation", name = "dynamicanimation", version.ref = "dynamicanimation" }
@@ -70,6 +72,7 @@ androidx-foundation-layout = { group = "androidx.compose.foundation", name = "fo
 androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
 
 [plugins]
+android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }

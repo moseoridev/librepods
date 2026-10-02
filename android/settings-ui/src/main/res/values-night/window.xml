@@ -1,0 +1,9 @@
+<resources>
+    <!-- Base.V21.Theme.AppCompat: dark window lighting. These are float tokens. -->
+    <item name="settings_window_ambient_shadow_alpha" type="dimen">0.1</item>
+    <item name="settings_window_spot_shadow_alpha" type="dimen">0.35</item>
+    <style name="SettingsWindowTheme" parent="android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:ambientShadowAlpha">@dimen/settings_window_ambient_shadow_alpha</item>
+        <item name="android:spotShadowAlpha">@dimen/settings_window_spot_shadow_alpha</item>
+    </style>
+</resources>

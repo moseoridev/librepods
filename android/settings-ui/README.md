@@ -1,0 +1,128 @@
+# Settings UI
+
+LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니다. 모듈 이름과 공개 API는 기능에 따라 `Settings*`로 명명합니다. 원본 출처와 대조 범위는 [컴포넌트 출처 문서](../../docs/android-settings-components.md)에 기록합니다.
+
+**현재 앱에는 연결하지 않았습니다.** `:app`의 화면, 테마, 상태, 명령, 리소스와 의존성은 그대로입니다. 이 모듈을 추가하는 것만으로 제품의 디자인이 바뀌지는 않습니다.
+
+## 구성과 범위
+
+| 용도 | 공개 API |
+| --- | --- |
+| 색상·글꼴·간격·모서리·창 그림자 | `SettingsTheme`, `SettingsStyle`, `SettingsGroupShape`, `SettingsWindowTheme`, `SettingsWindowOverlay` |
+| 화면·헤더·스크롤 페이드 | `SettingsScaffold`, `SettingsScrollReporter` |
+| 카드·섹션·구분선 | `SettingsCard`, `SettingsList`, `SettingsSectionLabel`, `SettingsRowDivider` |
+| 일반 행·선택 행·토글 행 | `SettingsListItem`, `SettingsChoiceRow`, `SettingsToggle` |
+| 독립 스위치 | `SettingsSwitch` |
+| 가로·세로 슬라이더 | `SettingsSeekBar`, `SettingsSeekBarRow`, `SettingsSeekBarStyle`, `SettingsVerticalSeekBar` |
+| 일반·아이콘 버튼 | `SettingsButton`, `SettingsIconButton` |
+| 이름 등의 텍스트 입력 | `SettingsInputField` |
+| 대화상자·확인창·시트 | `SettingsDialog`, `SettingsDialogPresentation`, `SettingsConfirmationDialog`, `SettingsBottomSheet`, `SettingsSheetSurface` |
+| 듣기 모드·배터리 표시 | `SettingsModeStrip`, `SettingsBatteryMeter` |
+| 기기 화면의 이미지 배경·그림 | `SettingsImageBackdrop`, `SettingsDeviceIllustration`, `SettingsScaffold.background` |
+| 저음·중음·고음 EQ | `SettingsEqualizer`, `SettingsEqualizerBand` |
+| 작업 대기 표시 | `SettingsLoadingIndicator` |
+
+대상은 LibrePods의 기존 설정 UI입니다. 로딩 표시는 기존 AirPods 상태 준비·진단 로그 읽기에, 하단 시트는 문의 작성·로그 내용 보기에 대응합니다. 원본의 업데이트 화면은 공통 요소를 관찰할 수 있는 경로로만 조사하며, 업데이트 절차는 컴포넌트에 포함하지 않습니다. 별도의 삼성 전용 기능, 프리셋 관리, 9대역 EQ 기능, 팝업 메뉴 체계, 진행률 막대, 기기 연결 엔진은 추가하지 않습니다. EQ는 원본의 세로 조절기 표현을 재사용하되, LibrePods에서 사용할 3개 대역을 호출자가 공급합니다.
+
+## 모듈 경계
+
+```text
+소비 앱: 상태·지원 여부·문구·그림·내비게이션·기기 명령
+              ↓ 값 / 콜백 / Compose 슬롯
+:settings-ui: theme / components
+```
+
+- `:app`에 의존하지 않습니다. ViewModel, 서비스, Bluetooth, 앱 preferences, 모델 enum, 앱 `R`을 참조하지 않습니다. 페이드가 겹치는 내비게이션 영역을 판단할 때 시스템의 내비게이션 방식·태스크바 설정을 읽으며, 이를 변경하거나 저장하지 않습니다.
+- 공개 컴포넌트가 기기 명령을 보내거나 값을 저장하지 않습니다. 변경 요청은 콜백으로 돌려줍니다. 대화상자 확인·취소·시트 닫기도 호출자가 상태를 갱신합니다.
+- 배터리의 좌우 통합, 유효성, 충전 상태 및 현지화된 값은 호출자가 계산합니다. `SettingsBatteryMeter`의 `maxWidth`와 호출자 `Modifier.weight`가 슬롯 폭을 제한하며, 링과 라벨은 그 폭의 가운데에 놓입니다. 복합 이름은 선택적인 `nameContent` 슬롯으로 공급할 수 있습니다. 모드의 식별자·문구·아이콘은 슬롯으로 공급합니다.
+- 스크롤 소유권, 헤더 애니메이션과 스위치 장식 렌더러는 내부 구현입니다. 행 스위치는 행 하나에 접근성 동작을 부여하고, 독립 스위치는 별도 접근성 동작을 제공합니다.
+- API 33 이상을 대상으로 합니다. 글꼴은 기기의 선택적 `sec` 패밀리를 사용하며 없는 기기에서는 시스템 글꼴로 대체됩니다. 삼성 APK·그림·폰트·추출 바이너리를 포함하지 않습니다. 저장소의 GPL 라이선스를 따릅니다.
+
+## 사용 예
+
+통합할 때 소비 모듈에 `implementation(project(":settings-ui"))`를 추가하고 `me.kavishdevar.librepods.ui.theme`와 `.components`를 가져옵니다. 현재 `:app`에는 이 의존성을 추가하지 않았습니다.
+
+```kotlin
+SettingsTheme {
+    val scroll = rememberScrollState()
+    SettingsScaffold(title = title, backLabel = backLabel, scrollState = scroll) {
+        SettingsList(title = sectionTitle) {
+            SettingsToggle(
+                label = label,
+                checked = state.enabled,
+                enabled = state.available,
+                onCheckedChange = onEnabledChange,
+            )
+            SettingsChoiceRow(
+                name = choiceLabel,
+                selected = state.selected,
+                onClick = onChoiceSelected,
+            )
+        }
+    }
+}
+```
+
+스크롤 화면은 호출자가 기억하는 `ScrollState`를 `SettingsScaffold`에 전달합니다. Scaffold가 전체 화면의 스크롤 영역과 내부 헤더·시스템 인셋·20dp 끝 여백을 배치하므로, 본문에 별도의 `verticalScroll`을 붙이지 않습니다. 본문이 헤더 아래로 올라가면 제목을 숨기고 뒤로가기·액션을 떠 있는 영역에 표시합니다. 호출자의 `Modifier`는 scaffold 전체에 적용됩니다.
+
+기존 방식으로 호출자가 스크롤을 소유하는 화면은 `scrollState` 없이 같은 scaffold 안에서 `SettingsScrollReporter(scroll.canScrollForward)`를 호출할 수 있습니다. 이 방식은 고정 헤더 아래의 본문 영역을 사용하며 떠 있는 헤더 동작을 제공하지 않습니다. 고정 화면은 스크롤 상태를 전달하거나 보고하지 않습니다.
+
+선택 행의 `trailingAction`은 행과 별도의 클릭·접근성 동작을 유지합니다. 28dp 장식 슬롯 안에서도 동작 버튼의 48dp 영역과 아이콘 크기를 압축하지 않습니다. 행이 비활성인 상태에서도 별도 동작은 호출자가 공급한 활성 상태를 따릅니다.
+
+메뉴 이동과 켜기·끄기가 분리된 행은 `SettingsListItem.trailingContent`에 `SettingsSwitch(compact = true)`를 넣습니다. 이 옵션은 스위치 그림의 자연 크기로 배치하고 Compose의 확장 터치 영역을 유지합니다. 기본 독립 스위치는 48dp 공간을 확보합니다. 일반 토글 행은 `SettingsToggle`로 하나의 동작을 제공합니다. 메뉴 행을 비활성화하면 아이콘·글자·뒤쪽 콘텐츠 전체에 불투명도 .4를 적용하며, 별도 스위치의 동작 가능 여부는 그 스위치의 `enabled` 값이 결정합니다.
+
+일반 토글 행은 원본 접근성 화면에서 실제로 켰다가 끈 상태도 대조했습니다. 다크 450·480·560·600dpi와 라이트 480dpi의 총 10개 카드, 1,919,744픽셀에서 정확한 RGB 차이가 0입니다. 매번 실제 터치로 꺼짐을 복원하고 화면·ViewModel·패킷 값을 함께 확인했습니다. 이 결과는 일반 토글의 정지 화면에 해당하며 전환 애니메이션은 아직 대조하지 않았습니다.
+
+compact 스위치도 원본 Home에서 실제로 켰다가 끈 두 행 그룹을 같은 5개 조건에서 대조했습니다. 총 10개 그룹·3,879,744픽셀의 정확한 RGB 차이가 0이며, 카드·아이콘·구분선·스위치를 포함합니다. 외부 fixture는 원본에서 측정한 목록 끝까지의 거리를 스크롤 입력으로 받아 같은 화면 위치에서 비교합니다. 위쪽 안내 콘텐츠가 다른 연결 준비 상태의 Home 전체 일치를 뜻하지는 않습니다. 컴포넌트 크기나 밀도별 위치 보정은 추가하지 않았습니다.
+
+상단 전체 기능 스위치는 `SettingsToggle(header = true)`를 사용합니다. 원본 헤드 제스처 경로의 켜짐·꺼짐 카드도 같은 5개 조건, 총 10개 카드·1,966,128픽셀에서 정확한 RGB 차이가 0입니다. 원본의 52dp 높이·18dp 양옆 여백·17.5/5.5dp 스위치 여백을 따르며, 비활성일 때 카드 전체를 한 번만 .4로 흐리게 합니다. 긴 문구나 확대 글꼴을 자르지 않도록 높이는 52dp 이상으로 늘어날 수 있습니다. 이 확장 동작과 비활성 표시의 원본 픽셀 일치는 별도 검증 대상입니다.
+
+`SettingsInputField`에는 호출자가 기억하는 `TextFieldState`와 필요할 때 `FocusRequester`를 전달합니다. 플랫폼 EditText가 입력·IME·선택을 처리하고, 호출자 상태와 글자·선택 범위를 양방향으로 동기화합니다. 원본에서 확인한 공개 Material.Light 입력 위젯, Sans 글꼴, 정수 리소스 크기와 입력선 패딩을 사용합니다. API 35 이상에서는 locale 최소 줄 높이를 적용하며, 기본 커서는 시스템의 동적 accent 600 색이며, 선택 배경은 같은 색의 40%입니다. `cursorColor`와 `selectionColor`로 각각 지정할 수 있습니다. 입력 길이와 명령 조건은 소비 앱에서 검사하고 `errorMessage`를 전달합니다. 오류는 접근성 노드에도 공급하며 플랫폼 오류 팝업은 만들지 않습니다. `KeyboardType.Password`·`NumberPassword`는 한 줄·여러 줄과 호출자 값 갱신에서도 마스킹을 유지합니다.
+
+그림자는 Android 창 테마의 광원과 명암 값을 사용합니다. 소비 앱의 창 테마가 `SettingsWindowTheme`를 상속하면 원본의 공개 Android 부모인 `Theme.DeviceDefault.Light.NoActionBar`와 `Theme.DeviceDefault.NoActionBar`를 night 설정에 따라 사용합니다. 밝은 테마의 ambient/spot 명암은 .04/.1, 어두운 테마는 .1/.35입니다. 뷰를 만들기 전에 창 테마를 지정하고, 창의 리소스 night 설정과 `SettingsTheme(darkTheme)`를 맞춰야 합니다. Compose 테마는 창을 자동으로 변경하지 않습니다.
+
+별도 창 테마에 `SettingsWindowOverlay`를 적용하면 ambient/spot 명암 값을 공급합니다. 부모 테마가 정하는 광원 높이·반경은 유지되므로 원본 그림자까지 맞추려면 DeviceDefault 부모도 필요합니다. S25에서 Material.Light 부모와의 차이는 밝은 슬라이더 손잡이 주변 497픽셀에 나타났고, `SettingsWindowTheme`로 제거했습니다. 숨겨진 Android 속성이나 삼성의 광원 수치를 코드에 고정하지 않습니다.
+
+스크롤로 가려진 헤더는 높이만 유지하고 입력 노드를 제거합니다. 따라서 떠 있는 버튼이 잠시 숨겨진 동안에도 본문 터치를 가로채지 않습니다.
+
+`background` 슬롯은 스크롤 본문과 페이드 아래에 별도로 그려지며, 시스템 인셋과 스크롤 이동을 따릅니다. 본문이 예약하는 헤더 높이는 배경에 더하지 않습니다. 이미지 배경은 `SettingsImageBackdrop(painter)`로 배치할 수 있습니다. 호출자가 `Painter`와 그림의 소유권을 공급하며, 라이브러리에 원본 배경 이미지가 포함되지는 않습니다. 원본의 110dp 위 여백, 가로 4배·세로 3배 확대와 가로 50dp 이동을 사용합니다. `SettingsDeviceIllustration(painter)`는 기본 120×80dp 영역 안의 12dp 위 여백에서 그림을 그리며, 영역 밖의 그림자를 자르지 않습니다. 두 컴포넌트 모두 호출자의 그림을 사용합니다. Home 첫 화면은 원본의 제약 배치·반올림 경계·배터리 각도의 float 계산 순서를 유지합니다. 페이드 높이는 소수 픽셀을 유지하며 상단·하단 셰이더를 따로 적용합니다. 기록된 첫 화면은 450·480·560·600dpi 어두운 테마와 480dpi 밝은 테마 모두 앱 영역의 정확한 RGB 차이가 0입니다. 전체 Home의 스크롤 검증은 아래에 정리하며, 다른 배터리·글꼴 상태는 별도 검증 대상입니다. 모드 그림과 고정 폭 Text의 배치는 내부 ConstraintLayout Compose 의존성으로 구현합니다.
+
+`SettingsButton`은 15sp 글자, 16/10dp 내용 여백과 40dp 기본 최소 높이를 공급합니다. 화면별 크기·위치는 호출자의 `Modifier`로 지정합니다. 원본 About의 200dp 폭·52dp 최소 높이 버튼을 원본의 하단 배치 규칙과 함께 렌더링하면 위 5개 조건 모두 버튼 영역의 정확한 RGB 차이가 0입니다. 비활성·다른 색상 스타일·기본 높이·확대 글꼴·누른 상태는 별도 검증 대상입니다. `SettingsIconButton`의 기본 24dp 아이콘과 12dp 여백은 짧은 설정 화면의 스크롤 후 떠 있는 뒤로가기 버튼에서도 확인했습니다. 720×1280의 450·480dpi 어두운 화면과 480dpi 밝은 화면은 설정 첫 화면·선택 화면·설정 끝 모두 앱 영역의 정확한 RGB 차이가 0입니다.
+
+`SettingsSeekBar`의 기본 `Standard` 스타일은 현재 원본의 14dp 트랙·20dp 손잡이·22dp 표시 높이를 사용합니다. `Slim`은 이전 위젯의 3dp 트랙·13dp 손잡이입니다. 선택 간격 `steps`와 표시 눈금 `tickCount`는 별개이며 값·완료 콜백은 호출자가 공급합니다. `SettingsSeekBarRow`는 제목과 양 끝 라벨을 배치하고 기본 진행 색을 투명하게 유지하는 원본 균형 조절 행입니다. 진행 색은 두 스타일 모두 `activeTrackColor`로 지정할 수 있습니다. 행 제목은 조절 범위의 접근성 이름에도 연결됩니다. 현재 접근성 화면의 기록된 낮은 끝값 상태는 450·480·560·600dpi 어두운 테마와 480dpi 밝은 테마 모두에서 앱 영역의 정확한 RGB 차이 0픽셀입니다. 원본을 실제로 눌러 만든 값 0·16·32의 균형 카드도 같은 5개 조건, 총 15개 카드에서 정확한 RGB 차이 0입니다. 손잡이는 원본처럼 측정한 전체 트랙 폭에서 손잡이 폭을 뺀 거리에 비율을 곱한 뒤 버림 처리합니다. Material 입력·접근성 처리는 유지하며 그림의 배치만 맞춥니다. 다른 값·비활성 표시·진행 색·누른 상태·RTL·확대 글꼴은 별도 검증 대상입니다.
+
+`SettingsVerticalSeekBar`에는 제한된 높이와 현지화한 `label`을 공급합니다. `SettingsEqualizerBand.contentDescription`은 해당 조절기의 범위·변경 동작과 같은 접근성 노드에 붙습니다. 현재 원본의 9개 0값 열을 측정용 fixture에서 렌더링한 EQ 그래프 카드는 위 5개 조건 모두 정확한 RGB 차이 0픽셀입니다. 이 결과는 그래프 카드만 대상으로 하며, LibrePods의 3대역 화면이나 프리셋 전체 화면을 원본과 대조했다는 뜻은 아닙니다. 다른 값·비활성 표시·누른 상태·확대 글꼴은 아직 대조하지 않았습니다.
+
+슬라이더 값은 유한한 수이고 범위 안에 있어야 하며, 범위의 끝은 시작보다 커야 합니다. `SettingsEqualizer`의 기본 `valueRange = -10..10`과 부호 표기는 원본 대조용입니다. LibrePods EQ는 `valueRange = 0..100`, `valueLabel = { it.toString() }`를 전달해 기존 101단계를 그대로 사용합니다. `valueLabel`은 현지화한 표시 문구만 만들며 값이나 명령을 변환하지 않습니다. 정수 간격은 슬라이더의 `steps`에도 전달해 방향키와 Android 접근성 증감이 한 단계씩 움직이게 합니다. 대역 값 갱신·디바운스·기기 명령은 계속 호출자가 담당합니다. S25 검사에서 50→51 한 단계 변경과 0·100 끝값, 호출자 값 갱신 시 콜백이 발생하지 않는 동작을 확인했습니다. 모드 strip은 기존 화면의 3~4개 항목 배치를 대상으로 하며 항목마다 같은 슬롯 순서를 유지합니다. 아이콘과 문구는 하나의 선택 영역과 접근성 동작을 공유합니다. `artwork`는 장식용 슬롯이며, 모드의 접근성 이름은 `label`이 공급합니다.
+
+`SettingsDialog`는 아래쪽에 배치하며 기본 `DialogProperties`의 플랫폼 폭 제한을 해제합니다. 실제 호출 영역의 높이로 최대 높이를 계산하고, 제목과 동작 버튼을 유지한 채 본문만 스크롤합니다. 버튼 문구가 가로로 들어가지 않으면 세로로 배치합니다. `SettingsDialogAction.tint`는 호출자가 지정하며 비활성 동작은 콜백을 호출하지 않습니다. 현재 확인창 카드 전체는 위 5개 조건 모두 정확한 RGB 차이 0픽셀입니다. 이 결과는 카드의 제목·본문·버튼·표면에 한정되며, 뒤의 화면이나 AppCompat 이름 변경 창까지 검증한 결과는 아닙니다.
+
+이름 입력창에는 `presentation = SettingsDialogPresentation.TextEntry`를 사용합니다. 확인창과 다른 제목·버튼·창 여백을 적용하며, 원본의 API별 창 폭과 긴 제목의 두 줄 배치를 따릅니다. 일반 원형 GradientDrawable와 8dp 창 그림자를 사용하고, 닫거나 표시 방식을 바꿀 때 창 설정을 복원합니다. 이 표시 방식이 24dp 본문 양옆 여백과 제목 뒤의 16dp 간격을 공급합니다. 검증·버튼 활성 상태는 호출자가 공급합니다.
+
+빈 입력창은 위 5개 조건과 추가 1440×3120 / 480dpi 어두운 화면에서 카드 전체의 정확한 RGB 차이가 0입니다. 입력된 영문·전체 선택·원본의 길이 초과 오류도 기본 5개 조건에서 카드 전체가 일치합니다. 여기에 실제 삼성 키보드로 `리브레팟`을 입력하고 키보드를 닫은 뒤의 5개 카드도 전체가 일치합니다. 합계 26개 카드, 18,633,960픽셀을 대조했습니다. 원본 이름 변경은 모두 취소했으며, 키보드 언어도 복원했습니다. 커서는 같은 자연스러운 깜박임 상태끼리 비교하며 캡처를 수정하지 않습니다. 원본의 8dp 높이를 공개 `Window.setElevation()`으로 적용하면 플랫폼이 그림자용 내부 여백까지 갱신하므로, 이전 모서리 차이도 사라집니다. 이 값은 창 효과를 설정할 때 적용하며 애니메이션하지 않습니다. 배경 About 화면은 외부 fixture의 합성 입력으로만 사용했고 해당 화면의 구현·검증 결과는 아닙니다. 오류 안내의 시작 여백은 XML의 30dp와 24dp를 각각 반올림한 차이로 계산합니다. 키보드 자체의 픽셀·전환 프레임·선택 손잡이·다른 문자와 여러 줄 입력·확대 글꼴은 아직 대조하지 않았습니다.
+
+삼성 API 35 이상에서는 원본과 같은 선택적 창 블러를 반영합니다. 숨겨진 OEM API를 조회하거나 적용할 수 없으면 원본의 단색 표면으로 표시합니다. 라이브러리는 루트 권한이나 삼성 앱 설치를 요구하지 않으며, 자체 대화상자의 뷰에만 효과를 적용하고 닫힐 때 제거합니다. 실기 증거는 현재 루팅된 S25의 자체 fixture에서 얻었으며, 비루팅 기기·다른 펌웨어에서의 블러 가용성이나 픽셀 일치를 확인한 것은 아닙니다.
+
+`SettingsLoadingIndicator`는 현재 원본의 24dp 플랫폼 ProgressBar를 사용합니다. 공개 `Widget.DeviceDefault.ProgressBar` 스타일을 지정해 소비 앱의 Material 테마에 따라 표시가 바뀌는 것을 막습니다. S25 API 36에서는 원본 앱과 시스템 애니메이션의 경로·색상·그라데이션·시간 데이터가 모두 같음을 확인했고, fixture의 5개 밀도·테마에서 크기와 움직이는 픽셀을 확인했습니다. 호출자가 Modifier로 접근성 이름을 공급할 수 있으며, 제거 시 플랫폼 애니메이션을 멈춥니다. 원본의 실제 대기 화면 프레임과는 아직 대조하지 않았고, 다른 기기는 각 기기의 플랫폼 표시를 사용합니다.
+
+`SettingsSheetSurface`는 현재 원본 XML 시트의 표면을 모달 창과 분리한 컴포넌트입니다. 26dp 원형 모서리, 8dp 뷰 그림자, 1dp 세로 그라데이션 테두리와 24dp 양옆·위 / 20dp 아래 내용 여백을 적용합니다. 카드 너비는 기본 360dp, 최소 화면 폭 600dp 이상에서 400dp로 제한하며 가용 폭이 작으면 줄어듭니다. 전체 내용을 스크롤할 수 있고, 단독 사용에서도 현재 테마의 글자색을 공급합니다. 선택적 OEM 블러는 이 표면에만 적용하고 제거 시 해제합니다.
+
+`SettingsBottomSheet`는 이 표면에 10dp 외곽 여백을 주는 Compose 모달 어댑터입니다. 원본처럼 확장 상태로 열고 바깥 터치로 닫지 않는 것이 기본입니다. 기존 연락처 폼의 부분 확장·바깥 터치 닫힘이 필요하면 각각 `allowPartialExpansion = true`, `dismissOnClickOutside = true`로 지정합니다. 표시 여부·동작·닫힘 상태는 호출자가 소유합니다. **현재 원본의 보이는 시트와 픽셀 대조는 끝나지 않았습니다.** 실제로 확인한 길게 누르기·애플리케이션 선택 경로는 전체 페이지이며, Compose 창·인셋·드래그·전환과 OEM 효과의 최종 일치 검증이 남아 있습니다.
+
+현재 원본 Home은 다크 450·480·560·600dpi와 라이트 480dpi에서 상단·중간·끝을 대조했습니다. 15개 화면의 앱 영역 47,516,760픽셀에서 정확한 RGB 차이가 0이고, 스크롤 위치·전체 범위도 같습니다. 원본은 설정 경로로 실행해 실제로 스와이프했으며, fixture에는 읽어 온 위치만 공급했습니다. 이 결과는 기록한 고정 입력과 정지 화면에 해당합니다. 다른 상태·글꼴·전환 프레임과 아직 대조하지 못한 컴포넌트는 출처 문서에 구분합니다.
+
+## 확인과 유지보수
+
+`src/debug/.../catalog/SettingsComponentGallery.kt`에 light/dark/확대 글꼴 Preview와 실제 콜백을 사용하는 예제가 있습니다. 그림은 단순한 자체 도형이며 제품 그림을 포함하지 않습니다. Preview는 출시 AAR에 포함되지 않습니다.
+
+저장소 루트에서:
+
+```sh
+./android/gradlew -p android :settings-ui:assembleDebug :settings-ui:testDebugUnitTest \
+  :settings-ui:assembleDebugAndroidTest --console=plain --no-daemon --max-workers=2 \
+  '-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8'
+```
+
+JDK/SDK 설정은 [Android 개발 가이드](../../docs/android-development.md)를 따릅니다. 호스트 테스트는 화면 교체 시 페이드 보고자의 소유권을 검증합니다. 계측 테스트는 입력 포커스의 획득·해제·재요청, 글자·선택의 양방향 동기화와 오류 접근성, 좁은 입력창의 명명된 동작·호출자 검증 상태와 닫은 뒤 재개방·편집·취소, 행 스위치의 단일 동작과 비활성화, 메뉴 이동과 compact 스위치의 독립 동작·활성 상태, 비활성 선택 행 안의 독립 동작과 아이콘 크기, 확인/취소 콜백 분리, 긴 대화상자 본문의 스크롤과 고정 제목·버튼, 긴 버튼 문구의 세로 배치와 비활성 콜백 차단, 가로 조절 범위의 현지화된 이름과 비활성 콜백 차단, 세로 슬라이더 방향·범위, 로딩 표시의 단일 접근성 범위와 제거 시 애니메이션 중단, 긴 시트의 동작 버튼 스크롤과 호출자 소유 닫힘·뷰 제거, 시트의 바깥 터치 유지와 다크 모드 글자색, 제한된 화면에서 스크롤 후 하나의 뒤로가기 동작에 접근할 수 있는지를 검증합니다. 계측 APK는 제품 APK와 다른 `me.kavishdevar.librepods.ui.test` 패키지입니다.
+
+컴포넌트의 수치나 렌더러를 바꿀 때는 출처 문서의 해당 행도 갱신합니다. 원본 수치, Compose에 맞춘 동작, 캡처로 확인한 결과를 구분합니다. 빌드와 에뮬레이터 테스트가 삼성 기기의 픽셀 일치나 실제 AirPods 기능을 증명하지는 않습니다.
