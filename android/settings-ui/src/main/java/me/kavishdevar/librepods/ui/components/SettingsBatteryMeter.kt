@@ -30,12 +30,21 @@ import kotlin.math.atan
 /** Display-only arc meter. Normalize missing/combined readings in the caller. */
 @Composable
 fun SettingsBatteryMeter(level: Int?, name: String, value: String, description: String,
-    progressColor: Color, maxWidth: Dp, chargeLabel: String = "",
+    progressColor: Color = Color.Unspecified, maxWidth: Dp, chargeLabel: String = "",
     modifier: Modifier = Modifier,
     trackColor: Color = MaterialTheme.colorScheme.sliderTrack,
     nameContent: (@Composable () -> Unit)? = null,
     artwork: @Composable () -> Unit) {
     val density = LocalDensity.current
+    val dark = MaterialTheme.colorScheme.onSurface != Color(0xFF010102)
+    // wm.l1.a clamps its reading, then selects color_low_battery_progress at
+    // <=10 and color_battery_progress above it. Keep explicit caller tint.
+    val sourceProgressColor = if ((level ?: 0).coerceIn(0, 100) <= 10) {
+        if (dark) Color(0xFFE65B17) else Color(0xFFFC864C)
+    } else {
+        if (dark) Color(0xFF22CA61) else Color(0xFF26E26D)
+    }
+    val progressTint = if (progressColor == Color.Unspecified) sourceProgressColor else progressColor
     val textSize = with(density) { 12.dp.toSp() }
     val lineHeight = with(density) { 18.dp.toSp() }
     // h4.i.d trims both outer line edges; newer Compose defaults leave them.
@@ -75,7 +84,7 @@ fun SettingsBatteryMeter(level: Int?, name: String, value: String, description: 
                     paint.color = trackColor.toArgb()
                     canvas.nativeCanvas.drawArc(arc, startAngle, sweepAngle, false, paint)
                     if (progressSweepAngle > 0f) {
-                        paint.color = progressColor.toArgb()
+                        paint.color = progressTint.toArgb()
                         canvas.nativeCanvas.drawArc(arc, startAngle, progressSweepAngle, false, paint)
                     }
                 }

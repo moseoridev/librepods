@@ -58,7 +58,7 @@ fun SettingsComponentGallery() {
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                SettingsBatteryMeter(75, "Left", " 75%", "Left, 75%", Color(0xFF26E26D), 92.dp) {
+                SettingsBatteryMeter(75, "Left", " 75%", "Left, 75%", maxWidth = 92.dp) {
                     Canvas(Modifier.fillMaxSize()) { drawCircle(Color.Gray, size.minDimension / 3) }
                 }
                 SettingsLoadingIndicator()

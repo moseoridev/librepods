@@ -18,7 +18,7 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 | 아이콘 동작의 설명 말풍선 | `SettingsTooltip` |
 | 이름 등의 텍스트 입력 | `SettingsInputField` |
 | 대화상자·확인창·시트 | `SettingsDialog`, `SettingsDialogPresentation`, `SettingsConfirmationDialog`, `SettingsBottomSheet`, `SettingsSheetSurface`, `SettingsSheetTitle`, `SettingsSheetBody` |
-| 듣기 모드·배터리 표시 | `SettingsModeStrip`, `SettingsBatteryMeter` |
+| 듣기 모드·배터리 표시 | `SettingsModeStrip`, `SettingsBatteryRow`, `SettingsBatteryMeter` |
 | 기기 화면의 이미지 배경·그림 | `SettingsImageBackdrop`, `SettingsDeviceIllustration`, `SettingsScaffold.background` |
 | 저음·중음·고음 EQ | `SettingsEqualizer`, `SettingsEqualizerBand` |
 | 작업 대기 표시 | `SettingsLoadingIndicator` |
@@ -35,9 +35,35 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 
 - `:app`에 의존하지 않습니다. ViewModel, 서비스, Bluetooth, 앱 preferences, 모델 enum, 앱 `R`을 참조하지 않습니다. 페이드가 겹치는 내비게이션 영역을 판단할 때 시스템의 내비게이션 방식·태스크바 설정을 읽으며, 이를 변경하거나 저장하지 않습니다.
 - 공개 컴포넌트가 기기 명령을 보내거나 값을 저장하지 않습니다. 변경 요청은 콜백으로 돌려줍니다. 대화상자 확인·취소·시트 닫기도 호출자가 상태를 갱신합니다.
-- 배터리의 좌우 통합, 유효성, 충전 상태 및 현지화된 값은 호출자가 계산합니다. `SettingsBatteryMeter`의 `maxWidth`와 호출자 `Modifier.weight`가 슬롯 폭을 제한하며, 링과 라벨은 그 폭의 가운데에 놓입니다. 복합 이름은 선택적인 `nameContent` 슬롯으로 공급할 수 있습니다. 모드의 식별자·문구·아이콘은 슬롯으로 공급합니다.
+- 배터리의 좌우 통합, 유효성, 충전 상태 및 현지화된 값은 호출자가 계산합니다. `SettingsBatteryRow`에는 통합 또는 분리 표시할 `primaryMeters`와 선택적인 `secondaryMeter` 슬롯을 전달합니다. 280dp 이내의 행에서 기본 그룹과 보조 슬롯의 폭을 나누고, 3dp 간격과 상단 정렬을 유지합니다. `SettingsBatteryMeter`의 `maxWidth`가 개별 슬롯 폭을 제한하며, 링과 라벨은 그 폭의 가운데에 놓입니다. 복합 이름과 인라인 충전 그림은 선택적인 `nameContent` 슬롯으로 공급합니다. 기본 진행 색은 원본의 10% 이하 저전력 색과 나머지 정상 색을 따르며 `progressColor`로 지정할 수 있습니다. 표시 여부나 저전력 알림은 호출자가 정합니다. 모드의 식별자·문구·아이콘은 슬롯으로 공급합니다.
 - 스크롤 소유권, 헤더 애니메이션과 스위치 장식 렌더러는 내부 구현입니다. 행 스위치는 행 하나에 접근성 동작을 부여하고, 독립 스위치는 별도 접근성 동작을 제공합니다.
 - API 33 이상을 대상으로 합니다. 글꼴은 기기의 선택적 `sec` 패밀리를 사용하며 없는 기기에서는 시스템 글꼴로 대체됩니다. 삼성 APK·그림·폰트·추출 바이너리를 포함하지 않습니다. 저장소의 GPL 라이선스를 따릅니다.
+
+## 배터리 표시 구성
+
+`SettingsBatteryRow`는 호출자가 선택한 하나 또는 두 개의 기본 미터와 선택적인 케이스 미터를 배치합니다. 미터 내부의 이름·값·접근성 설명·그림은 호출자가 공급합니다.
+
+```kotlin
+val primaryMeters: List<@Composable () -> Unit> = listOf(
+    {
+        SettingsBatteryMeter(
+            level = leftLevel, name = leftLabel, value = leftValue,
+            description = leftDescription, maxWidth = 138.5.dp,
+            artwork = leftArtwork,
+        )
+    },
+    {
+        SettingsBatteryMeter(
+            level = rightLevel, name = rightLabel, value = rightValue,
+            description = rightDescription, maxWidth = 138.5.dp,
+            artwork = rightArtwork,
+        )
+    },
+)
+SettingsBatteryRow(primaryMeters = primaryMeters, secondaryMeter = caseMeter)
+```
+
+통합 표시할 때는 기본 슬롯 하나를 전달합니다. 없는 값을 숨길지, 빈 링과 `?` 같은 문구로 표시할지도 호출자가 정합니다. 충전 그림은 `nameContent`에 넣으며, `SettingsBatteryMeter`의 접근성 설명에 충전 상태를 포함합니다. 그림과 별도의 읽기 노드를 만들지 않습니다. 기본 진행 색은 다크 정상 `#22CA61`·저전력 `#E65B17`, 라이트 정상 `#26E26D`·저전력 `#FC864C`입니다. 명시적인 `progressColor`는 이 기본값보다 우선합니다. 원본 설정 경로에서 통합·분리·충전·0%·값 없는 슬롯 등 9개 상태를 기본 5개 해상도·밀도·테마 조건으로 대조한 **135개 앱 영역·419,563,800픽셀의 정확한 RGB 차이가 0**입니다. 원본은 없는 슬롯을 숨기며, LibrePods의 알 수 없는 값 문구·최적화 충전 설명·자체 그림과 전환 상태는 호출자 콘텐츠로서 이 대조에 포함하지 않습니다. 원시 입력·캡처·독립 재계산과 시스템 영역 차이는 [검증 문서](../../docs/android-settings-components.md#battery-display-states)에 기록합니다.
 
 ## 사용 예
 
