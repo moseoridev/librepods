@@ -79,15 +79,22 @@ class SettingsInteractionTest {
             androidx.compose.ui.semantics.Role.Checkbox)
         compose.onAllNodes(choice, useUnmergedTree = true).assertCountEquals(2)
         compose.onAllNodes(hasClickAction() and hasText("First mode"), useUnmergedTree = false).assertCountEquals(1)
-        compose.onNodeWithText("First mode").assertIsOff().performClick().assertIsOn()
-        compose.onNodeWithText("Second mode").assertIsOff().performClick().assertIsOn()
+        for (label in listOf("First mode", "Second mode")) {
+            compose.onNodeWithText(label).performTouchInput {
+                down(center); advanceEventTime(200); cancel()
+            }.assertIsOff()
+        }
+        compose.runOnIdle { assertEquals(0, changes) }
+        compose.onNodeWithText("First mode").assertIsOff().performTouchInput { click() }.assertIsOn()
+        compose.onNodeWithText("Second mode").assertIsOff().performTouchInput { click() }.assertIsOn()
         compose.onNodeWithText("First mode").assertIsOn()
         compose.onNodeWithText("Save").assertIsEnabled().performClick()
         compose.onNodeWithText("First mode").performClick().assertIsOff()
         compose.onNodeWithText("Second mode").assertIsOn()
         compose.onNodeWithText("Save").assertIsNotEnabled().performClick()
         compose.runOnIdle { enabled = false }
-        compose.onNodeWithText("First mode").assertIsNotEnabled().performClick().assertIsOff()
+        compose.onNodeWithText("First mode").assertIsNotEnabled().performClick()
+            .performTouchInput { click() }.assertIsOff()
         compose.runOnIdle {
             assertEquals(3, changes)
             assertEquals(1, saves)
@@ -366,14 +373,19 @@ class SettingsInteractionTest {
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(1, changes); rowEnabled = false }
         compose.onNodeWithText("Details").assertIsNotEnabled().performClick()
         compose.onNodeWithContentDescription("Enable feature").assertIsEnabled().performTouchInput { click() }
-        compose.runOnIdle { assertEquals(1, navigations); assertEquals(2, changes); switchEnabled = false }
-        compose.onNodeWithContentDescription("Enable feature").assertIsNotEnabled().performClick()
+        compose.runOnIdle { assertEquals(1, navigations); assertEquals(2, changes) }
+        val switch = compose.onNodeWithContentDescription("Enable feature")
+        switch.performTouchInput { down(center) }
+        compose.runOnIdle { switchEnabled = false }
+        switch.performTouchInput { up() }.assertIsNotEnabled().performClick()
+            .performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(2, changes) }
     }
 
     @Test fun menuChoicesKeepCallerSelectionAndCancelWithoutCallbacks() {
         var selected by mutableStateOf("First")
         var enabled by mutableStateOf(true)
+        var style by mutableStateOf(SettingsChoiceRowStyle.Menu)
         var callbacks = 0
         lateinit var inputMode: InputModeManager
         compose.setContent {
@@ -382,32 +394,37 @@ class SettingsInteractionTest {
                 SettingsList {
                     for (label in listOf("First", "Second")) {
                         SettingsChoiceRow(label, selected == label,
-                            { selected = label; callbacks++ }, enabled = enabled)
+                            { selected = label; callbacks++ }, enabled = enabled, style = style)
                     }
                 }
             }
         }
         compose.onAllNodes(isSelectable()).assertCountEquals(2)
-        for (label in listOf("First", "Second")) {
-            compose.onNodeWithText(label).performTouchInput { down(center); advanceEventTime(200); cancel() }
-            compose.runOnIdle { assertEquals("First", selected); assertEquals(0, callbacks) }
-        }
-        compose.onNodeWithText("Second").performTouchInput { click() }
-        compose.onNodeWithText("Second").assertIsSelected()
-        compose.runOnIdle { assertEquals(1, callbacks); selected = "First" }
-        compose.onNodeWithText("First").assertIsSelected()
-        val originalInputMode = compose.runOnIdle { inputMode.inputMode }
-        try {
-            compose.runOnIdle { assertTrue(inputMode.requestInputMode(InputMode.Keyboard)) }
-            compose.onNodeWithText("Second").performSemanticsAction(SemanticsActions.RequestFocus) { assertTrue(it()) }
-            compose.onNodeWithText("Second").assertIsFocused().performKeyInput { pressKey(Key.Enter) }
+        for (choiceStyle in SettingsChoiceRowStyle.entries) {
+            compose.runOnIdle {
+                style = choiceStyle; selected = "First"; enabled = true; callbacks = 0
+            }
+            for (label in listOf("First", "Second")) {
+                compose.onNodeWithText(label).performTouchInput { down(center); advanceEventTime(200); cancel() }
+                compose.runOnIdle { assertEquals("First", selected); assertEquals(0, callbacks) }
+            }
+            compose.onNodeWithText("Second").performTouchInput { click() }
             compose.onNodeWithText("Second").assertIsSelected()
-            compose.runOnIdle { assertEquals(2, callbacks); enabled = false }
-            compose.onNodeWithText("First").assertIsNotEnabled().performTouchInput { click() }
-            compose.onNodeWithText("First").performClick()
-            compose.runOnIdle { assertEquals("Second", selected); assertEquals(2, callbacks) }
-        } finally {
-            InstrumentationRegistry.getInstrumentation().setInTouchMode(originalInputMode == InputMode.Touch)
+            compose.runOnIdle { assertEquals(1, callbacks); selected = "First" }
+            compose.onNodeWithText("First").assertIsSelected()
+            val originalInputMode = compose.runOnIdle { inputMode.inputMode }
+            try {
+                compose.runOnIdle { assertTrue(inputMode.requestInputMode(InputMode.Keyboard)) }
+                compose.onNodeWithText("Second").performSemanticsAction(SemanticsActions.RequestFocus) { assertTrue(it()) }
+                compose.onNodeWithText("Second").assertIsFocused().performKeyInput { pressKey(Key.Enter) }
+                compose.onNodeWithText("Second").assertIsSelected()
+                compose.runOnIdle { assertEquals(2, callbacks); enabled = false }
+                compose.onNodeWithText("First").assertIsNotEnabled().performTouchInput { click() }
+                compose.onNodeWithText("First").performClick()
+                compose.runOnIdle { assertEquals("Second", selected); assertEquals(2, callbacks) }
+            } finally {
+                InstrumentationRegistry.getInstrumentation().setInTouchMode(originalInputMode == InputMode.Touch)
+            }
         }
     }
 

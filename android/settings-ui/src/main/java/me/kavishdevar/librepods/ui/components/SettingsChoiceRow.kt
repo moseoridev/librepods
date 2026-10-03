@@ -1,7 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,9 +40,12 @@ fun SettingsListScope.SettingsChoiceRow(name: String, selected: Boolean, onClick
         val contentAlpha = if (control) Modifier.graphicsLayer { alpha = dim } else Modifier
         val interactionSource = remember { MutableInteractionSource() }
         Row(Modifier.fillMaxWidth().selectable(selected, enabled = enabled, role = Role.RadioButton,
-            interactionSource = interactionSource, indication = if (control) LocalIndication.current else null,
+            interactionSource = interactionSource, indication = null,
             onClick = onClick)
-            .then(if (control) Modifier else settingsRowFeedback(enabled, interactionSource))
+            // wm.k1.E uses the theme's .96 content/feedback Full-pill indication;
+            // Menu keeps its .98 content-only rectangular indication.
+            .then(if (control) settingsButtonFeedback(enabled, interactionSource, SettingsStyle.PillShape)
+                else settingsRowFeedback(enabled, interactionSource))
             .heightIn(min = SettingsStyle.RowMinHeight)
             .padding(horizontal = SettingsStyle.RowInset)
             .then(if (control) Modifier.padding(vertical = SettingsStyle.RowVerticalPadding) else Modifier),

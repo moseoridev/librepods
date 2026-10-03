@@ -14,15 +14,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.scale
 import me.kavishdevar.librepods.ui.theme.rowInteractionFeedback
 
-/** wm.k1.c → nw.w.i / nw.s0: scale row content, then draw unscaled rectangular feedback. */
+/** nw.s0: scale content, then draw unscaled feedback; ordinary rows retain their rectangle. */
 @Composable
 internal fun settingsRowFeedback(
     enabled: Boolean,
     interactionSource: MutableInteractionSource,
     color: Color = MaterialTheme.colorScheme.rowInteractionFeedback,
+    shape: Shape? = null,
 ): Modifier {
     val pressed by interactionSource.collectIsPressedAsState()
     val focused by interactionSource.collectIsFocusedAsState()
@@ -41,6 +44,10 @@ internal fun settingsRowFeedback(
         label = "Settings row feedback")
     return Modifier.drawWithContent {
         scale(if (enabled) contentScale else 1f) { this@drawWithContent.drawContent() }
-        if (enabled && feedbackAlpha > 0f) drawRect(color, alpha = feedbackAlpha)
+        if (enabled && feedbackAlpha > 0f) {
+            if (shape == null) drawRect(color, alpha = feedbackAlpha)
+            else drawOutline(shape.createOutline(size, layoutDirection, this), color,
+                alpha = feedbackAlpha)
+        }
     }
 }
