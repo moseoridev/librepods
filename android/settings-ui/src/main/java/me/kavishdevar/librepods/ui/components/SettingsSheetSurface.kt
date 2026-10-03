@@ -52,7 +52,7 @@ fun SettingsSheetSurface(
             AndroidView(
                 modifier = Modifier.matchParentSize(),
                 factory = { SettingsSheetBackground(it) },
-                update = { it.configure(dark) },
+                update = { it.configure(dark, density) },
                 onRelease = { SettingsWindowBlur.clear(it) },
             )
             CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
@@ -70,18 +70,22 @@ internal fun settingsSheetMaxWidth(configuration: Configuration) =
 
 /** GradientDrawable and GradientBorderView use ordinary circular corners. */
 internal class SettingsSheetBackground(context: Context) : View(context) {
-    private val radius = 26f * resources.displayMetrics.density
     private var dark: Boolean? = null
+    private var density: Float? = null
 
     init {
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-        elevation = 8f * resources.displayMetrics.density
         outlineProvider = ViewOutlineProvider.BACKGROUND
     }
 
-    fun configure(dark: Boolean) {
-        if (this.dark == dark) return
+    fun configure(dark: Boolean, density: Float) {
+        if (this.dark == dark && this.density == density) return
         this.dark = dark
+        this.density = density
+        // Match the surrounding Compose content and border when a caller scopes
+        // LocalDensity or retains this View across a density change.
+        val radius = 26f * density
+        elevation = 8f * density
         background = settingsDialogBackground(if (dark) 0xFF171717.toInt() else 0xFFFCFCFC.toInt(), radius)
         // The optional OEM effect shares the existing prompt fallback/cleanup path.
         SettingsWindowBlur.apply(this, dark, radius, radiusPixels = 60)

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
@@ -48,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import me.kavishdevar.librepods.ui.theme.SettingsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -123,6 +125,52 @@ class SettingsInteractionTest {
             assertEquals(androidx.compose.ui.graphics.Color(0xFFFCFCFF), contentColor)
         }
         compose.onNodeWithTag("sheet-title").assertIsDisplayed()
+    }
+
+    @Test fun sheetSurfaceUpdatesNativeGeometryWhenCallerDensityChanges() {
+        var density by mutableStateOf(2f)
+        var dark by mutableStateOf(true)
+        var visible by mutableStateOf(true)
+        lateinit var surface: SettingsSheetBackground
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density, 1f)) {
+                SettingsTheme(darkTheme = dark) {
+                    if (visible) SettingsSheetSurface { Text("Sheet content") }
+                }
+            }
+        }
+        fun assertGeometry(expectedDensity: Float, retain: Boolean) {
+            onView(isAssignableFrom(SettingsSheetBackground::class.java)).check { view, error ->
+                if (error != null) throw error
+                val current = view as SettingsSheetBackground
+                if (retain) assertTrue(surface === current) else surface = current
+                assertTrue(current.isAttachedToWindow)
+                assertEquals(8f * expectedDensity, current.elevation, .001f)
+                val drawable = current.background
+                if (drawable is android.graphics.drawable.GradientDrawable) {
+                    assertEquals(26f * expectedDensity, drawable.cornerRadius, .001f)
+                } else {
+                    // Samsung's optional blur replaces the background drawable;
+                    // inspect its actual corner data rather than internal kit state.
+                    val corners = Regex("corners=\\{([^}]+)\\}")
+                        .find(drawable.toString())?.groupValues?.get(1)
+                    assertTrue("Unexpected background: $drawable", corners != null)
+                    val radii = corners!!.split(',').map { it.trim().toFloat() }
+                    assertEquals(4, radii.size)
+                    radii.forEach { assertEquals(26f * expectedDensity, it, .001f) }
+                }
+            }
+        }
+        assertGeometry(2f, retain = false)
+        compose.runOnIdle { density = 3.5f }
+        assertGeometry(3.5f, retain = true)
+        compose.runOnIdle { dark = false }
+        assertGeometry(3.5f, retain = true)
+        compose.runOnIdle { density = 2f }
+        assertGeometry(2f, retain = true)
+        compose.runOnIdle { visible = false }
+        compose.onNodeWithText("Sheet content").assertDoesNotExist()
+        compose.runOnIdle { assertFalse(surface.isAttachedToWindow) }
     }
 
     @Test fun longSheetScrollsToCallerActionAndRemovesItsNativeSurface() {
