@@ -590,6 +590,10 @@ class SettingsInteractionTest {
                 }
             }
         }
+        compose.onNodeWithTag("gain").performTouchInput {
+            down(center); advanceEventTime(200); cancel()
+        }
+        compose.runOnIdle { assertEquals(0f, value) }
         compose.onNodeWithTag("gain").performTouchInput { swipeUp() }
         compose.runOnIdle { assertTrue("Dragging up must increase gain: $value", value > 0f && value <= 10f) }
     }

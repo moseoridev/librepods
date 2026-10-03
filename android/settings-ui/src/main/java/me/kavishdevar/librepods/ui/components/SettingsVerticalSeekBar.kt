@@ -3,6 +3,8 @@ package me.kavishdevar.librepods.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -42,6 +44,8 @@ fun SettingsVerticalSeekBar(
     steps: Int = 0,
 ) {
     val colors = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val thumbFeedback = settingsSliderThumbFeedback(enabled, interactionSource)
     val state = remember(valueRange, steps) { SliderState(value, steps = steps, valueRange = valueRange) }
     state.value = value
     state.onValueChange = { if (enabled) onValueChange(it) }
@@ -51,10 +55,13 @@ fun SettingsVerticalSeekBar(
             // Keep Material's interaction layer and its thumb-height-based travel, but
             // measure artwork independently of Material's 16dp width minimum.
             VerticalSlider(state = state, enabled = enabled, reverseDirection = true,
+                interactionSource = interactionSource,
                 modifier = Modifier.fillMaxHeight().then(label?.let {
                     Modifier.semantics { contentDescription = it }
                 } ?: Modifier),
-                thumb = { Box(Modifier.size(13.dp)) },
+                // Keep pointer hit testing on Slider's own thumb path. The later
+                // decorative sibling draws feedback without receiving input.
+                thumb = { Box(Modifier.size(13.dp).hoverable(interactionSource, enabled)) },
                 track = { Box(Modifier.width(13.dp).fillMaxHeight()) })
         }
         Layout(modifier = Modifier.matchParentSize().padding(vertical = 6.dp), content = {
@@ -75,7 +82,7 @@ fun SettingsVerticalSeekBar(
             }
         }
         Layout(modifier = Modifier.matchParentSize(), content = {
-            Box(Modifier.size(13.dp).shadow(1.dp, CircleShape)
+            Box(Modifier.size(13.dp).then(thumbFeedback).shadow(1.dp, CircleShape)
                 .border(2.dp, colors.primary, CircleShape)
                 .background(colors.sliderThumbCore, CircleShape))
         }) { measurables, constraints ->
