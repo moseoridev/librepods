@@ -47,7 +47,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import me.kavishdevar.librepods.ui.theme.SettingsTheme
@@ -58,7 +58,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class SettingsInteractionTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     @Test fun multipleChoicesKeepIndependentStateAndSingleNamedActions() {
         var first by mutableStateOf(false)
@@ -125,6 +125,87 @@ class SettingsInteractionTest {
             assertEquals(androidx.compose.ui.graphics.Color(0xFFFCFCFF), contentColor)
         }
         compose.onNodeWithTag("sheet-title").assertIsDisplayed()
+    }
+
+    @Test fun sheetDimsItsWindowAndRestoresItWhenRemoved() {
+        var visible by mutableStateOf(true)
+        var sheetWindow: android.view.Window? = null
+        var originalAttributes: android.view.WindowManager.LayoutParams? = null
+        var originalElevation = 0f
+        compose.setContent {
+            SettingsTheme(darkTheme = true) {
+                SettingsBottomSheet(visible, { visible = false }) { _ ->
+                    val view = androidx.compose.ui.platform.LocalView.current
+                    if (sheetWindow == null) {
+                        sheetWindow = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                        originalAttributes = android.view.WindowManager.LayoutParams().apply {
+                            copyFrom(requireNotNull(sheetWindow).attributes)
+                        }
+                        originalElevation = requireNotNull(sheetWindow).decorView.elevation
+                    }
+                    SettingsSheetTitle("설정 안내")
+                    SettingsSheetBody("호출자가 제공한 내용")
+                }
+            }
+        }
+        compose.onAllNodesWithText("설정 안내").assertCountEquals(1)
+        compose.onAllNodesWithText("호출자가 제공한 내용").assertCountEquals(1)
+        compose.runOnIdle {
+            val attributes = requireNotNull(sheetWindow).attributes
+            assertTrue(attributes.dimAmount > 0f && attributes.dimAmount < 1f)
+            assertTrue(attributes.flags and android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0)
+            assertEquals(8 * compose.density.density, requireNotNull(sheetWindow).decorView.elevation, .001f)
+            visible = false
+        }
+        compose.onNodeWithText("설정 안내").assertDoesNotExist()
+        compose.runOnIdle {
+            val attributes = requireNotNull(sheetWindow).attributes
+            val original = requireNotNull(originalAttributes)
+            val dimFlag = android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND
+            assertEquals(original.flags and dimFlag, attributes.flags and dimFlag)
+            if (original.dimAmount >= 1f) assertEquals(original.dimAmount, attributes.dimAmount, .001f)
+            assertEquals(originalElevation, requireNotNull(sheetWindow).decorView.elevation, .001f)
+        }
+    }
+
+    @Test fun lightSheetKeepsPlatformDimmingPolicy() {
+        org.junit.Assume.assumeTrue(android.os.Build.MANUFACTURER.equals("samsung", ignoreCase = true))
+        compose.activity.setTheme(android.R.style.Theme_DeviceDefault_Light_NoActionBar)
+        var sheetWindow: android.view.Window? = null
+        compose.setContent {
+            SettingsTheme(darkTheme = false) {
+                SettingsBottomSheet(true, {}) { _ ->
+                    val view = androidx.compose.ui.platform.LocalView.current
+                    sheetWindow = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                    SettingsSheetTitle("밝은 안내")
+                }
+            }
+        }
+        compose.onNodeWithText("밝은 안내").assertIsDisplayed()
+        compose.runOnIdle {
+            val reduceTransparency = android.provider.Settings.System.getInt(
+                requireNotNull(sheetWindow).context.contentResolver, "accessibility_reduce_transparency", 0) == 1
+            assertEquals(if (reduceTransparency) .35f else .18f,
+                requireNotNull(sheetWindow).attributes.dimAmount, .001f)
+        }
+    }
+
+    @Test fun sheetOutsideDismissalOptionStillCallsTheCallerOnce() {
+        var visible by mutableStateOf(true)
+        var dismissals = 0
+        compose.setContent {
+            SettingsTheme {
+                SettingsBottomSheet(visible, { dismissals++; visible = false },
+                    dismissOnClickOutside = true) { _ ->
+                    SettingsSheetTitle("닫을 수 있는 안내", Modifier.testTag("dismissible-sheet"))
+                }
+            }
+        }
+        compose.onAllNodes(isRoot()).filter(hasAnyDescendant(hasTestTag("dismissible-sheet")))
+            .onFirst().performTouchInput { click(Offset(100.dp.toPx(), 100.dp.toPx())) }
+        compose.waitUntil(timeoutMillis = 5_000) { dismissals > 0 }
+        compose.onNodeWithTag("dismissible-sheet").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, dismissals) }
     }
 
     @Test fun sheetSurfaceUpdatesNativeGeometryWhenCallerDensityChanges() {

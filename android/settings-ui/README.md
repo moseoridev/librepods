@@ -17,13 +17,13 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 | 일반·아이콘 버튼 | `SettingsButton`, `SettingsIconButton` |
 | 아이콘 동작의 설명 말풍선 | `SettingsTooltip` |
 | 이름 등의 텍스트 입력 | `SettingsInputField` |
-| 대화상자·확인창·시트 | `SettingsDialog`, `SettingsDialogPresentation`, `SettingsConfirmationDialog`, `SettingsBottomSheet`, `SettingsSheetSurface` |
+| 대화상자·확인창·시트 | `SettingsDialog`, `SettingsDialogPresentation`, `SettingsConfirmationDialog`, `SettingsBottomSheet`, `SettingsSheetSurface`, `SettingsSheetTitle`, `SettingsSheetBody` |
 | 듣기 모드·배터리 표시 | `SettingsModeStrip`, `SettingsBatteryMeter` |
 | 기기 화면의 이미지 배경·그림 | `SettingsImageBackdrop`, `SettingsDeviceIllustration`, `SettingsScaffold.background` |
 | 저음·중음·고음 EQ | `SettingsEqualizer`, `SettingsEqualizerBand` |
 | 작업 대기 표시 | `SettingsLoadingIndicator` |
 
-대상은 LibrePods의 기존 설정 UI입니다. 로딩 표시는 기존 AirPods 상태 준비·진단 로그 읽기에, 하단 시트는 문의 작성·로그 내용 보기에 대응합니다. 원본의 업데이트 화면은 공통 요소를 관찰할 경로로 조사했지만, 업데이트 절차는 컴포넌트에 포함하지 않습니다. 업데이트가 뜨는 기기나 상태를 사용자가 준비할 필요도 없습니다. 원본과 대조하지 못한 로딩·시트 상태는 미검증으로 기록합니다. 별도의 삼성 전용 기능, 프리셋 관리, 9대역 EQ 기능, 팝업 메뉴 체계, 진행률 막대, 기기 연결 엔진은 추가하지 않습니다. EQ는 원본의 세로 조절기 표현을 재사용하되, LibrePods에서 사용할 3개 대역을 호출자가 공급합니다.
+대상은 LibrePods의 기존 설정 UI입니다. 로딩 표시는 기존 AirPods 상태 준비·진단 로그 읽기에, 하단 시트는 문의 작성·로그 내용 보기에 대응합니다. 원본의 업데이트 화면은 공통 요소를 관찰할 경로로 조사했지만, 업데이트 절차는 컴포넌트에 포함하지 않습니다. 업데이트가 뜨는 기기나 상태를 사용자가 준비할 필요도 없습니다. 실제 설정 경로의 증거와 허용된 별도 원본 렌더러 fixture의 증거를 구분하며, 대조하지 못한 상태는 미검증으로 기록합니다. 별도의 삼성 전용 기능, 프리셋 관리, 9대역 EQ 기능, 팝업 메뉴 체계, 진행률 막대, 기기 연결 엔진은 추가하지 않습니다. EQ는 원본의 세로 조절기 표현을 재사용하되, LibrePods에서 사용할 3개 대역을 호출자가 공급합니다.
 
 ## 모듈 경계
 
@@ -156,7 +156,11 @@ Standard 슬라이더는 누르기만 할 때 14dp 트랙을 유지하고 드래
 
 `SettingsSheetSurface`는 현재 원본 XML 시트의 표면을 모달 창과 분리한 컴포넌트입니다. 26dp 원형 모서리, 8dp 뷰 그림자, 1dp 세로 그라데이션 테두리와 24dp 양옆·위 / 20dp 아래 내용 여백을 적용합니다. 카드 너비는 기본 360dp, 최소 화면 폭 600dp 이상에서 400dp로 제한하며 가용 폭이 작으면 줄어듭니다. 전체 내용을 스크롤할 수 있고, 단독 사용에서도 현재 테마의 글자색을 공급합니다. 선택적 OEM 블러는 이 표면에만 적용하고 제거 시 해제합니다. 네이티브 배경·블러 모서리·그림자는 내용·테두리와 같은 현재 `LocalDensity`를 따르며, View를 유지한 밀도·테마 변경에서도 갱신됩니다. [S25 검증](../../docs/android-settings-components.md#current-sheet-surface)에서 밀도 2→3.5→2의 모서리·그림자와 기존 스크롤·닫힘 동작이 통과했습니다. 기본 480dpi 다크·라이트의 수정 전후 fixture 카드 1,466,760픽셀은 정확한 RGB 차이가 0입니다. 이 대조는 자체 fixture 사이의 회귀 확인이며 원본 시트와의 일치 검증은 아닙니다.
 
-`SettingsBottomSheet`는 이 표면에 10dp 외곽 여백을 주는 Compose 모달 어댑터입니다. 원본처럼 확장 상태로 열고 바깥 터치로 닫지 않는 것이 기본입니다. 기존 연락처 폼의 부분 확장·바깥 터치 닫힘이 필요하면 각각 `allowPartialExpansion = true`, `dismissOnClickOutside = true`로 지정합니다. 표시 여부·동작·닫힘 상태는 호출자가 소유합니다. **현재 원본의 보이는 시트와 픽셀 대조는 끝나지 않았습니다.** 실제로 확인한 길게 누르기·애플리케이션 선택 경로는 전체 페이지이며, Compose 창·인셋·드래그·전환과 OEM 효과의 최종 일치 검증이 남아 있습니다.
+`SettingsSheetTitle`·`SettingsSheetBody`는 원본 XML의 17sp 굵은 제목·14sp 본문을 플랫폼 TextView로 그립니다. 현재 밀도·글자 배율의 리소스 픽셀 반올림과 기본 글꼴 패딩을 유지하며, 제목 아래에 12dp 간격을 두면 원본 메시지 배치가 됩니다. 기본 제목색은 라이트 `#010102`·다크 `#FAFAFF`, 본문색은 `#252528`·`#EAEAEB`입니다. `color`로 호출자 색상을 지정할 수 있고, 문구·Modifier·배치는 호출자가 공급합니다. 각 라벨은 Compose 접근성 텍스트 노드 하나를 제공합니다.
+
+`SettingsBottomSheet`는 이 표면에 10dp 외곽 여백을 주는 Compose 모달 어댑터입니다. 원본처럼 확장 상태로 열고 바깥 터치로 닫지 않는 것이 기본입니다. 배경은 창의 `DIM_BEHIND`로 어둡게 하며, 그 위에 검은 scrim을 그리지 않습니다. 원본의 8dp 창 고도를 카드의 8dp 뷰 고도와 별도로 적용해 블러 샘플링의 창 내부 여백까지 맞춥니다. DIM 값은 DeviceDefault 플랫폼 창 정책을 유지하므로 현재 S25에서는 다크 0.65, 라이트 기본 0.18, 라이트 투명도 줄이기 0.35 정책을 사용합니다. 0.35는 현재 프레임워크 소스에서 확인했으며 기기 설정은 변경하지 않았습니다. 플랫폼이 DIM을 초기화하지 않은 경우에는 호출자 창 테마의 값을 공급합니다. 제거 시 추가한 DIM 플래그·고도와 직접 초기화한 DIM 값만 복원합니다. 소비 앱의 창 테마와 `SettingsTheme`의 밝기 설정을 맞춰야 합니다. 기존 연락처 폼의 부분 확장·바깥 터치 닫힘이 필요하면 각각 `allowPartialExpansion = true`, `dismissOnClickOutside = true`로 지정합니다. 표시 여부·내용·동작·닫힘 상태는 호출자가 소유합니다. 실제 설정 경로의 시트와 부분 확장·드래그·전환 프레임은 아직 대조하지 않았습니다.
+
+허용된 별도 fixture에서 원본의 변경 없는 시트 렌더러와 대조했습니다. 한글은 기본 5개 조건과 넓은 화면의 400dp 분기, 영문은 다크 450·480dpi와 라이트 480dpi를 확인했습니다. 짧은 본문·바깥 터치·긴 본문 맨 위·끝의 **135개 카드 영역·211,446,738픽셀**, 공통 앱 영역 **403,455,600픽셀** 모두 정확한 RGB 차이 0입니다. 양쪽에서 독립적으로 스크롤이 끝나고 연속 세 프레임이 같아진 시점을 사용했으며, 이미지 크기·위치를 보정하지 않았습니다. S25 동작 검사 6개도 통과했습니다. 창 DIM·고도와 제거 시 복원, 제목·본문 접근성 노드, 라이트 창 정책, 바깥 터치 옵션·콜백, 유지된 View의 밀도 변경, 긴 내용 스크롤·제거를 확인합니다. 실제 설정 경로 검증과는 구분합니다. 기기 locale ko_KR·글자 배율 1·동일한 단색 배경의 정지 상태이며, 다른 배경·언어 설정·글꼴·부분 확장·전환·다른 펌웨어는 별도 검증 대상입니다. 원본 앱·APK는 변경하지 않았습니다. 원시 기록과 재계산은 [검증 문서](../../docs/android-settings-components.md#current-sheet-surface)에 있습니다.
 
 현재 원본 Home은 다크 450·480·560·600dpi와 라이트 480dpi에서 상단·중간·끝을 대조했습니다. 15개 화면의 앱 영역 47,516,760픽셀에서 정확한 RGB 차이가 0이고, 스크롤 위치·전체 범위도 같습니다. 원본은 설정 경로로 실행해 실제로 스와이프했으며, fixture에는 읽어 온 위치만 공급했습니다. 이 결과는 기록한 고정 입력과 정지 화면에 해당합니다. 다른 상태·글꼴·전환 프레임과 아직 대조하지 못한 컴포넌트는 출처 문서에 구분합니다.
 
