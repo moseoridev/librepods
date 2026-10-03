@@ -63,7 +63,10 @@ fun SettingsButton(
         // kw.w0's generic content color.
         SettingsButtonStyle.Filled -> Color(0xFFFCFCFF)
         SettingsButtonStyle.Tonal -> colors.onSurface
-        else -> LocalContentColor.current
+        // kw.a0 FLAT_BLACK supplies the theme's on-surface color. MaterialTheme
+        // alone does not provide LocalContentColor, so inheriting it can leave
+        // a standalone action black on the dark settings background.
+        else -> colors.onSurface
     }
     val alpha = if (enabled) 1f else .4f
     // n1.l.d → rw.a: the shared smooth corner at 50%, rather than a circular arc.

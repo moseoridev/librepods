@@ -1,6 +1,8 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
@@ -32,6 +36,28 @@ import org.junit.Test
 
 class SettingsButtonInteractionTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test fun standaloneTextActionIsReadableInDarkThemeAndKeepsCallerTint() {
+        var tint by mutableStateOf(Color.Unspecified)
+        compose.setContent {
+            SettingsTheme(darkTheme = true) {
+                Box(Modifier.background(MaterialTheme.colorScheme.background)) {
+                    SettingsButton({}, Modifier.testTag("standalone-action"), tint = tint) {
+                        Text("Reset")
+                    }
+                }
+            }
+        }
+        fun visiblePixels(matches: (Color) -> Boolean): Int {
+            val pixels = compose.onNodeWithTag("standalone-action").captureToImage().toPixelMap()
+            return (0 until pixels.height).sumOf { y ->
+                (0 until pixels.width).count { x -> matches(pixels[x, y]) }
+            }
+        }
+        assertTrue(visiblePixels { it.red > .8f && it.green > .8f && it.blue > .8f } > 40)
+        compose.runOnIdle { tint = Color.Red }
+        assertTrue(visiblePixels { it.red > .8f && it.green < .2f && it.blue < .2f } > 40)
+    }
 
     @Test fun iconButtonPreservesCallerAlignmentWeightAndFullHitArea() {
         var clicks = 0
