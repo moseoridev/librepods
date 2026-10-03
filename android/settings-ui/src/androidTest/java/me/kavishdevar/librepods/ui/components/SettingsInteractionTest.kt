@@ -800,6 +800,58 @@ class SettingsInteractionTest {
         compose.runOnIdle { assertEquals(4f, value); assertEquals(1, callbacks) }
     }
 
+    @Test fun expandableHeaderKeepsNamedNavigationAndCallerContext() {
+        val scroll = ScrollState(0)
+        var allowExpansion by mutableStateOf(true)
+        var backCalls = 0
+        compose.setContent {
+            SettingsTheme {
+                SettingsScaffold(modifier = Modifier.testTag("expandable-viewport"),
+                    title = "Screen title", subtitle = "Left side", backLabel = "Go back",
+                    showBackButton = true, onNavigateBack = { backCalls++ },
+                    expandableHeader = allowExpansion, scrollState = scroll) {
+                    Text("Caller content", Modifier.height(100.dp))
+                }
+            }
+        }
+        val viewport = compose.onNodeWithTag("expandable-viewport")
+        fun assertNamedContent() {
+            compose.onAllNodesWithText("Screen title").assertCountEquals(1)
+            compose.onAllNodesWithText("Left side").assertCountEquals(1)
+            compose.onAllNodesWithContentDescription("Go back").assertCountEquals(1)
+            compose.onNodeWithText("Caller content").assertIsDisplayed()
+        }
+        assertNamedContent()
+        val collapsedTitle = compose.onNodeWithText("Screen title").fetchSemanticsNode().boundsInRoot
+        val origin = viewport.fetchSemanticsNode().boundsInRoot.topLeft
+        val navigation = compose.onNodeWithContentDescription("Go back").fetchSemanticsNode().boundsInRoot
+        viewport.performTouchInput {
+            val start = Offset(width * .7f, navigation.center.y - origin.y)
+            swipe(start, start + Offset(0f, 250.dp.toPx()), 600)
+        }
+        assertNamedContent()
+        compose.runOnIdle { assertEquals(0, backCalls); assertEquals(0, scroll.value) }
+        assertTrue(compose.onNodeWithText("Screen title").fetchSemanticsNode().boundsInRoot.height > collapsedTitle.height)
+        compose.onNodeWithContentDescription("Go back").performTouchInput { click() }
+        val expandedTitle = compose.onNodeWithText("Screen title").fetchSemanticsNode().boundsInRoot
+        viewport.performTouchInput {
+            swipe(expandedTitle.center - origin,
+                expandedTitle.center - origin - Offset(0f, 250.dp.toPx()), 600)
+        }
+        assertNamedContent()
+        assertEquals(collapsedTitle, compose.onNodeWithText("Screen title").fetchSemanticsNode().boundsInRoot)
+        viewport.performTouchInput {
+            val start = Offset(width * .7f, navigation.center.y - origin.y)
+            swipe(start, start + Offset(0f, 250.dp.toPx()), 600)
+        }
+        compose.runOnIdle { assertEquals(1, backCalls); allowExpansion = false }
+        assertNamedContent()
+        compose.onNodeWithText("Screen title").assertIsDisplayed()
+        assertEquals(collapsedTitle, compose.onNodeWithText("Screen title").fetchSemanticsNode().boundsInRoot)
+        compose.onNodeWithContentDescription("Go back").performTouchInput { click() }
+        compose.runOnIdle { assertEquals(2, backCalls) }
+    }
+
     @Test fun hiddenHeaderLetsTouchesReachScrolledContent() {
         val scroll = ScrollState(0)
         var backCalls = 0
