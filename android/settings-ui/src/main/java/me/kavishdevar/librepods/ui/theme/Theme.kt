@@ -53,6 +53,10 @@ val ColorScheme.sliderThumbCore: Color
 internal val ColorScheme.interactionFeedback: Color
     get() = if (onSurface == Color(0xFF010102)) Color(0x1A000000) else Color(0x33FFFFFF)
 
+// wm.k1.c explicitly selects basic_token_state_pressed_on_color.
+internal val ColorScheme.rowInteractionFeedback: Color
+    get() = if (onSurface == Color(0xFF010102)) Color(0x1A000000) else Color(0x29FFFFFF)
+
 // ASC: xu.f -> nu.j -> ju.a case 12; resolved SESL resources in the reference manager.
 private val SettingsLightColors = lightColorScheme(
     background = Color(0xFFF3F3F5), surfaceContainer = Color(0xFFF3F3F5),

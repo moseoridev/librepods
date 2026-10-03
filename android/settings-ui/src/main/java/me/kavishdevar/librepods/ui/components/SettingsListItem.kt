@@ -19,6 +19,7 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -111,10 +113,13 @@ internal fun SettingsListRow(
     trailingDivider: Boolean = false,
 ) {
     val canClick = onClick != null
+    val interactionSource = remember { MutableInteractionSource() }
     Row(modifier.fillMaxWidth().heightIn(min = maxOf(height, SettingsStyle.RowMinHeight))
         .then(if (canClick) Modifier.clickable(enabled = enabled,
+            interactionSource = interactionSource, indication = null,
             role = if (selected != null) Role.RadioButton else Role.Button,
             onClick = onClick) else Modifier)
+        .then(settingsRowFeedback(canClick && enabled, interactionSource))
         .then(if (selected != null) Modifier.semantics { this.selected = selected } else Modifier)
         // wm.k1.c dims the completed row, including artwork and trailing content.
         // Read-only content has no unavailable action and retains its full strength.

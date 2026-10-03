@@ -324,7 +324,12 @@ class SettingsInteractionTest {
                 }
             }
         }
-        compose.onNodeWithText("Details").performClick()
+        compose.onNodeWithText("Details").performTouchInput { down(center); advanceEventTime(200); cancel() }
+        compose.onNodeWithContentDescription("Enable feature").performTouchInput {
+            down(center); advanceEventTime(200); cancel()
+        }
+        compose.runOnIdle { assertEquals(0, navigations); assertEquals(0, changes) }
+        compose.onNodeWithText("Details").performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(0, changes) }
         compose.onNodeWithContentDescription("Enable feature").performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(1, changes); rowEnabled = false }
@@ -333,6 +338,46 @@ class SettingsInteractionTest {
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(2, changes); switchEnabled = false }
         compose.onNodeWithContentDescription("Enable feature").assertIsNotEnabled().performClick()
         compose.runOnIdle { assertEquals(1, navigations); assertEquals(2, changes) }
+    }
+
+    @Test fun menuChoicesKeepCallerSelectionAndCancelWithoutCallbacks() {
+        var selected by mutableStateOf("First")
+        var enabled by mutableStateOf(true)
+        var callbacks = 0
+        lateinit var inputMode: InputModeManager
+        compose.setContent {
+            inputMode = LocalInputModeManager.current
+            SettingsTheme {
+                SettingsList {
+                    for (label in listOf("First", "Second")) {
+                        SettingsChoiceRow(label, selected == label,
+                            { selected = label; callbacks++ }, enabled = enabled)
+                    }
+                }
+            }
+        }
+        compose.onAllNodes(isSelectable()).assertCountEquals(2)
+        for (label in listOf("First", "Second")) {
+            compose.onNodeWithText(label).performTouchInput { down(center); advanceEventTime(200); cancel() }
+            compose.runOnIdle { assertEquals("First", selected); assertEquals(0, callbacks) }
+        }
+        compose.onNodeWithText("Second").performTouchInput { click() }
+        compose.onNodeWithText("Second").assertIsSelected()
+        compose.runOnIdle { assertEquals(1, callbacks); selected = "First" }
+        compose.onNodeWithText("First").assertIsSelected()
+        val originalInputMode = compose.runOnIdle { inputMode.inputMode }
+        try {
+            compose.runOnIdle { assertTrue(inputMode.requestInputMode(InputMode.Keyboard)) }
+            compose.onNodeWithText("Second").performSemanticsAction(SemanticsActions.RequestFocus) { assertTrue(it()) }
+            compose.onNodeWithText("Second").assertIsFocused().performKeyInput { pressKey(Key.Enter) }
+            compose.onNodeWithText("Second").assertIsSelected()
+            compose.runOnIdle { assertEquals(2, callbacks); enabled = false }
+            compose.onNodeWithText("First").assertIsNotEnabled().performTouchInput { click() }
+            compose.onNodeWithText("First").performClick()
+            compose.runOnIdle { assertEquals("Second", selected); assertEquals(2, callbacks) }
+        } finally {
+            InstrumentationRegistry.getInstrumentation().setInTouchMode(originalInputMode == InputMode.Touch)
+        }
     }
 
     @Test fun confirmationAndDismissalInvokeOnlyTheirOwnCallbacks() {

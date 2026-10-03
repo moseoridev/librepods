@@ -1,6 +1,8 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +39,11 @@ fun SettingsListScope.SettingsChoiceRow(name: String, selected: Boolean, onClick
         val control = style == SettingsChoiceRowStyle.Control
         val dim = if (enabled) 1f else .4f
         val contentAlpha = if (control) Modifier.graphicsLayer { alpha = dim } else Modifier
-        Row(Modifier.fillMaxWidth().selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+        val interactionSource = remember { MutableInteractionSource() }
+        Row(Modifier.fillMaxWidth().selectable(selected, enabled = enabled, role = Role.RadioButton,
+            interactionSource = interactionSource, indication = if (control) LocalIndication.current else null,
+            onClick = onClick)
+            .then(if (control) Modifier else settingsRowFeedback(enabled, interactionSource))
             .heightIn(min = SettingsStyle.RowMinHeight)
             .padding(horizontal = SettingsStyle.RowInset)
             .then(if (control) Modifier.padding(vertical = SettingsStyle.RowVerticalPadding) else Modifier),
