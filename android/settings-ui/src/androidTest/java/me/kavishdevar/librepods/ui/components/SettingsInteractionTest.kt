@@ -254,12 +254,14 @@ class SettingsInteractionTest {
     @Test fun switchRowOwnsOneActionAndDisabledRowsCannotChangeState() {
         var checked by mutableStateOf(false)
         var masterChecked by mutableStateOf(false)
+        var activeEnabled by mutableStateOf(true)
         var callbacks = 0
         compose.setContent {
             SettingsTheme {
                 Column {
                     SettingsList {
-                        SettingsToggle("Active", checked = checked, onCheckedChange = { checked = it; callbacks++ })
+                        SettingsToggle("Active", checked = checked, enabled = activeEnabled,
+                            onCheckedChange = { checked = it; callbacks++ })
                         SettingsToggle("Disabled", enabled = false, onCheckedChange = { callbacks++ })
                     }
                     SettingsToggle(label = "Master", header = true, checked = masterChecked,
@@ -270,12 +272,41 @@ class SettingsInteractionTest {
             }
         }
         compose.onAllNodes(isToggleable()).assertCountEquals(4)
-        compose.onNodeWithText("Active").performClick().assertIsOn()
-        compose.onNodeWithText("Disabled").assertIsNotEnabled().performClick()
-        compose.onNodeWithText("Master").performTouchInput { click() }
+        compose.onAllNodes(isToggleable(), useUnmergedTree = true).assertCountEquals(4)
+        compose.onAllNodes(hasClickAction(), useUnmergedTree = true).assertCountEquals(4)
+        for (label in listOf("Active", "Master")) {
+            val row = compose.onNodeWithText(label)
+            // Both pointer paths retain the one row action. A cancelled switch
+            // gesture must not bubble up as an extra row change.
+            for (switchRegion in listOf(false, true)) {
+                row.performTouchInput {
+                    down(if (switchRegion) Offset(width - 38.dp.toPx(), center.y) else center)
+                    advanceEventTime(160)
+                    cancel()
+                }.assertIsOff()
+                compose.runOnIdle { assertEquals(if (label == "Active") 0 else 2, callbacks) }
+            }
+            row.performTouchInput { click(Offset(width - 38.dp.toPx(), center.y)) }.assertIsOn()
+            row.performTouchInput { click(center) }.assertIsOff()
+        }
+        for (label in listOf("Disabled", "Disabled master")) {
+            compose.onNodeWithText(label).assertIsNotEnabled().performClick().assertIsOff()
+                .performTouchInput { click(Offset(width - 38.dp.toPx(), center.y)) }.assertIsOff()
+        }
+        val active = compose.onNodeWithText("Active")
+        active.performTouchInput { down(Offset(width - 38.dp.toPx(), center.y)) }
+        compose.runOnIdle { activeEnabled = false }
+        active.performTouchInput { up() }.assertIsNotEnabled().assertIsOff()
+        compose.runOnIdle {
+            assertEquals(4, callbacks)
+            activeEnabled = true
+            // Caller state updates have no command side effect.
+            checked = true
+            masterChecked = true
+        }
+        compose.onNodeWithText("Active").assertIsOn()
         compose.onNodeWithText("Master").assertIsOn()
-        compose.onNodeWithText("Disabled master").assertIsNotEnabled().performTouchInput { click() }
-        compose.runOnIdle { assertEquals(2, callbacks) }
+        compose.runOnIdle { assertEquals(4, callbacks) }
     }
 
     @Test fun disabledChoiceKeepsItsIndependentTrailingActionAndIconSize() {

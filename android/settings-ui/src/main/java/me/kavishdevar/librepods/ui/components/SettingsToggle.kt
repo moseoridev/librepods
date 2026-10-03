@@ -23,10 +23,12 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -34,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
+import me.kavishdevar.librepods.ui.theme.interactionFeedback
 
 @Composable
 fun SettingsToggle(
@@ -47,6 +50,7 @@ fun SettingsToggle(
     header: Boolean = false
 ) {
     if (header) {
+        val interactionSource = remember { MutableInteractionSource() }
         Column {
             title?.let { SettingsSectionLabel(it) }
             // wm.k1.y → u1.q: a 52dp centered master row. Allow caller text
@@ -55,14 +59,16 @@ fun SettingsToggle(
                 .graphicsLayer { alpha = if (enabled) 1f else .4f }
                 .background(if (checked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface, SettingsStyle.GroupShape)
                 .clip(SettingsStyle.GroupShape)
-                .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+                .toggleable(value = checked, interactionSource = interactionSource, indication = null,
+                    enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+                .then(settingsRowFeedback(enabled, interactionSource, MaterialTheme.colorScheme.interactionFeedback))
                 .padding(horizontal = SettingsStyle.RowInset), verticalAlignment = Alignment.CenterVertically) {
                 Text(label, Modifier.weight(1f),
                     style = SettingsStyle.RowTitle.copy(fontWeight = FontWeight.SemiBold),
                     color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                 // Each native 17.5/5.5dp inset rounds once. The complete disabled
                 // card fades once; it retains enabled switch colors underneath.
-                SettingsSwitchVisual(checked, enabled = true, dimControl = false, startInset = 17.5.dp)
+                SettingsRowSwitch(checked, enabled, onCheckedChange, startInset = 17.5.dp, visualEnabled = true)
             }
             description?.let { Text(it, style = SettingsStyle.RowSummary,
                 color = SettingsStyle.summaryColor(descriptionIsState, canClick = true, enabled = enabled),
@@ -86,14 +92,17 @@ fun SettingsListScope.SettingsToggle(
     homeMenu: Boolean = false,
 ) {
     item { index, count ->
+        val interactionSource = remember { MutableInteractionSource() }
         val rowPadding = if (homeMenu) Modifier.padding(horizontal = SettingsStyle.RowInset,
             vertical = SettingsStyle.HomeMenuVerticalPadding)
         else Modifier.padding(horizontal = SettingsStyle.RowInset)
         val textPadding = if (homeMenu) Modifier else Modifier.padding(vertical = SettingsStyle.RowVerticalPadding)
         Row(Modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, SettingsStyle.RowMinHeight))
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+            .toggleable(value = checked, interactionSource = interactionSource, indication = null,
+                enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             // wm.k1.c dims the finished row once, including the trailing control.
             .graphicsLayer { alpha = if (enabled) 1f else .4f }
+            .then(settingsRowFeedback(enabled, interactionSource))
             .then(rowPadding),
             verticalAlignment = Alignment.CenterVertically) {
             // wm.k1.c constrains the row, not the natural text inside it.
@@ -113,7 +122,7 @@ fun SettingsListScope.SettingsToggle(
                     color = outline)
             }
             Spacer(Modifier.width(8.dp))
-            SettingsSwitchVisual(checked = checked, enabled = enabled, dimControl = false)
+            SettingsRowSwitch(checked, enabled, onCheckedChange)
         }
         if (index + 1 < count) SettingsRowDivider()
     }

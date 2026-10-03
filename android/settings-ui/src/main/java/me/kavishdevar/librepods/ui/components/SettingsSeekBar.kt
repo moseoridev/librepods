@@ -152,8 +152,8 @@ private fun SettingsStandardSeekBar(
     val feedbackAlpha by animateFloatAsState(
         if (!enabled) 0f else when {
             pressed -> 1f
-            focused -> .6f
-            hovered -> .8f
+            focused -> .8f
+            hovered -> .6f
             dragged -> 1f
             else -> 0f
         },

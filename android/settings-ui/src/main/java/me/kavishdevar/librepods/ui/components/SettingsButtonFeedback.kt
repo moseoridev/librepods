@@ -35,8 +35,8 @@ internal fun settingsButtonFeedback(
         label = "Settings button scale")
     val feedbackAlpha by animateFloatAsState(if (!enabled) 0f else when {
         pressed -> 1f
-        focused -> .6f
-        hovered -> .8f
+        focused -> .8f
+        hovered -> .6f
         else -> 0f
     }, tween(if (pressed) 100 else 350,
         easing = if (pressed) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
