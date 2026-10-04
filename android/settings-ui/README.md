@@ -126,6 +126,8 @@ compact 스위치도 원본 Home에서 실제로 켰다가 끈 두 행 그룹을
 
 `SettingsInputField`에는 호출자가 기억하는 `TextFieldState`와 필요할 때 `FocusRequester`를 전달합니다. 플랫폼 EditText가 입력·IME·선택을 처리하고, 호출자 상태와 글자·선택 범위를 양방향으로 동기화합니다. 원본에서 확인한 공개 Material.Light 입력 위젯, Sans 글꼴, 정수 리소스 크기와 입력선 패딩을 사용합니다. API 35 이상에서는 locale 최소 줄 높이를 적용하며, 기본 커서는 시스템의 동적 accent 600 색이며, 선택 배경은 같은 색의 40%입니다. `cursorColor`와 `selectionColor`로 각각 지정할 수 있습니다. 입력 길이와 명령 조건은 소비 앱에서 검사하고 `errorMessage`를 전달합니다. 오류는 접근성 노드에도 공급하며 플랫폼 오류 팝업은 만들지 않습니다. `KeyboardType.Password`·`NumberPassword`는 한 줄·여러 줄과 호출자 값 갱신에서도 마스킹을 유지합니다.
 
+문의 본문처럼 여러 줄이 필요한 경우 `singleLine = false`를 지정합니다. 자체 S25 입력 검사는 플랫폼 InputConnection의 줄바꿈 입력, 호출자 문구·IME 액션 갱신, 비활성화와 한 줄/여러 줄 전환 중 텍스트·선택 범위 유지를 확인했습니다. 이는 재사용 입력 동작의 검증이며, 원본 여러 줄 화면의 픽셀 일치는 아직 대조하지 않았습니다. [입력 검증 범위](../../docs/android-settings-components.md#current-text-entry-primitives)에 구분해 기록합니다.
+
 그림자는 Android 창 테마의 광원과 명암 값을 사용합니다. 소비 앱의 창 테마가 `SettingsWindowTheme`를 상속하면 원본의 공개 Android 부모인 `Theme.DeviceDefault.Light.NoActionBar`와 `Theme.DeviceDefault.NoActionBar`를 night 설정에 따라 사용합니다. 밝은 테마의 ambient/spot 명암은 .04/.1, 어두운 테마는 .1/.35입니다. 뷰를 만들기 전에 창 테마를 지정하고, 창의 리소스 night 설정과 `SettingsTheme(darkTheme)`를 맞춰야 합니다. Compose 테마는 창을 자동으로 변경하지 않습니다.
 
 별도 창 테마에 `SettingsWindowOverlay`를 적용하면 ambient/spot 명암 값을 공급합니다. 부모 테마가 정하는 광원 높이·반경은 유지되므로 원본 그림자까지 맞추려면 DeviceDefault 부모도 필요합니다. S25에서 Material.Light 부모와의 차이는 밝은 슬라이더 손잡이 주변 497픽셀에 나타났고, `SettingsWindowTheme`로 제거했습니다. 숨겨진 Android 속성이나 삼성의 광원 수치를 코드에 고정하지 않습니다.
