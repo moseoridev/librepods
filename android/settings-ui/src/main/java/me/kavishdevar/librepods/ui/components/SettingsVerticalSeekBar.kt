@@ -32,6 +32,7 @@ import me.kavishdevar.librepods.ui.theme.sliderTrack
  * Caller-owned gain control. om.h.q / kw.i2 / e4.c supply the 3dp track,
  * 6dp end padding and 13dp thumb. Give the control a bounded height.
  * Compose VerticalSlider supplies gestures, keyboard input and range semantics.
+ * An optional caller interaction source exposes drag lifetime for external value updates.
  */
 @Composable
 fun SettingsVerticalSeekBar(
@@ -42,26 +43,30 @@ fun SettingsVerticalSeekBar(
     enabled: Boolean = true,
     label: String? = null,
     steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+    interactionSource: MutableInteractionSource? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    val interactionSource = remember { MutableInteractionSource() }
-    val thumbFeedback = settingsSliderThumbFeedback(enabled, interactionSource)
+    val internalInteractionSource = remember { MutableInteractionSource() }
+    val resolvedInteractionSource = interactionSource ?: internalInteractionSource
+    val thumbFeedback = settingsSliderThumbFeedback(enabled, resolvedInteractionSource)
     val state = remember(valueRange, steps) { SliderState(value, steps = steps, valueRange = valueRange) }
     state.value = value
     state.onValueChange = { if (enabled) onValueChange(it) }
+    state.onValueChangeFinished = onValueChangeFinished?.let { { if (enabled) it() } }
     Box(modifier.width(13.dp).then(if (enabled) Modifier else Modifier.graphicsLayer { alpha = .4f }),
         contentAlignment = Alignment.Center) {
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
             // Keep Material's interaction layer and its thumb-height-based travel, but
             // measure artwork independently of Material's 16dp width minimum.
             VerticalSlider(state = state, enabled = enabled, reverseDirection = true,
-                interactionSource = interactionSource,
+                interactionSource = resolvedInteractionSource,
                 modifier = Modifier.fillMaxHeight().then(label?.let {
                     Modifier.semantics { contentDescription = it }
                 } ?: Modifier),
                 // Keep pointer hit testing on Slider's own thumb path. The later
                 // decorative sibling draws feedback without receiving input.
-                thumb = { Box(Modifier.size(13.dp).hoverable(interactionSource, enabled)) },
+                thumb = { Box(Modifier.size(13.dp).hoverable(resolvedInteractionSource, enabled)) },
                 track = { Box(Modifier.width(13.dp).fillMaxHeight()) })
         }
         Layout(modifier = Modifier.matchParentSize().padding(vertical = 6.dp), content = {
