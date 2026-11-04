@@ -87,6 +87,27 @@ Product artwork comes from upstream LibrePods resources, or is locally authored 
 
 Retain original inputs, extraction/hash manifests, useful tool sources and final evidence. Generated build intermediates and superseded scratch outputs can be regenerated; do not delete the only input or evidence copy as routine cleanup. Update the topic's current evidence summary when a result changes it; use Git history for the narrative of past implementation steps.
 
+## S25 root access for authorized device investigation
+
+The maintainer's Galaxy S25 (`SM-S931N`) can run root commands through the temporary `dev.moseori.ksuprobe` app. This is a diagnostic path for an already loaded KernelSU environment, not a rooting procedure or a LibrePods runtime dependency. A failed `adb shell su` does not establish whether this app can obtain root.
+
+The helper source and scripts are maintained in [airdropReverseInvestigation/tools/ksu_probe](https://github.com/moseoridev/airdropReverseInvestigation/tree/65ea56bc4f4ca31adf4d2b953d5cdb988211a9f6/tools/ksu_probe). The local checkout is `/Users/moseoridev/programming/android/airdropReverseInvestigation`. Use helper version code 10 or later for `KSUProbe` exception, stderr and exit-code logging. Build with its `build.sh` using an existing SDK `apksigner` (`APKSIGNER`) or existing `apksig` jar (`APKSIG_JAR`); install its generated `dist/KernelSUProbe.apk` only within authorized device work. The APK and signing key stay outside this repository.
+
+1. Select the phone explicitly with `adb devices -l` and record its model, firmware and installed KernelSU/helper versions. The wireless ADB address can change.
+2. Check KernelSU's driver and manager **UAPI** versions, shown after the hyphen in their version labels. On the verified setup, driver `32601-2` worked with official manager `v3.2.5 (32525-2)`. Manager `v3.3.1 (32680-5)` showed “kernel update required” and hid the superuser menus because UAPI 5 differs from 2. Matching UAPI restores compatibility; it does not itself prove root access. See the official [menu condition](https://github.com/tiann/KernelSU/blob/v3.3.1/manager/app/src/main/java/me/weishu/kernelsu/Natives.kt) and [3.2.5 release](https://github.com/tiann/KernelSU/releases/tag/v3.2.5).
+3. If a manager replacement is necessary, verify the official APK's release hash and signing certificate against the installed APK. Data-preserving `adb install -r -d` was rejected with `INSTALL_FAILED_VERSION_DOWNGRADE` on this phone. Removing the manager first can reset its app data/settings and requires explicit authorization; do not automate that removal or update the kernel as part of a root check. The verified replacement APK SHA-256 was `1417081413bf7ab1de8e440ecbcb62685037c8f28f048f0f8b79e305b31ab916`.
+4. In KernelSU's **Superuser** tab, select **KernelSU Probe** (`dev.moseori.ksuprobe`) and enable its superuser permission. Have the maintainer operate the UI when needed.
+5. Run the read-only identity probe from the helper checkout, substituting the current serial:
+
+   ```sh
+   tools/ksu_probe/probe.sh --serial DEVICE_SERIAL --prime --wait-timeout 10 -- \
+     'id; getenforce; cat /proc/1/attr/current'
+   ```
+
+On 2026-11-04, Android 17 build `S931NKSUCDZIF_OKRCDZIF` returned `uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0`, `Enforcing`, and completion marker `__KSU_PROBE_RC__=0`. The `/proc/1/attr/current` line was `u:r:init:s0`; that is PID 1's context, not the probe's. The helper and its grant were retained for follow-up verification. Recheck after firmware, KernelSU, helper reinstall or reboot; these observations do not establish persistent root across those changes or validate the old UI captures on the new firmware.
+
+A timeout alone is inconclusive. Inspect the helper PID's `adb -s DEVICE_SERIAL logcat -d --pid=PROBE_PID` output for `KSUProbe` errors. Before permission was granted, both helper activities reported `Cannot run program "su": error=2, No such file or directory`. The script wraps each command with a unique output path and completion marker; the helper's additional static `ksu_probe.txt` redirection is not by itself a path mismatch. A timeout can leave a command running; do not blindly repeat mutating commands. Keep any required cleanup limited to the helper and the specific run's files. Root availability does not authorize captures, instrumentation or settings changes beyond the current task.
+
 ## CI and remotes
 
 The current checkout uses `origin` for the maintainer's standalone public repository, `moseoridev/librepods`, and `upstream` for `librepods-org/librepods`. Verify the actual remotes and branch tracking when doing Git work; these are environment details, not fixed role names. The maintainer has authorized scoped commits and pushes to a working branch on the personal repository after proportionate verification. This is the default completion workflow and needs no repeated approval. Do not infer an upstream contribution, merge, release, or external notification from that authorization.
