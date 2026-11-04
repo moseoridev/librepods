@@ -109,6 +109,12 @@ def run(args):
                     break
         if not started:
             raise RuntimeError("Native launcher did not become ready")
+        sizes = adb(args.serial, "shell", "wm", "size").decode()
+        match = re.findall(r"(?:Physical|Override) size:\s*(\d+)x(\d+)", sizes)
+        if not match:
+            raise RuntimeError("Cannot establish the current display dimensions")
+        width, height = map(int, match[-1])
+        report["display_size"] = [width, height]
         for i in range(9):
             state, nodes = capture(args.serial, args.output, i)
             report["states"].append(state)
@@ -144,8 +150,15 @@ def run(args):
                             seekbars = [n for n in candidate.iter("node")
                                         if n.get("class") == "android.widget.SeekBar"]
                             if len(seekbars) == 1:
-                                report["card_bounds"] = bounds(candidate)
-                                break
+                                candidate_rect = bounds(candidate)
+                                slider_rect = bounds(seekbars[0])
+                                # An intermediate range column shares the
+                                # slider's horizontal edges. The card has
+                                # independently inset range content.
+                                if (candidate_rect[0] < slider_rect[0] and
+                                        candidate_rect[2] > slider_rect[2]):
+                                    report["card_bounds"] = candidate_rect
+                                    break
                             candidate = parents.get(candidate)
                     for sample_index in range(21, 25):
                         time.sleep(0.4)
@@ -153,8 +166,24 @@ def run(args):
                         if "com.samsung.accessory.budsunitemgr/" not in frame["focus"]:
                             raise RuntimeError("Native focus lost during stable-frame sampling")
                         report["states"].append(frame)
+                    if args.surface_bridge and args.surface_observer:
+                        from verify_current_buds4_surface_copy import copy_surface
+                        pids = adb(args.serial, "shell", "pidof",
+                                   "com.samsung.accessory.budsunitemgr").decode().split()
+                        if len(pids) != 1:
+                            raise RuntimeError("Could not select one Manager PID")
+                        surface = copy_surface(args.serial, int(pids[0]),
+                            "com.samsung.accessory.budsunitemgr", args.surface_bridge,
+                            args.surface_observer, args.output / "surface-readback",
+                            report["card_bounds"])
+                        report["surface_readback"] = {
+                            "path": str(args.output / "surface-readback/result.json"),
+                            "accepted": surface["card_unchanged_after_observation"],
+                            "formats": [r["format"] for r in surface["formats"]],
+                        }
                 break
-            adb(args.serial, "shell", "input", "swipe", "540", "1850", "540", "700", "430")
+            adb(args.serial, "shell", "input", "swipe",
+                width // 2, int(height * .8), width // 2, int(height * .3), 430)
             time.sleep(0.8)
         else:
             report["result"] = "accessibility_entry_not_found"
@@ -195,5 +224,7 @@ if __name__ == "__main__":
                         default=ROOT / "tools/ksu_probe/probe.sh")
     parser.add_argument("--serial", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--surface-bridge", type=Path)
+    parser.add_argument("--surface-observer", type=Path)
     arguments = parser.parse_args()
     print(json.dumps(run(arguments), ensure_ascii=False), flush=True)

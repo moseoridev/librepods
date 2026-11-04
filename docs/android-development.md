@@ -49,18 +49,13 @@ Host tests protect cancellation, stale callbacks, ordered writes, retry limits, 
 
 The existing narrow `UseAppTint` exclusions cover framework RemoteViews and the framework overlay button. Preserve their required `android:tint`; do not replace them with AppCompat attributes or broaden the exclusions just to silence lint. Runtime evidence and open limits belong in the [lifecycle](android-background-lifecycle.md) and [widget](android-widgets.md) notes, not in a mandatory test checklist.
 
-## Emulator
+## Physical-device verification and emulator removal
 
-Use the internal Android 17 (API 37.2) Google APIs ARM64 16KB-page AVD `librepods-ui` for ordinary layout iteration. It has two CPU cores and 2 GiB RAM. Finish Gradle builds before starting it on the 16 GiB laptop. Start it with:
+The maintainer removed the `librepods-ui` AVD, its Android 17 Google APIs system image, the Android Emulator SDK package and its auto-start job on 2026-11-04 to recover disk space. **Do not assume this AVD exists or reinstall/start an emulator without a new explicit request.** Preserve the SDK platforms/build tools, source tree and pinned evidence.
 
-```sh
-ANDROID_AVD_HOME=/Users/moseoridev/.android/avd \
-  /Users/moseoridev/Library/Android/sdk/emulator/emulator @librepods-ui \
-  -port 5580 -no-window -no-audio -no-boot-anim -no-snapshot \
-  -gpu swiftshader -memory 2048 -cores 2
-```
+Use local JVM/Compose compilation for source checks. For Samsung One UI rendering comparisons, use the already authorized physical Galaxy S25 with an explicit ADB serial and the separate `:settings-ui` reference harness. AOSP emulator renders do not establish Samsung-native pixel parity. When permitted, keep comparisons bounded to independently observed source state, display configuration and card coordinates; retain exact pixel deltas and non-matching states.
 
-Wait for `adb -s emulator-5580 shell getprop sys.boot_completed` to return `1`. Inspect the visible result, not just Activity status; an error dialog can cover a resumed Activity. Stop the emulator when idle with `adb -s emulator-5580 emu kill`. AOSP does not reproduce Samsung fonts/framework behavior or phone performance. Galaxy access is for bounded OEM and real Bluetooth checks, not routine layout iteration.
+The physical S25 may have temporarily loaded KernelSU root. Do not reboot it just for validation. Stop temporary Frida processes and port forwards after investigations, restore any replaced standalone preview APK by hash, and keep the LibrePods product `:app` unintegrated until its separate verification decision.
 
 ## Reverse engineering and local evidence
 
