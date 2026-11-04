@@ -10,12 +10,12 @@ Use JDK 21 and the checked-in Gradle wrapper. Consult these files for current re
 - [Version catalog](../android/gradle/libs.versions.toml): plugins and dependencies.
 - [Gradle wrapper properties](../android/gradle/wrapper/gradle-wrapper.properties): Gradle distribution.
 
-On the maintainer's Mac, SDK/NDK/CMake are installed at `/Volumes/TESSERACT/Android/sdk`, on an external SSD. Check that the volume is mounted before using or installing tools there. Do not recreate this directory on the internal disk if the drive is absent. Gradle caches remain in `~/.gradle`.
+On the maintainer's Mac, the active SDK/NDK/CMake root is the internal `/Users/moseoridev/Library/Android/sdk`. Builds, the comparison fixture, ASC and retained reference evidence run from internal storage without TESSERACT. Gradle caches remain in `~/.gradle`.
 
 Each worktree needs an ignored `android/local.properties` containing:
 
 ```properties
-sdk.dir=/Volumes/TESSERACT/Android/sdk
+sdk.dir=/Users/moseoridev/Library/Android/sdk
 ```
 
 Preserve other existing properties when setting this value. If necessary, set `JAVA_HOME` for the build command to the Homebrew JDK at `/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`. Keep local configuration and signing credentials untracked. Installing a newer SDK does not require changing the project's selected versions.
@@ -51,11 +51,11 @@ The existing narrow `UseAppTint` exclusions cover framework RemoteViews and the 
 
 ## Emulator
 
-Use the external Android 17 (API 37.0) Google APIs ARM64 AVD `librepods-ui` for ordinary layout iteration. It has two CPU cores and 2 GiB RAM. Finish Gradle builds before starting it on the 16 GiB laptop. Start it with:
+Use the internal Android 17 (API 37.2) Google APIs ARM64 16KB-page AVD `librepods-ui` for ordinary layout iteration. It has two CPU cores and 2 GiB RAM. Finish Gradle builds before starting it on the 16 GiB laptop. Start it with:
 
 ```sh
-ANDROID_AVD_HOME=/Volumes/TESSERACT/Android/avd \
-  /Volumes/TESSERACT/Android/sdk/emulator/emulator @librepods-ui \
+ANDROID_AVD_HOME=/Users/moseoridev/.android/avd \
+  /Users/moseoridev/Library/Android/sdk/emulator/emulator @librepods-ui \
   -port 5580 -no-window -no-audio -no-boot-anim -no-snapshot \
   -gpu swiftshader -memory 2048 -cores 2
 ```
@@ -67,25 +67,27 @@ Wait for `adb -s emulator-5580 shell getprop sys.boot_completed` to return `1`. 
 Use the existing ASC wrapper for targeted APK/JAR code queries:
 
 ```sh
-ASC=/Volumes/TESSERACT/programming/android/tools/ASC/bin/droidasc
+ASC=/Users/moseoridev/programming/android/tools/ASC/bin/droidasc
 "$ASC" --help
 "$ASC" getclass "$APK" 'Lfully/qualified/Class;' --threads 4 -o "$OUTPUT"
 ```
 
-Set `APK` to the specific input and `OUTPUT` to its investigation output path. The [ASC guide](/Volumes/TESSERACT/programming/android/tools/ASC/README.md) owns installation/version details and command examples. ASC's DAD output can contain inferred-type/control-flow errors; follow references and inspect related classes rather than treating generated Java as recompilable truth. Fuzzy or empty reference results do not prove an exact match or absence. Use aapt2 for compiled resources and archive/extraction tools for firmware inputs; do not silently substitute JADX for code decompilation.
+Set `APK` to the specific input and `OUTPUT` to its investigation output path. The [ASC guide](/Users/moseoridev/programming/android/tools/ASC/README.md) owns installation/version details and command examples. ASC's DAD output can contain inferred-type/control-flow errors; follow references and inspect related classes rather than treating generated Java as recompilable truth. Fuzzy or empty reference results do not prove an exact match or absence. Use aapt2 for compiled resources and archive/extraction tools for firmware inputs; do not silently substitute JADX for code decompilation.
 
-Maintainer-local inputs and evidence live on TESSERACT. They are optional investigation tools, not build dependencies or required reading for ordinary edits:
+Maintainer-local inputs and evidence live under the internal `/Users/moseoridev/programming/android/`. They are optional investigation inputs, not product dependencies or required reading for ordinary edits. The former TESSERACT copies are retained as backups:
 
-| Work | Location under `/Volumes/TESSERACT/programming/android/` |
+| Work | Location under `/Users/moseoridev/programming/android/` |
 | --- | --- |
-| User-supplied iOS settings source archive, images and OCR | [librepodsDesignReference/ios-airpods/2026-09-21/README.md](/Volumes/TESSERACT/programming/android/librepodsDesignReference/ios-airpods/2026-09-21/README.md); read the [checked menu catalog](android-settings.md) first. |
-| Input/evidence index, firmware and Samsung investigations | [librepodsSamsungBatteryInvestigation/README.md](/Volumes/TESSERACT/programming/android/librepodsSamsungBatteryInvestigation/README.md) |
+| User-supplied iOS settings source archive, images and OCR | [librepodsDesignReference/ios-airpods/2026-09-21/README.md](/Users/moseoridev/programming/android/librepodsDesignReference/ios-airpods/2026-09-21/README.md); read the [checked menu catalog](android-settings.md) first. |
+| Input/evidence index, firmware and Samsung investigations | [librepodsSamsungBatteryInvestigation/README.md](/Users/moseoridev/programming/android/librepodsSamsungBatteryInvestigation/README.md) |
+
+The settings comparison harness is [librepodsSettingsReferenceHarness](/Users/moseoridev/programming/android/librepodsSettingsReferenceHarness/README.md). The current fixture-only Gradle root is `/Users/moseoridev/programming/android/librepodsDeviceEvidence/buds4-20261104/recovery/fixture-build`; it includes this worktree’s `:settings-ui` and the local harness without configuring `:app`. Historical manifests retain original paths/hashes: map their `/Volumes/TESSERACT/programming/android/` prefix to `/Users/moseoridev/programming/android/` when reading retained inputs, rather than rewriting archived evidence. Migration integrity records are in `/Users/moseoridev/programming/android/migration-20261104/`.
 
 For device work, select the device explicitly and verify the installed/local APK identity. Device operations still require task authorization.
 
 For the current Android17 S25 reference launcher, private tooling and evidence are in [the recovery README](/Users/moseoridev/programming/android/librepodsDeviceEvidence/buds4-20261104/recovery/combined/README.md). Frida 17.17 failed Java bridge initialization; stock 17.25.2 still produced ART CMC crashes. The bounded working run uses 17.25.2 with reviewed, unmerged Java bridge [PR410](https://github.com/frida/frida-java-bridge/pull/410) for LinearAlloc method clones, plus code-only [PR407](https://github.com/frida/frida-java-bridge/pull/407) and JVMTI disabled only in Settings. It also avoids heap scans and waits for bootstrap destruction before the native Settings launch. These are experimental investigation tools, not application dependencies or evidence that Android17 alone caused every earlier script failure.
 
-Product artwork comes from upstream LibrePods resources, or is locally authored where no resource exists. Investigation inputs, binaries and captures live in the external investigation directories listed above.
+Product artwork comes from upstream LibrePods resources, or is locally authored where no resource exists. Investigation inputs, binaries and captures use the local investigation directories listed above; vendor APKs/artwork are not added to the public repository.
 
 Retain original inputs, extraction/hash manifests, useful tool sources and final evidence. Generated build intermediates and superseded scratch outputs can be regenerated; do not delete the only input or evidence copy as routine cleanup. Update the topic's current evidence summary when a result changes it; use Git history for the narrative of past implementation steps.
 

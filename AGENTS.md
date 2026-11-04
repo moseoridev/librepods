@@ -25,7 +25,7 @@ Communicate in Korean unless requested otherwise. Lead with the result, use plai
 - Installation and feature availability: [Android README](android/README.md) or [Linux README](linux/README.md).
 - CI or publication: the relevant workflow under `.github/workflows/` and the actual Git remotes.
 
-Use code and configuration as the source of truth. Keep durable working agreements here, current behavior and limits in the relevant topic document, and environment/tool details in the development guide. Update existing sections when behavior or evidence changes; do not append build timings or a report for every investigation. Keep historical execution evidence outside the repository and link to its location when needed.
+Use code and configuration as the source of truth. Keep durable working agreements here, current behavior and limits in the relevant topic document, and environment/tool details in the development guide. Update existing sections when behavior or evidence changes; do not append build timings or a report for every investigation. Link to retained execution evidence when needed; document local tool and data paths in the development guide.
 
 ## Git completion
 
