@@ -83,6 +83,8 @@ Maintainer-local inputs and evidence live on TESSERACT. They are optional invest
 
 For device work, select the device explicitly and verify the installed/local APK identity. Device operations still require task authorization.
 
+For the current Android17 S25 reference launcher, private tooling and evidence are in [the recovery README](/Users/moseoridev/programming/android/librepodsDeviceEvidence/buds4-20261104/recovery/combined/README.md). Frida 17.17 failed Java bridge initialization; stock 17.25.2 still produced ART CMC crashes. The bounded working run uses 17.25.2 with reviewed, unmerged Java bridge [PR410](https://github.com/frida/frida-java-bridge/pull/410) for LinearAlloc method clones, plus code-only [PR407](https://github.com/frida/frida-java-bridge/pull/407) and JVMTI disabled only in Settings. It also avoids heap scans and waits for bootstrap destruction before the native Settings launch. These are experimental investigation tools, not application dependencies or evidence that Android17 alone caused every earlier script failure.
+
 Product artwork comes from upstream LibrePods resources, or is locally authored where no resource exists. Investigation inputs, binaries and captures live in the external investigation directories listed above.
 
 Retain original inputs, extraction/hash manifests, useful tool sources and final evidence. Generated build intermediates and superseded scratch outputs can be regenerated; do not delete the only input or evidence copy as routine cleanup. Update the topic's current evidence summary when a result changes it; use Git history for the narrative of past implementation steps.
