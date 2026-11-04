@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.KeyboardOptions
 import android.widget.EditText
@@ -33,8 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.input.InputMode
@@ -237,7 +237,11 @@ class SettingsInteractionTest {
                         .find(drawable.toString())?.groupValues?.get(1)
                     assertTrue("Unexpected background: $drawable", corners != null)
                     val radii = corners!!.split(',').map { it.trim().toFloat() }
-                    assertEquals(4, radii.size)
+                    // OEM drawable formats may report one radius per corner (4) or
+                    // separate horizontal/vertical radii per corner (8). Check every
+                    // reported radius rather than assuming one serialization format.
+                    assertTrue("Unexpected corner count ${radii.size}: $drawable",
+                        radii.size == 4 || radii.size == 8)
                     radii.forEach { assertEquals(26f * expectedDensity, it, .001f) }
                 }
             }
@@ -314,20 +318,26 @@ class SettingsInteractionTest {
     @Test fun focusRequesterReachesEditableFieldAndEditsCallerState() {
         val state = TextFieldState("Original")
         val focus = FocusRequester()
-        lateinit var focusManager: FocusManager
+        val otherFocus = FocusRequester()
         var enabled by mutableStateOf(true)
         var validation by mutableStateOf<String?>(null)
         compose.setContent {
-            focusManager = LocalFocusManager.current
-            SettingsTheme { SettingsInputField(state, Modifier.testTag("name"), enabled = enabled,
-                focusRequester = focus, errorMessage = validation,
-                keyboardOptions = KeyboardOptions(showKeyboardOnFocus = false)) }
+            SettingsTheme {
+                Column {
+                    SettingsInputField(state, Modifier.testTag("name"), enabled = enabled,
+                        focusRequester = focus, errorMessage = validation,
+                        keyboardOptions = KeyboardOptions(showKeyboardOnFocus = false))
+                    // Transfer to another real focus target; clearing the only
+                    // target may immediately refocus the native AndroidView.
+                    Spacer(Modifier.size(1.dp).focusRequester(otherFocus).focusable())
+                }
+            }
         }
         compose.runOnIdle { focus.requestFocus() }
         val editor = onView(isAssignableFrom(EditText::class.java))
         editor.check(matches(hasFocus())).perform(replaceText("Changed"))
         compose.runOnIdle { assertEquals("Changed", state.text.toString()) }
-        compose.runOnIdle { focusManager.clearFocus(force = true) }
+        compose.runOnIdle { otherFocus.requestFocus() }
         editor.check(matches(not(hasFocus())))
         compose.runOnIdle { focus.requestFocus() }
         editor.check(matches(hasFocus()))
