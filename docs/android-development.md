@@ -72,7 +72,7 @@ ASC=/Users/moseoridev/programming/android/tools/ASC/bin/droidasc
 "$ASC" getclass "$APK" 'Lfully/qualified/Class;' --threads 4 -o "$OUTPUT"
 ```
 
-Set `APK` to the specific input and `OUTPUT` to its investigation output path. The [ASC guide](/Users/moseoridev/programming/android/tools/ASC/README.md) owns installation/version details and command examples. ASC's DAD output can contain inferred-type/control-flow errors; follow references and inspect related classes rather than treating generated Java as recompilable truth. Fuzzy or empty reference results do not prove an exact match or absence. Use aapt2 for compiled resources and archive/extraction tools for firmware inputs; do not silently substitute JADX for code decompilation.
+Set `APK` to the specific input and `OUTPUT` to its investigation output path. The [ASC guide](/Users/moseoridev/programming/android/tools/ASC/README.md) owns installation/version details and command examples. `disassemble` returns smali (optionally one `--method`) when decompiled Java is ambiguous, and `findrefs extends|impl` maps class hierarchies without a code scan. ASC's DAD output can contain inferred-type/control-flow errors; follow references and inspect related classes rather than treating generated Java as recompilable truth. Fuzzy or empty reference results do not prove an exact match or absence. Use aapt2 for compiled resources and archive/extraction tools for firmware inputs; do not silently substitute JADX for code decompilation.
 
 Maintainer-local inputs and evidence live under the internal `/Users/moseoridev/programming/android/`. They are optional investigation inputs, not product dependencies or required reading for ordinary edits. The former TESSERACT copies are retained as backups:
 
