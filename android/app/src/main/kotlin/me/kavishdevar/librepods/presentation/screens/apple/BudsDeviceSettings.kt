@@ -1,0 +1,446 @@
+package me.kavishdevar.librepods.presentation.screens.apple
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
+import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
+import me.kavishdevar.librepods.core.data.StemAction
+import me.kavishdevar.librepods.core.devices.*
+import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
+import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
+import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
+import me.kavishdevar.librepods.ui.components.*
+import me.kavishdevar.librepods.ui.theme.SettingsStyle
+import me.kavishdevar.librepods.ui.theme.SettingsTheme
+import kotlin.math.roundToInt
+
+/** Presentation routes only. Transport, persistence and capabilities remain owned by rewrite. */
+private enum class DevicePage(val title: Int, val parent: DevicePage? = null) {
+    Home(0), Audio(R.string.audio_routing, Home), Controls(R.string.controls_gestures, Home),
+    Accessibility(R.string.accessibility, Home), Battery(R.string.battery, Home),
+    Microphone(R.string.microphone_mode, Audio), Equalizer(R.string.equalizer, Audio),
+    Routing(R.string.automatic_connection, Audio), Left(R.string.left, Controls), Right(R.string.right, Controls),
+    Mute(R.string.mute_unmute, Controls), EndCall(R.string.hang_up, Controls),
+    Head(R.string.head_gestures, Controls), Version(R.string.version, Home), Name(R.string.name, Home),
+    Extras(R.string.librepods_options, Home)
+}
+
+@Composable
+fun BudsDeviceSettingsRoute(
+    viewModel: AppleViewModel,
+    navigateBack: (() -> Unit)?,
+    navigateToHearingProtection: () -> Unit,
+    navigateToHearingAid: () -> Unit,
+    navigateToRecording: () -> Unit,
+    navigateToHeartRate: () -> Unit,
+    navigateToDebug: () -> Unit,
+    navigateToOverlays: () -> Unit,
+    navigateToProximity: () -> Unit,
+) {
+    val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    var page by rememberSaveable(viewModel) { mutableStateOf(DevicePage.Home) }
+    val back = { if (page != DevicePage.Home) page = page.parent ?: DevicePage.Home else navigateBack?.invoke(); Unit }
+    BackHandler(page != DevicePage.Home, onBack = back)
+    SettingsTheme {
+        key(page) {
+            val scroll = rememberScrollState()
+            SettingsScaffold(
+                title = if (page == DevicePage.Home) ui.metadata.name else stringResource(page.title),
+                backLabel = stringResource(R.string.back),
+                showBackButton = page != DevicePage.Home || navigateBack != null,
+                onNavigateBack = back,
+                scrollState = scroll,
+            ) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val go: (DevicePage) -> Unit = { page = it }
+                    when (page) {
+                        DevicePage.Home -> DeviceHome(ui, go, viewModel::disconnect) { viewModel.setControlCommand(Command.LISTENING_MODE, it) }
+                        DevicePage.Audio -> AudioPage(ui, viewModel, go)
+                        DevicePage.Controls -> ControlsPage(ui, go)
+                        DevicePage.Accessibility -> AccessibilityPage(ui, viewModel)
+                        DevicePage.Battery -> BatteryPage(ui, viewModel)
+                        DevicePage.Microphone -> CommandChoices(ui, viewModel, Command.MIC_MODE,
+                            listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right))
+                        DevicePage.Equalizer -> EqualizerPage(ui, viewModel)
+                        DevicePage.Routing -> CommandChoices(ui, viewModel, Command.SMART_ROUTING_MODE,
+                            listOf(1 to R.string.on, 2 to R.string.off))
+                        DevicePage.Left, DevicePage.Right -> LongPressPage(ui, viewModel, page == DevicePage.Left)
+                        DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, viewModel, page == DevicePage.Mute)
+                        DevicePage.Head -> HeadPage(ui, viewModel)
+                        DevicePage.Version -> SettingsList {
+                            SettingsListItem(name = stringResource(R.string.version), description = ui.metadata.version3)
+                            SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
+                            SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
+                        }
+                        DevicePage.Name -> {
+                            val draft = rememberTextFieldState(ui.metadata.name)
+                            SettingsInputField(draft)
+                            SettingsButton(onClick = { viewModel.renameDevice(draft.text.toString().trim()); page = DevicePage.Home },
+                                enabled = draft.text.isNotBlank(), style = SettingsButtonStyle.Filled) {
+                                Text(stringResource(R.string.widget_save))
+                            }
+                        }
+                        DevicePage.Extras -> {
+                            val cap = AirPodsSpecs.getSpec(ui.metadata.model).baseCapabilities
+                            SettingsList {
+                                SettingsListItem(name = stringResource(R.string.overlay_settings), onClick = navigateToOverlays)
+                                SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = navigateToProximity)
+                                if (BaseCapability.PPE in cap) SettingsListItem(name = stringResource(R.string.hearing_protection), onClick = navigateToHearingProtection)
+                                if (BaseCapability.HEARING_AID in cap && ui.vendorIdHook) SettingsListItem(name = stringResource(R.string.hearing_aid), onClick = navigateToHearingAid)
+                                if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 8)
+                                    SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
+                                if (BaseCapability.HRM in cap) SettingsListItem(name = stringResource(R.string.heart_rate), onClick = navigateToHeartRate)
+                                if (LocalDebugMode.current) SettingsListItem(name = "Debug", onClick = navigateToDebug)
+                            }
+                            SettingsToggle(label = stringResource(R.string.disconnect_when_not_wearing), checked = ui.settings.disconnectWhenNotWearing,
+                                onCheckedChange = { enabled -> viewModel.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+private fun AppleUiState.value(command: Command): Int? = state.controlStates[command]?.firstOrNull()?.toInt()?.and(255)
+private fun AppleUiState.has(capability: BaseCapability) = capability in AirPodsSpecs.getSpec(metadata.model).baseCapabilities
+
+@Composable
+private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, selectMode: (Int) -> Unit) {
+    DeviceBatteries(ui)
+    SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.name, onClick = { go(DevicePage.Name) }) }
+    if (ui.has(BaseCapability.LISTENING_MODE)) {
+        SettingsCard {
+            SettingsSectionLabel(stringResource(R.string.listening_mode))
+            val modes = buildList {
+                if (ui.value(Command.ALLOW_OFF_OPTION) == 1) add(1)
+                add(3)
+                if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) add(4)
+                add(2)
+            }
+            // A requested or persisted control value is not an acknowledgement from this session.
+            SettingsModeStrip(modes, ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt(),
+                onSelect = { mode -> if (ui.connectionState == ConnectionState.CONNECTED) selectMode(mode) },
+                label = { modeLabel(it) }, artwork = { mode, _ ->
+                    Icon(painterResource(modeIcon(mode)), null, Modifier.size(24.dp))
+                })
+        }
+    }
+    PhoneMediaVolume()
+    SettingsList {
+        SettingsListItem(name = stringResource(R.string.audio_routing), onClick = { go(DevicePage.Audio) }, homeMenu = true,
+            leadingContent = { Icon(LocalIcons.current.SpeakerMax, null, Modifier.size(28.dp)) })
+        SettingsListItem(name = stringResource(R.string.controls_gestures), onClick = { go(DevicePage.Controls) }, homeMenu = true,
+            leadingContent = { Icon(LocalIcons.current.Headphones, null, Modifier.size(28.dp)) })
+        SettingsListItem(name = stringResource(R.string.accessibility), onClick = { go(DevicePage.Accessibility) }, homeMenu = true,
+            leadingContent = { Icon(LocalIcons.current.Settings, null, Modifier.size(28.dp)) })
+    }
+    SettingsList { SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }) }
+    SettingsList(title = stringResource(R.string.about)) {
+        SettingsListItem(name = stringResource(R.string.model_name), description = ui.metadata.modelName)
+        SettingsListItem(name = stringResource(R.string.model_number), description = ui.metadata.modelNumber)
+        SettingsListItem(name = stringResource(R.string.serial_number), description = ui.metadata.serialNumber)
+        SettingsListItem(name = stringResource(R.string.version), description = ui.metadata.version3, onClick = { go(DevicePage.Version) })
+    }
+    SettingsList {
+        SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
+        SettingsListItem(name = stringResource(R.string.disconnect), onClick = disconnect)
+    }
+}
+
+@Composable
+private fun DeviceBatteries(ui: AppleUiState) {
+    val spec = AirPodsSpecs.getSpec(ui.metadata.model)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        SettingsDeviceIllustration(painterResource(spec.primaryImageRes))
+        spec.caseImageRes?.let { SettingsDeviceIllustration(painterResource(it)) }
+    }
+    val batteries = ui.state.battery.associateBy { it.component }
+    val primary = if (BatteryComponent.HEADSET in batteries) listOf(BatteryComponent.HEADSET)
+        else listOf(BatteryComponent.LEFT, BatteryComponent.RIGHT)
+    val meter: @Composable (BatteryComponent) -> Unit = { component ->
+        val battery = batteries[component]
+        val level = battery?.level?.takeIf { it in 0..100 }
+        val label = stringResource(when (component) {
+            BatteryComponent.LEFT -> R.string.left
+            BatteryComponent.RIGHT -> R.string.right
+            BatteryComponent.CASE -> R.string.case_alt
+            BatteryComponent.HEADSET -> R.string.airpods_label
+        })
+        val percentage = level?.let { "$it%" } ?: "—"
+        val charging = battery?.status == BatteryStatus.CHARGING || battery?.status == BatteryStatus.OPTIMIZED_CHARGING
+        SettingsBatteryMeter(level, label, percentage, "$label $percentage", maxWidth = 92.dp,
+            chargeLabel = if (charging) stringResource(R.string.charging_label) else "", artwork = {
+                Icon(if (charging) LocalIcons.current.Bolt else LocalIcons.current.Headphones, null, Modifier.size(18.dp))
+            })
+    }
+    SettingsBatteryRow(primaryMeters = primary.map { component -> @Composable { meter(component) } },
+        secondaryMeter = if (spec.caseImageRes != null) ({ meter(BatteryComponent.CASE) }) else null)
+}
+
+@Composable
+private fun modeLabel(mode: Int): String = stringResource(when (mode) {
+    1 -> R.string.off; 2 -> R.string.noise_cancellation; 4 -> R.string.adaptive; else -> R.string.transparency
+})
+private fun modeIcon(mode: Int): Int = when (mode) {
+    3 -> R.drawable.ic_transparency; 4 -> R.drawable.ic_adaptive; else -> R.drawable.ic_noise_cancellation
+}
+
+@Composable
+private fun AudioPage(ui: AppleUiState, vm: AppleViewModel, go: (DevicePage) -> Unit) {
+    if (ui.has(BaseCapability.ADAPTIVE_VOLUME)) CommandToggle(ui, vm, Command.ADAPTIVE_VOLUME_CONFIG,
+        R.string.personalized_volume, R.string.personalized_volume_description, premium = true)
+    if (ui.has(BaseCapability.CONVERSATION_AWARENESS)) CommandToggle(ui, vm, Command.CONVERSATION_DETECT_CONFIG,
+        R.string.conversation_awareness, R.string.conversation_awareness_description, premium = true)
+    if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 9)
+        SettingsList { SettingsListItem(name = stringResource(R.string.equalizer), onClick = { go(DevicePage.Equalizer) }) }
+    CommandToggle(ui, vm, Command.EAR_DETECTION_CONFIG, R.string.ear_detection, onChange = { enabled ->
+        vm.setControlCommand(Command.EAR_DETECTION_CONFIG, enabled)
+        vm.updateSettings { it.copy(earDetectionEnabled = enabled) }
+    })
+    SettingsList { SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = { go(DevicePage.Routing) },
+        description = ui.value(Command.SMART_ROUTING_MODE)?.let { stringResource(if (it == 1) R.string.on else R.string.off) }) }
+    SettingsList { SettingsListItem(name = stringResource(R.string.microphone_mode), onClick = { go(DevicePage.Microphone) },
+        description = ui.value(Command.MIC_MODE)?.let { stringResource(when(it) { 2 -> R.string.microphone_always_left; 1 -> R.string.microphone_always_right; else -> R.string.microphone_automatic }) }) }
+    if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) CommandSlider(stringResource(R.string.customize_adaptive_audio),
+        ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED && ui.isPremium) {
+        vm.setControlCommand(Command.AUTO_ANC_STRENGTH, it)
+    }
+    if (ui.has(BaseCapability.SLEEP_DETECTION)) CommandToggle(ui, vm, Command.SLEEP_DETECTION_CONFIG, R.string.sleep_detection, premium = true)
+}
+
+@Composable
+private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
+    if (ui.has(BaseCapability.STEM_CONFIG)) SettingsList(title = stringResource(R.string.press_and_hold_airpods)) {
+        SettingsListItem(name = stringResource(R.string.left), onClick = { go(DevicePage.Left) }, description = stringResource(
+            if (ui.settings.leftLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode_controls))
+        SettingsListItem(name = stringResource(R.string.right), onClick = { go(DevicePage.Right) }, description = stringResource(
+            if (ui.settings.rightLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode_controls))
+    }
+    val flipped = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]?.getOrNull(1)?.toInt() == 2
+    SettingsList(title = stringResource(R.string.call_controls)) {
+        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.press_once))
+        SettingsListItem(name = stringResource(R.string.mute_unmute), onClick = { go(DevicePage.Mute) },
+            description = stringResource(if (flipped) R.string.press_twice else R.string.press_once))
+        SettingsListItem(name = stringResource(R.string.hang_up), onClick = { go(DevicePage.EndCall) },
+            description = stringResource(if (flipped) R.string.press_once else R.string.press_twice))
+    }
+    if (ui.has(BaseCapability.HEAD_GESTURES)) SettingsList {
+        SettingsListItem(name = stringResource(R.string.head_gestures), onClick = { go(DevicePage.Head) },
+            description = stringResource(if (ui.settings.headGesturesEnabled) R.string.on else R.string.off))
+    }
+}
+
+@Composable
+private fun LongPressPage(ui: AppleUiState, vm: AppleViewModel, left: Boolean) {
+    val action = if (left) ui.settings.leftLongPressAction else ui.settings.rightLongPressAction
+    SettingsList {
+        SettingsListItem(name = stringResource(R.string.listening_mode_controls), selected = action == StemAction.CYCLE_listening_mode_MODES,
+            onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.CYCLE_listening_mode_MODES) })
+        SettingsListItem(name = stringResource(R.string.digital_assistant), selected = action == StemAction.DIGITAL_ASSISTANT,
+            onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.DIGITAL_ASSISTANT) })
+    }
+    if (action == StemAction.CYCLE_listening_mode_MODES) {
+        val configured = ui.value(Command.LISTENING_MODE_CONFIGS)
+        SettingsCard {
+            listOf(1 to 1, 3 to 4, 4 to 8, 2 to 2).forEach { (mode, bit) ->
+                if ((mode != 4 || ui.has(BaseCapability.ADAPTIVE_AUDIO)) && (mode != 1 || ui.value(Command.ALLOW_OFF_OPTION) == 1)) {
+                    SettingsMultiChoiceRow(modeLabel(mode), configured?.and(bit) != 0 && configured != null,
+                        onCheckedChange = { checked ->
+                            // Preserve all other bits; independent screenshot choices have no Samsung modal rule.
+                            configured?.let { vm.setControlCommand(Command.LISTENING_MODE_CONFIGS,
+                                if (checked) it or bit else it and bit.inv()) }
+                        }, enabled = configured != null && (ui.connectionState == ConnectionState.CONNECTED),
+                        description = stringResource(when (mode) {
+                            1 -> R.string.listening_mode_off_description
+                            2 -> R.string.listening_mode_noise_cancellation_description
+                            3 -> R.string.listening_mode_transparency_description
+                            else -> R.string.listening_mode_adaptive_description
+                        }), leadingContent = { Icon(painterResource(modeIcon(mode)), null, Modifier.size(32.dp)) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CallPage(ui: AppleUiState, vm: AppleViewModel, mute: Boolean) {
+    val bytes = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]
+    val flipped = bytes?.getOrNull(1)?.toInt() == 2
+    SettingsList {
+        listOf(false, true).forEach { double ->
+            val desiredFlipped = if (mute) double else !double
+            SettingsListItem(name = stringResource(if (double) R.string.press_twice else R.string.press_once),
+                selected = flipped == desiredFlipped, enabled = bytes != null && (ui.connectionState == ConnectionState.CONNECTED),
+                onClick = { vm.setControlCommand(Command.CALL_MANAGEMENT_CONFIG,
+                    byteArrayOf(0, if (desiredFlipped) 2 else 3)) })
+        }
+    }
+}
+
+@Composable
+private fun HeadPage(ui: AppleUiState, vm: AppleViewModel) {
+    SettingsToggle(label = stringResource(R.string.head_gestures), checked = ui.settings.headGesturesEnabled,
+        onCheckedChange = vm::setHeadGesturesEnabled)
+    SettingsList(description = stringResource(R.string.head_gestures_details)) {
+        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head))
+        SettingsListItem(name = stringResource(R.string.decline_call_label), description = stringResource(R.string.shake_head))
+    }
+}
+
+@Composable
+private fun AccessibilityPage(ui: AppleUiState, vm: AppleViewModel) {
+    CommandChoices(ui, vm, Command.DOUBLE_CLICK_INTERVAL,
+        listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed)
+    CommandChoices(ui, vm, Command.CLICK_HOLD_INTERVAL,
+        listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration)
+    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod)
+    CommandSlider(stringResource(R.string.tone_volume), ui.value(Command.CHIME_VOLUME),
+        enabled = (ui.connectionState == ConnectionState.CONNECTED)) { vm.setControlCommand(Command.CHIME_VOLUME, it) }
+    if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
+        CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_control, R.string.volume_control_description, premium = true)
+        // Keep the existing firmware-facing mapping until the conflicting 0/1-based documentation is resolved.
+        CommandChoices(ui, vm, Command.VOLUME_SWIPE_INTERVAL,
+            listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest), R.string.volume_swipe_speed)
+    }
+    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ALLOW_OFF_OPTION,
+        R.string.off_listening_mode, R.string.off_listening_mode_description)
+    if (ui.has(BaseCapability.LOUD_SOUND_REDUCTION) && ui.vendorIdHook)
+        SettingsToggle(label = stringResource(R.string.loud_sound_reduction), checked = ui.state.loudSoundReductionEnabled,
+            enabled = ui.isPremium && (ui.connectionState == ConnectionState.CONNECTED),
+            onCheckedChange = { vm.writeATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION, byteArrayOf(if (it) 1 else 0)) })
+}
+
+@Composable
+private fun BatteryPage(ui: AppleUiState, vm: AppleViewModel) {
+    DeviceBatteries(ui)
+    CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
+}
+
+@Composable
+private fun CommandToggle(ui: AppleUiState, vm: AppleViewModel, command: Command, label: Int,
+    description: Int? = null, premium: Boolean = false, onChange: ((Boolean) -> Unit)? = null) {
+    SettingsToggle(label = stringResource(label), description = description?.let { stringResource(it) },
+        checked = ui.value(command) == 1,
+        enabled = (ui.connectionState == ConnectionState.CONNECTED) && (!premium || ui.isPremium) && ui.value(command) != null,
+        onCheckedChange = { checked ->
+            if (onChange != null) { onChange(checked) } else { vm.setControlCommand(command, checked) }
+        })
+}
+
+@Composable
+private fun CommandChoices(ui: AppleUiState, vm: AppleViewModel, command: Command, options: List<Pair<Int, Int>>, title: Int? = null) {
+    SettingsList(title = title?.let { stringResource(it) }) {
+        options.forEach { (value, label) ->
+            SettingsListItem(name = stringResource(label), selected = ui.value(command) == value,
+                enabled = (ui.connectionState == ConnectionState.CONNECTED) && ui.value(command) != null,
+                onClick = { vm.setControlCommand(command, value) })
+        }
+    }
+}
+
+@Composable
+private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, send: (Int) -> Unit) {
+    var value by remember { mutableIntStateOf(remote ?: 0) }
+    var pending by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(remote) { if (pending == null) value = remote ?: 0 }
+    val sendLatest by rememberUpdatedState(send)
+    DisposableEffect(Unit) { onDispose { pending?.let(sendLatest) } }
+    LaunchedEffect(pending) {
+        val next = pending ?: return@LaunchedEffect
+        delay(100)
+        sendLatest(next)
+        pending = null
+    }
+    SettingsCard {
+        SettingsSectionLabel(label)
+        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            SettingsSeekBar(value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
+                Modifier.weight(1f).semantics { contentDescription = label }, enabled = enabled && remote != null)
+            Text(remote?.let { "$value%" } ?: "—", Modifier.padding(start = 12.dp))
+        }
+    }
+}
+
+@Composable
+private fun EqualizerPage(ui: AppleUiState, vm: AppleViewModel) {
+    val eq = ui.state.customEq
+    var levels by remember(eq.low, eq.mid, eq.high) { mutableStateOf(listOf(eq.low, eq.mid, eq.high)) }
+    var pending by remember { mutableStateOf<List<Int>?>(null) }
+    DisposableEffect(vm) { onDispose { pending?.let { vm.setCustomEq(it[0], it[1], it[2]) } } }
+    LaunchedEffect(pending) {
+        val values = pending ?: return@LaunchedEffect
+        delay(100)
+        vm.setCustomEq(values[0], values[1], values[2])
+        pending = null
+    }
+    SettingsToggle(label = stringResource(R.string.custom), checked = eq.isEnabled(),
+        enabled = (ui.connectionState == ConnectionState.CONNECTED), onCheckedChange = vm::setCustomEqEnabled)
+    SettingsCard {
+        val labels = listOf(stringResource(R.string.eq_low), stringResource(R.string.eq_mid), stringResource(R.string.eq_high))
+        SettingsEqualizer(labels.mapIndexed { i, label -> SettingsEqualizerBand(label, levels[i], label) },
+            onValueChange = { i, value -> levels = levels.toMutableList().also { it[i] = value }; pending = levels },
+            enabled = eq.isEnabled() && (ui.connectionState == ConnectionState.CONNECTED), valueRange = 0..100,
+            valueLabel = { it.toString() })
+    }
+    SettingsButton(onClick = { levels = listOf(50, 50, 50); pending = levels }, enabled = eq.isEnabled(), style = SettingsButtonStyle.Tonal) {
+        Text(stringResource(R.string.reset))
+    }
+}
+
+/** Only the visible, STARTED home observes system media volume. No polling or chime commands. */
+@Composable
+private fun PhoneMediaVolume() {
+    val context = LocalContext.current
+    val audio = remember(context) { context.getSystemService(AudioManager::class.java) }
+    var volume by remember { mutableIntStateOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC)) }
+    var maximum by remember { mutableIntStateOf(audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)) }
+    LifecycleStartEffect(audio) {
+        fun refresh() { maximum = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC); volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC) }
+        val receiver = object : BroadcastReceiver() { override fun onReceive(context: Context?, intent: Intent?) { refresh() } }
+        refresh()
+        ContextCompat.registerReceiver(context, receiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"), ContextCompat.RECEIVER_NOT_EXPORTED)
+        onStopOrDispose { context.unregisterReceiver(receiver) }
+    }
+    val label = stringResource(R.string.media_volume_label)
+    SettingsCard {
+        SettingsSectionLabel(label)
+        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(LocalIcons.current.SpeakerMin, null)
+            SettingsSeekBar(volume.toFloat(), {
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, it.roundToInt(), 0)
+                volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+            }, 0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
+                .semantics { contentDescription = label }, enabled = !audio.isVolumeFixed && maximum > 0,
+                steps = (maximum - 1).coerceAtLeast(0))
+            Icon(LocalIcons.current.SpeakerMax, null)
+        }
+    }
+}

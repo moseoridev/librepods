@@ -26,6 +26,8 @@ fun SettingsMultiChoiceRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    description: String? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val alpha = if (enabled) 1f else .4f
@@ -48,8 +50,15 @@ fun SettingsMultiChoiceRow(
         Spacer(Modifier.width(14.dp))
         // bm.r replaces LocalTextStyle with a color-only style. Its text resolves
         // to the platform default family at 14sp, rather than the page's sec family.
-        Text(label, Modifier.weight(1f), style = SettingsStyle.RowTitle.copy(
-            fontFamily = FontFamily.Default, fontSize = 14.sp),
-            color = colors.onSurface.copy(alpha = alpha))
+        leadingContent?.let { it(); Spacer(Modifier.width(14.dp)) }
+        Column(Modifier.weight(1f)) {
+            Text(label, style = SettingsStyle.RowTitle.copy(
+                fontFamily = FontFamily.Default, fontSize = 14.sp),
+                color = colors.onSurface.copy(alpha = alpha))
+            description?.let {
+                Text(it, style = SettingsStyle.RowSummary,
+                    color = colors.onSurfaceVariant.copy(alpha = alpha))
+            }
+        }
     }
 }

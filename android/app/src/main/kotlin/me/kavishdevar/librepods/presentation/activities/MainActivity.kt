@@ -201,6 +201,12 @@ fun Main() {
                 librepodsService.value = engine
                 engine.devices.value.values.forEach { engine.updateDeviceNotification(it) }
                 val activity = context as? Activity
+                if (activity?.intent?.action == me.kavishdevar.librepods.data.app.LibrePodsIntents.ACTION_RECONNECT_AUDIO) {
+                    val address = activity.intent.getStringExtra(me.kavishdevar.librepods.data.app.LibrePodsIntents.Extras.MAC_ADDRESS)
+                        ?.let { runCatching { me.kavishdevar.librepods.core.bluetooth.MacAddress(it) }.getOrNull() }
+                    (engine.devices.value[address] as? me.kavishdevar.librepods.core.devices.AppleDevice)?.let { engine.requestAudioTakeover(it) }
+                    activity.intent.action = null
+                }
                 if (activity?.intent?.action == me.kavishdevar.librepods.data.app.LibrePodsIntents.ACTION_CONNECT) {
                     val address = activity.intent.getStringExtra(me.kavishdevar.librepods.data.app.LibrePodsIntents.Extras.MAC_ADDRESS)
                         ?.let { runCatching { me.kavishdevar.librepods.core.bluetooth.MacAddress(it) }.getOrNull() }

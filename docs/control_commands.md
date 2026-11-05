@@ -133,10 +133,10 @@ Values: `0x01` = enabled, `0x02` = disabled.
 
 ### 0x23 - VolumeSwipeInterval
 Format: Single value (1 byte)
-Values: 0x00 = Default, `0x01` = Longer, `0x02` = Longest.  
+Earlier notes list `0x00` = Default, `0x01` = Longer, `0x02` = Longest. The preserved and rewrite UI implementations instead send1/2/3. This conflict has not been resolved on target firmware; the rewrite port retains the existing implementation mapping rather than silently changing it during presentation work.
 
 ### 0x24 - Call Management Config
-Format: Single value (1 byte)
+The current implementation sends two bytes: `[0x00, 0x03]` for single-press mute/double-press end, or `[0x00, 0x02]` for the inverse. The two UI choices share this setting; they are not independent firmware controls.
 
 ### 0x25 - VolumeSwipeMode
 Format: Single value (1 byte)

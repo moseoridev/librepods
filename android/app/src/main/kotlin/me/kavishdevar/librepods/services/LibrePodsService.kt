@@ -57,6 +57,12 @@ import me.kavishdevar.librepods.core.data.heartrate.HeartRateSample
 import me.kavishdevar.librepods.core.data.recording.Recording
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.AppleDevice
+import me.kavishdevar.librepods.core.data.StemAction
+import me.kavishdevar.librepods.core.bluetooth.aacp.types.AppleEvent
+import me.kavishdevar.librepods.core.devices.handlesStemType
+import me.kavishdevar.librepods.core.devices.stemAction
+import me.kavishdevar.librepods.core.devices.configuredListeningModes
+import me.kavishdevar.librepods.core.devices.BaseCapability
 import me.kavishdevar.librepods.core.devices.AppleSettings
 import me.kavishdevar.librepods.core.devices.AppleState
 import me.kavishdevar.librepods.core.devices.BatteryComponent
@@ -154,19 +160,27 @@ class LibrePodsService: Service() {
     }
 
     private var isCallRinging = false
+    private var callGestureOwner: AppleDevice? = null
+    private fun stopCallGesture() {
+        callGestureOwner?.stopHeadTracking()
+        callGestureOwner = null
+    }
 
     private val telephonyCallback = object: TelephonyCallback(), TelephonyCallback.CallStateListener {
         override fun onCallStateChanged(state: Int) {
             if (state == TelephonyManager.CALL_STATE_RINGING) {
+                stopCallGesture()
                 isCallRinging = true
                 attemptConnect("phone")
                 _devices.value.values.firstOrNull { device ->
-                    device is AppleDevice &&
+                    device is AppleDevice && device.settings.value.headGesturesEnabled &&
                     device.connectionState.value == ConnectionState.CONNECTED &&
                     device.state.value.componentState.any { it.status == ComponentStatus.IN_EAR }
                 }?.let { device ->
-                    (device as AppleDevice).detectHeadGestures { accept ->
-                        if (!isCallRinging) return@detectHeadGestures
+                    callGestureOwner = device as AppleDevice
+                    device.detectHeadGestures { accept ->
+                        if (!isCallRinging || callGestureOwner !== device || !device.settings.value.headGesturesEnabled ||
+                            device.connectionState.value != ConnectionState.CONNECTED) return@detectHeadGestures
 
                         try {
                             val telecomManager = getSystemService(TelecomManager::class.java)
@@ -191,7 +205,7 @@ class LibrePodsService: Service() {
                             }
 
                             isCallRinging = false
-                            device.stopHeadTracking()
+                            stopCallGesture()
 
                         } catch (e: Exception) {
                             Log.e(TAG, "Error accepting call", e)
@@ -199,15 +213,8 @@ class LibrePodsService: Service() {
                     }
                 }
             } else {
-                if (isCallRinging) {
-                    _devices.value.values.firstOrNull { device ->
-                        device is AppleDevice &&
-                        device.connectionState.value == ConnectionState.CONNECTED &&
-                        device.state.value.componentState.any { it.status == ComponentStatus.IN_EAR }
-                    }?.let { device ->
-                        (device as AppleDevice).stopHeadTracking()
-                    }
-                }
+                stopCallGesture()
+                isCallRinging = false
             }
         }
     }
@@ -269,8 +276,62 @@ class LibrePodsService: Service() {
             AirPodsSpecs.getSpec(device.metadata.value.model), { device.connect() }, true)
     }
 
+    private val releasedAudioDevices = mutableSetOf<MacAddress>()
+    private val reversedDevices = mutableSetOf<MacAddress>()
+    private val routingJobs = mutableMapOf<MacAddress, Job>()
+    private val routingAttemptAt = mutableMapOf<MacAddress, Long>()
+
+    private fun selfMacAddress(): String? {
+        val saved = getSharedPreferences("settings", MODE_PRIVATE).getString("self_mac_address", null)
+        val raw = saved ?: try { getSystemService(BluetoothManager::class.java).adapter?.address } catch (_: SecurityException) { null }
+        return raw?.uppercase()?.takeIf { it.matches(Regex("([0-9A-F]{2}:){5}[0-9A-F]{2}")) &&
+            it != "02:00:00:00:00:00" && it != "00:00:00:00:00:00" }
+    }
+
     private fun attemptConnect(trigger: String) {
+        devices.value.values.filterIsInstance<AppleDevice>().forEach { device ->
+            val settings = device.settings.value
+            val call = trigger == "phone"
+            val allowed = when (device.state.value.state) {
+                AccessoryState.Disconnected -> if (call) settings.connectOnPhoneWhenAccessoryDisconnected else settings.connectOnMediaWhenAccessoryDisconnected
+                AccessoryState.Idle -> if (call) settings.connectOnPhoneWhenAccessoryIdle else settings.connectOnMediaWhenAccessoryIdle
+                AccessoryState.Music -> if (call) settings.connectOnPhoneWhenAccessoryMusic else settings.connectOnMediaWhenAccessoryMusic
+                else -> false
+            }
+            if (allowed) requestAudioTakeover(device, manual = false)
+        }
         me.kavishdevar.librepods.bluetooth.NearbyDetection.considerTakeover(this)
+    }
+
+    fun requestAudioTakeover(device: AppleDevice, manual: Boolean = true, reverse: Boolean = false) {
+        if (destroying || device.connectionState.value != ConnectionState.CONNECTED ||
+            (!manual && device.macAddress in reversedDevices)) return
+        val self = selfMacAddress() ?: return
+        if (!reverse && !me.kavishdevar.librepods.data.xposed.XposedRemotePrefProvider.create().getBoolean("vendor_id_hook", false)) return
+        val state = device.state.value
+        if (!manual && state.owns && state.audioSource.mac.value.equals(self, true)) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        // Bounded automatic work while ownership/OS state is stale. User actions bypass this cooldown.
+        if (!manual && now - (routingAttemptAt[device.macAddress] ?: -60_000L) < 60_000) return
+        if (routingJobs[device.macAddress]?.isActive == true) {
+            if (!manual) return
+            routingJobs.remove(device.macAddress)?.cancel()
+        }
+        routingAttemptAt[device.macAddress] = now
+        val generation = device.connectionNumber.value
+        val current = { !destroying && devices.value[device.macAddress] === device &&
+            device.connectionState.value == ConnectionState.CONNECTED && device.connectionNumber.value == generation }
+        routingJobs[device.macAddress] = serviceCoroutineScope.launch {
+            if (!current()) return@launch
+            device.setControlCommand(ControlCommandIdentifier.OWNS_CONNECTION, 1)
+            device.aacp.sendMediaInformataion(self)
+            if (reverse) device.aacp.sendHijackReversed(self) else {
+                device.aacp.sendSmartRoutingShowUI(self)
+                device.aacp.sendHijackRequest(self)
+            }
+            me.kavishdevar.librepods.bluetooth.setAudioRouting(device, true, current)
+            // Ownership acknowledgement, not request acceptance, clears the reconnect state below.
+        }
     }
 
     fun onNearbySnapshots(samples: Map<MacAddress, me.kavishdevar.librepods.bluetooth.NearbyDetection.Snapshot>) {
@@ -319,7 +380,7 @@ class LibrePodsService: Service() {
                 observingDisplay = true
             }
             MediaController.initialize(getSystemService(AudioManager::class.java),
-                getSharedPreferences("settings", MODE_PRIVATE), null) { attemptConnect("media") }
+                getSharedPreferences("settings", MODE_PRIVATE), selfMacAddress()) { attemptConnect("media") }
             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
                 getSystemService(TelephonyManager::class.java).registerTelephonyCallback(mainExecutor, telephonyCallback)
@@ -329,6 +390,8 @@ class LibrePodsService: Service() {
     }
 
     private fun stopRuntime() {
+        isCallRinging = false
+        stopCallGesture()
         runtimeActive = false
         clearPendingIsland()
         islandWindow.forceClose(); proximityCardWindow.forceClose()
@@ -514,6 +577,7 @@ class LibrePodsService: Service() {
 
                 if (!device.settingsInitialized) device.loadInitialState(AppleState(), AppleSettings(), device.metadata.value)
                 device.onManualDisconnect = { me.kavishdevar.librepods.bluetooth.NearbyDetection.suppress(this@LibrePodsService, device.macAddress) }
+                observeAppleEvents(device)
                 observeAppleState(device)
                 observeAppleSettings(device)
                 observeAppleMetadata(device)
@@ -521,7 +585,9 @@ class LibrePodsService: Service() {
             }
         }
 
-        if (device != null) observeConnectionState(device)
+        if (device != null) {
+            observeConnectionState(device)
+        }
 
         return device
     }
@@ -533,8 +599,13 @@ class LibrePodsService: Service() {
                 reconcileRuntime()
                 updateWidgets()
                 updateDeviceNotification(device)
-                if (device is AppleDevice && state != ConnectionState.CONNECTED && state != ConnectionState.CONNECTING)
-                    closeOwnedPopups(device)
+                if (device is AppleDevice && state != ConnectionState.CONNECTED) {
+                    routingJobs.remove(device.macAddress)?.cancel()
+                    if (state != ConnectionState.CONNECTING) {
+                        reversedDevices.remove(device.macAddress); releasedAudioDevices.remove(device.macAddress)
+                        routingAttemptAt.remove(device.macAddress); closeOwnedPopups(device)
+                    }
+                }
                 if (bottomOwner?.device === device && proximityCardWindow.isVisible)
                     proximityCardWindow.updateConnectionState(state == ConnectionState.CONNECTED)
 
@@ -554,12 +625,78 @@ class LibrePodsService: Service() {
         }
     }
 
+    private fun releaseAudioToPeer(device: AppleDevice) {
+        if (!releasedAudioDevices.add(device.macAddress)) return
+        val generation = device.connectionNumber.value
+        routingJobs.remove(device.macAddress)?.cancel()
+        routingJobs[device.macAddress] = serviceCoroutineScope.launch {
+            me.kavishdevar.librepods.bluetooth.setAudioRouting(device, false) {
+                !destroying && devices.value[device.macAddress] === device &&
+                    device.connectionNumber.value == generation && device.connectionState.value == ConnectionState.CONNECTED
+            }
+        }
+    }
+
+    private fun observeAppleEvents(device: AppleDevice) {
+        serviceCoroutineScope.launch {
+            device.events.collect { event ->
+                if (devices.value[device.macAddress] !== device || device.connectionState.value != ConnectionState.CONNECTED) return@collect
+                if (event is AppleEvent.OwnershipToFalseRequest) {
+                    device.setControlCommand(ControlCommandIdentifier.OWNS_CONNECTION, 0)
+                    MediaController.sendPause()
+                    if (event.reverseTapped) reversedDevices.add(device.macAddress)
+                    releaseAudioToPeer(device)
+                    updateDeviceNotification(device)
+                    showIsland(device, IslandType.MOVED_TO_OTHER_DEVICE, event.reverseTapped,
+                        device.state.value.connectedDevices.find { it.macAddress.value.equals(event.sender, true) }?.type)
+                    return@collect
+                }
+                if (event is AppleEvent.ShowNearbyUi) {
+                    showIsland(device, IslandType.MOVED_TO_OTHER_DEVICE, device.macAddress in reversedDevices,
+                        device.state.value.connectedDevices.find { it.macAddress.value.equals(event.sender, true) }?.type)
+                    return@collect
+                }
+                if (event !is AppleEvent.StemPress || !device.settings.value.handlesStemType(event.pressType)) return@collect
+                when (device.settings.value.stemAction(event.bud, event.pressType)) {
+                    StemAction.PLAY_PAUSE -> MediaController.sendPlayPause()
+                    StemAction.NEXT_TRACK -> MediaController.sendNextTrack()
+                    StemAction.PREVIOUS_TRACK -> MediaController.sendPreviousTrack()
+                    StemAction.DIGITAL_ASSISTANT -> try {
+                        startActivity(Intent(Intent.ACTION_VOICE_COMMAND).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (error: android.content.ActivityNotFoundException) {
+                        Log.w(TAG, "No voice assistant available", error)
+                    } catch (error: SecurityException) {
+                        Log.w(TAG, "Voice assistant launch unavailable", error)
+                    }
+                    StemAction.CYCLE_listening_mode_MODES -> {
+                        val state = device.state.value
+                        val mask = state.controlStates[ControlCommandIdentifier.LISTENING_MODE_CONFIGS]?.firstOrNull()?.toInt() ?: return@collect
+                        val modes = configuredListeningModes(mask,
+                            BaseCapability.ADAPTIVE_AUDIO in AirPodsSpecs.getSpec(device.metadata.value.model).baseCapabilities,
+                            state.controlStates[ControlCommandIdentifier.ALLOW_OFF_OPTION]?.firstOrNull()?.toInt() == 1)
+                        val current = state.confirmedControlStates[ControlCommandIdentifier.LISTENING_MODE]?.firstOrNull()?.toInt()
+                        if (modes.isNotEmpty() && current != null) device.setControlCommand(ControlCommandIdentifier.LISTENING_MODE,
+                            modes[(modes.indexOf(current) + 1) % modes.size])
+                    }
+                }
+            }
+        }
+    }
+
     fun observeAppleState(device: AppleDevice) {
         serviceCoroutineScope.launch {
             var previousState = device.state.value
 
             device.state.collect { state ->
                 val deviceSettings = device.settings.value
+                if (state.owns != previousState.owns) {
+                    if (!state.owns) { MediaController.sendPause(); releaseAudioToPeer(device) }
+                    else {
+                        releasedAudioDevices.remove(device.macAddress)
+                        reversedDevices.remove(device.macAddress)
+                        updateDeviceNotification(device)
+                    }
+                }
 
                 if (state.aacpPackets != previousState.aacpPackets) {
                     if (!appDataRepository.state.value.hasConnectedToAACP) {
@@ -809,6 +946,7 @@ class LibrePodsService: Service() {
 
             device.settings.collect { settings ->
                 if (settings != previousSettings) {
+                    if (!settings.headGesturesEnabled && callGestureOwner === device) stopCallGesture()
                     Log.i(TAG, "settings changed for device ${device.macAddress.toRedactedString()}")
                     Log.d(TAG, "settings: $settings")
 
@@ -938,6 +1076,7 @@ class LibrePodsService: Service() {
                         type = type,
                         reversed = reversed,
                         otherDeviceName = otherDeviceName,
+                        onReverseAction = { if (current(owner)) requestAudioTakeover(device, reverse = true) },
 
                         openApp = {
                             val intent = Intent(
@@ -977,7 +1116,7 @@ class LibrePodsService: Service() {
     }
 
     private data class ConnectionNotificationContent(val name: String, val batteries: String,
-        val connected: Boolean, val modes: List<Int>, val locale: String)
+        val connected: Boolean, val modes: List<Int>, val locale: String, val reconnect: Boolean)
     private val connectionNotifications = mutableMapOf<MacAddress, ConnectionNotificationContent>()
 
     fun updateDeviceNotification(device: Device<*, *, *>) {
@@ -997,7 +1136,7 @@ class LibrePodsService: Service() {
             it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
             .sortedBy { it.component.ordinal }.joinToString(" ") { "${it.component.name[0]}: ${if (it.status == BatteryStatus.CHARGING) "⚡" else ""}${it.level}%" }
         val content = ConnectionNotificationContent(device.metadata.value.name, batteries,
-            state == ConnectionState.CONNECTED, modes, resources.configuration.locales.toLanguageTags())
+            state == ConnectionState.CONNECTED, modes, resources.configuration.locales.toLanguageTags(), address in reversedDevices)
         if (connectionNotifications[address] == content && manager.activeNotifications.any { it.tag == address.value && it.id == 2 }) return
         val channelId = "device_$address"
         val channel = manager.getNotificationChannel(channelId) ?: NotificationChannel(channelId, content.name, NotificationManager.IMPORTANCE_LOW)
@@ -1018,6 +1157,15 @@ class LibrePodsService: Service() {
             }
             builder.addAction(R.drawable.ic_airpods, getString(checkNotNull(labels[mode])),
                 PendingIntent.getService(this, mode, action, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        }
+        if (content.reconnect) {
+            val reconnect = Intent(this, MainActivity::class.java).apply {
+                action = LibrePodsIntents.ACTION_RECONNECT_AUDIO
+                data = android.net.Uri.parse("librepods://device/$address/reconnect-audio")
+                putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, address.value)
+            }
+            builder.addAction(R.drawable.ic_power, getString(R.string.reconnect_audio),
+                PendingIntent.getActivity(this, 0, reconnect, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         }
         if (state == ConnectionState.AVAILABLE) {
             // Without a companion owner, the user's visible Activity owns this manual attempt.

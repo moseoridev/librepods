@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="airpods_label">AirPods</string>
+    <string name="audio_routing">Audio &amp; Routing</string>
+    <string name="charging_label">Charging</string>
+    <string name="controls_gestures">Controls &amp; Gestures</string>
+    <string name="decline_call_label">Decline Call</string>
+    <string name="librepods_options">LibrePods Options</string>
+    <string name="media_volume_label">Media Volume</string>
+    <string name="nod_head">Nod</string>
+    <string name="shake_head">Shake Head</string>
+    <string name="shorter_label">Shorter</string>
+    <string name="shortest_label">Shortest</string>
+    <string name="reconnect_audio">Reconnect Audio</string>
+</resources>

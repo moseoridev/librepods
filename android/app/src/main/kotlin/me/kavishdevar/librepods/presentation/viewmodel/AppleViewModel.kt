@@ -50,6 +50,7 @@ import kotlin.time.Duration
 import kotlin.time.Instant
 
 data class AppleUiState(
+    val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val state: AppleState = AppleState(),
     val settings: AppleSettings = AppleSettings(),
     val metadata: AppleMetadata = AppleMetadata(),
@@ -95,9 +96,10 @@ class AppleViewModel(
     private val deviceDetails = combine(
         device.state,
         device.settings,
-        device.metadata
-    ) { state, settings, metadata ->
-        Triple(state, settings, metadata)
+        device.metadata,
+        device.connectionState
+    ) { state, settings, metadata, connection ->
+        AppleUiState(state = state, settings = settings, metadata = metadata, connectionState = connection)
     }
 
     private val appData = combine(
@@ -113,11 +115,12 @@ class AppleViewModel(
         billingManager.provider.isPremium,
         _heartRateRange,
         heartRateSamples
-    ) { (state, settings, metadata), (appState, appSettings), isPremium, heartRateRange, heartRateSamples ->
+    ) { deviceUi, (appState, appSettings), isPremium, heartRateRange, heartRateSamples ->
         AppleUiState(
-            state = state,
-            settings = settings,
-            metadata = metadata,
+            state = deviceUi.state,
+            settings = deviceUi.settings,
+            metadata = deviceUi.metadata,
+            connectionState = deviceUi.connectionState,
             isPremium = isPremium,
             vendorIdHook = XposedRemotePrefProvider.create().getBoolean(
                 "vendor_id_hook",
@@ -132,6 +135,7 @@ class AppleViewModel(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         AppleUiState(
+            connectionState = device.connectionState.value,
             state = device.state.value,
             settings = device.settings.value,
             metadata = device.metadata.value,

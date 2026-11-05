@@ -19,6 +19,13 @@ data class AppleSettings(
     val headGesturesHorizontalOffset: Int = 28,
     val headTrackingInterval: Duration = 40.milliseconds,
 
+    val leftSinglePressAction: StemAction = StemAction.PLAY_PAUSE,
+    val rightSinglePressAction: StemAction = StemAction.PLAY_PAUSE,
+    val leftDoublePressAction: StemAction = StemAction.NEXT_TRACK,
+    val rightDoublePressAction: StemAction = StemAction.NEXT_TRACK,
+    val leftTriplePressAction: StemAction = StemAction.PREVIOUS_TRACK,
+    val rightTriplePressAction: StemAction = StemAction.PREVIOUS_TRACK,
+
     val leftLongPressAction: StemAction = StemAction.CYCLE_listening_mode_MODES, // left_long_press_action
     val rightLongPressAction: StemAction = StemAction.CYCLE_listening_mode_MODES, // right_long_press_action
 

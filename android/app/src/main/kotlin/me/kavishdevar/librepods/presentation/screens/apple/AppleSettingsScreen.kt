@@ -113,41 +113,16 @@ fun AppleSettingsRoute(
     navigateToOverlaySettings: () -> Unit,
     navigateToProxConnectSettings: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    AppleSettingsScreen(
-        uiState = uiState,
-
-        setControlCommandInt = { id, value -> viewModel.setControlCommand(id, value) },
-        setControlCommandBoolean = { id, value -> viewModel.setControlCommand(id, value) },
-//            setControlCommandByte = { id, value -> viewModel.setControlCommand(id, value) },
-//            setControlCommandValue = { id, value -> viewModel.setControlCommand(id, value) },
-
-        writeATTCharacteristic = viewModel::writeATTCharacteristic,
-
-        updateSettings = viewModel::updateSettings,
-
-//            onAutomaticConnectionChanged = viewModel::setAutomaticConnectionEnabled,
-        disconnect = viewModel::disconnect,
-
+    BudsDeviceSettingsRoute(
+        viewModel = viewModel,
         navigateBack = navigateBack,
-        navigateToRename = navigateToRename,
         navigateToHearingProtection = navigateToHearingProtection,
         navigateToHearingAid = navigateToHearingAid,
-        navigateToLeftLongPress = navigateToLeftLongPress,
-        navigateToRightLongPress = navigateToRightLongPress,
-        navigateToPurchase = navigateToPurchase,
-        navigateToEqualizer = navigateToEqualizer,
-        navigateToHeadTracking = navigateToHeadTracking,
-        navigateToAccessibility = navigateToAccessibility,
-        navigateToVersion = navigateToVersion,
-        navigateToCallControlScreen = navigateToCallControlScreen,
-        navigateToMicrophoneSettings = navigateToMicrophoneSettings,
-        navigateToRecordingScreen = navigateToRecordingScreen,
-        navigateToHeartRateScreen = navigateToHeartRateScreen,
-        navigateToDebugScreen = navigateToDebugScreen,
-        navigateToOverlaySettings = navigateToOverlaySettings,
-        navigateToProxConnectSettings = navigateToProxConnectSettings
+        navigateToRecording = navigateToRecordingScreen,
+        navigateToHeartRate = navigateToHeartRateScreen,
+        navigateToDebug = navigateToDebugScreen,
+        navigateToOverlays = navigateToOverlaySettings,
+        navigateToProximity = navigateToProxConnectSettings
     )
 }
 

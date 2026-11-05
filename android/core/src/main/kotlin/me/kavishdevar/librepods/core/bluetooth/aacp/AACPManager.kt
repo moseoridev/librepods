@@ -98,6 +98,7 @@ class AACPManager(private val device: AppleDevice) {
         sendCountryCode()
         delay(200.milliseconds)
         sendRequestMagicKeys((MagicKeyType.IRK.value + MagicKeyType.ENC_KEY.value).toByte())
+        device.applyStemSettings()
     }
 
     /** Returns request acceptance, not completion of the asynchronous connection. */

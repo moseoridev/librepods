@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="airpods_label">AirPods</string>
+    <string name="audio_routing">오디오 및 연결</string>
+    <string name="charging_label">충전 중</string>
+    <string name="controls_gestures">제어 및 제스처</string>
+    <string name="decline_call_label">전화 거절</string>
+    <string name="librepods_options">LibrePods 설정</string>
+    <string name="media_volume_label">미디어 음량</string>
+    <string name="nod_head">고개 끄덕이기</string>
+    <string name="shake_head">고개 가로젓기</string>
+    <string name="shorter_label">짧게</string>
+    <string name="shortest_label">가장 짧게</string>
+    <string name="reconnect_audio">오디오 다시 연결</string>
+</resources>

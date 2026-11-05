@@ -119,7 +119,15 @@ class AppleDevice(
     fun updateSettings(
         transform: (AppleSettings) -> AppleSettings
     ) {
+        val previousMask = _settings.value.stemConfigMask()
         _settings.update(transform)
+        if (_settings.value.stemConfigMask() != previousMask && connectionState.value == ConnectionState.CONNECTED) applyStemSettings()
+    }
+
+    internal fun applyStemSettings() {
+        if (BaseCapability.STEM_CONFIG in AirPodsSpecs.getSpec(metadata.value.model).baseCapabilities) {
+            aacp.sendControlCommand(ControlCommandIdentifier.RAW_GESTURES_CONFIG.value, settings.value.stemConfigMask().toByte())
+        }
     }
 
     internal suspend fun emitEvent(event: AppleEvent) {
@@ -143,9 +151,8 @@ class AppleDevice(
 
 
     // ik, probably wrong place. TODO
-    private val gestureDetector by lazy {
-        GestureDetector()
-    }
+    private val gestureDetectorDelegate = lazy { GestureDetector() }
+    private val gestureDetector by gestureDetectorDelegate
 
     init {
         updateMetadata {
@@ -222,6 +229,8 @@ class AppleDevice(
     }
 
     internal fun onControlDisconnected() {
+        if (gestureDetectorDelegate.isInitialized()) gestureDetector.stopDetection()
+        _state.update { it.copy(headTrackingState = BuddyState.INACTIVE) }
         _connectionState.value = ConnectionState.DISCONNECTED
         if (closed || !classicConnected) return
         val wait = recovery.nextDelayMillis() ?: return
@@ -307,6 +316,7 @@ class AppleDevice(
         closed = true
         classicConnected = false
         recoveryScope.cancel()
+        if (gestureDetectorDelegate.isInitialized()) gestureDetector.stopDetection()
         aacp.close()
     }
 
@@ -389,7 +399,7 @@ class AppleDevice(
     }
 
     fun setLongPressAction(side: String, action: StemAction) {
-        _settings.update {
+        updateSettings {
             if (side.lowercase() == "left") it.copy(leftLongPressAction = action) else it.copy(rightLongPressAction = action)
         }
     }

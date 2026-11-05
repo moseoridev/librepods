@@ -1,26 +1,29 @@
 # Android background lifecycle
 
-> Migration note: this is the preserved `moody-penguin` behavior/evidence inventory. It is not a claim that every feature is already ported to `rewrite-port`; see [active migration state](rewrite-migration.md).
+The rewrite port implements event-driven companion lifetime and idle shutdown. Source ownership now lives in core `bluetooth/ConnectionSession.kt`, `devices/AppleDevice.kt`, app `bluetooth/CompanionConnection.kt` and `services/LibrePodsService.kt`; the commented old AirPodsService is not the running engine. Nearby remains opt-in/default-off. Preserve nonroot connection use and optional privileged profile routing.
 
-The branch implements event-driven companion lifetime and idle shutdown. The maintainer's target is an unrooted Galaxy S26+ / One UI 9 with AirPods 5; Nearby detection normally stays off. Short target-device trials cover recovery and teardown. Long-term reliability, power savings and jank are not established.
+The source policies below are ported. The physical-device evidence at the end belongs to the preserved `moody-penguin` APKs and does **not** certify this rewrite APK, upgraded Compose, power use or long-term reconnect reliability. ATT is serialized, finite and session-owned; stem configuration/events are restored without a resident listener outside an active session. A host-customized press type covers both buds; default types remain native.
 
-This document describes current ownership and validation limits. Widget rendering and phone-battery refresh are in [widget notes](android-widgets.md); tool locations and evidence retention are in the [development guide](android-development.md#reverse-engineering-and-local-evidence).
+Ownership/Reverse/Reconnect events use per-device session checks. Profile acquisition waits at most1.5s per profile; late callbacks only close the proxy. Platform binder calls themselves depend on Android responding. Existing privileged policy changes require the corresponding granted permissions. Manual reconnect/reverse reuses saved valid self MAC or a permitted adapter address; it never fabricates the Android placeholder address. Automatic connected-session routing additionally requires the vendor hook, the existing per-trigger settings and a60s per-device cooldown; manual actions bypass the cooldown. This can delay another automatic routing attempt after a failed one. No fresh firmware/profile/assistant behavior is established.
+
+Widget rendering and phone-battery refresh are in [widget notes](android-widgets.md); tools/evidence are in the [development guide](android-development.md#reverse-engineering-and-local-evidence). Resume state is in [rewrite migration](rewrite-migration.md).
 
 ## Connection ownership
 
-Paths here are relative to `android/app/src/main/java/me/kavishdevar/librepods/`.
+Paths below start at the Android modules' `src/main/kotlin/me/kavishdevar/librepods/` roots.
 
 | Owner | Responsibility |
 | --- | --- |
-| `bluetooth/ConnectionSession.kt` | In-flight/connected sockets, cancellable work and bounded ordered AACP writes. |
-| `services/AirPodsService.kt` | Bound engine; serialized session transitions and packet delivery on main, blocking socket I/O on workers. |
-| `bluetooth/CompanionConnection.kt` | Actual connection queries, query generations and presence-observation registration. |
-| `services/AirPodsCompanionService.kt` | Separate CDM binding; holds the engine while the associated device is connected. |
-| `bluetooth/NearbyDetection.kt` | Optional system scan registration and admission of finite takeover jobs, independent of the engine. |
+| core `core/bluetooth/ConnectionSession.kt` | In-flight/connected sockets, cancellation and bounded ordered writes. |
+| core `core/devices/AppleDevice.kt` | Per-device sessions, finite recovery, settings and ATT ownership. |
+| app `services/LibrePodsService.kt` | Bound engine, serialized consumers, scoped media/phone/overlay resources. |
+| app `bluetooth/CompanionConnection.kt` | Actual classic queries, query generations and presence observations. |
+| app `services/AirPodsCompanionService.kt` | Separate CDM binding while associated devices connect. |
+| app `bluetooth/NearbyDetection.kt` | Optional system scan registration and finite takeover admission. |
 
 Bluetooth audio/ACL connectivity, AACP session state, BLE proximity and playback are distinct. AACP failure does not itself mean the audio link disconnected. Duplicate events cannot create duplicate attempts or accept obsolete completions. Closing owned sockets interrupts blocked I/O; coroutine cancellation alone is insufficient. The AACP send result means acceptance into the queue; overflow or asynchronous write failure ends that session.
 
-Session work includes initialization/takeover delays and ATT sockets. ATT gets a new manager/socket per connection and the UI reattaches its observer. Session cleanup is repeatable across timeout, classic disconnect, Bluetooth shutdown, explicit app disconnect, EOF, I/O failure and service destruction. It clears local head tracking, notification and pending work. Service destruction also clears the singleton and cancels its scope.
+Session work includes initialization/takeover delays and ATT sockets. ATT uses serialized short child sockets with a four-second limit, and the UI reattaches its observer after reconnect. Session cleanup is repeatable across timeout, classic disconnect, Bluetooth shutdown, explicit app disconnect, EOF, I/O failure and service destruction. It clears local head tracking, notification and pending work. Service destruction also clears the singleton and cancels its scope.
 
 The engine uses `START_NOT_STICKY`. Media/phone observers and runtime receivers run for a connection or a finite eligible Nearby attempt. Disconnection releases them and gesture feedback. UI and quick-settings bindings can access an idle engine without starting detection; UI subscriptions detach on stop. A cached process is not evidence of ongoing work. Default connection handling starts neither a foreground service nor an app BLE scanner.
 
@@ -40,7 +43,7 @@ Contracts: [Bluetooth sockets](https://developer.android.com/reference/android/b
 
 The notification updates for connection, battery, name and Reverse/Reconnect changes. Identical visible content is skipped while the notification exists; disconnect clears the cache. Accepted battery packets publish once through the shared battery path. Repeated packets still reach metadata/audio consumers; unchanged widget content is skipped. Phone-battery changes refresh only widgets. No widget views are built when none are installed.
 
-The unused per-packet preference archive and its formatter/state flow are removed. Parsing, packet broadcasts and the separate `LogCollector` Logcat/file-export path remain. Old `packet_logs` preferences are not read, updated or migrated. Play billing initializes only on first UI access; releasing an already-created billing connection remains separate work. These are reductions in code-side work, not measured energy savings.
+Packet diagnostics retain at most64 packets per device, including battery packets. The old per-packet SharedPreferences archive is not restored; old `packet_logs` data remains untouched. Play billing initializes only on first UI access; releasing an already-created billing connection remains separate work. These are reductions in code-side work, not measured energy savings.
 
 The bottom popup uses the first usable battery snapshot after physical connection, not BLE lid-open. A per-address marker survives service/process recreation. Retry, EOF and reconciliation failure do not clear it; classic disconnect, Bluetooth shutdown and boot do. A disabled, unpermitted or screen-off/locked request is consumed without deferral. Overlays close on disconnect, destruction and screen-off; their videos play once. The bottom popup reserves the bundled video aspect ratio before preparation and covers preparation with the bundled video’s initial background color until rendering starts, falling back to upstream AirPods artwork on playback failure. Entry starts after measurement and travels only the popup height. Normal dismissal retains playback through the short exit; final removal cancels both animators and releases playback. The screen-off receiver remains active during exit so teardown can still be immediate. These paths are statically reviewed and build-checked; smoother rendering and energy savings are not yet device-measured.
 
@@ -52,9 +55,9 @@ Nearby remains opt-in. Boot/unlock, package replacement, app resume, Bluetooth a
 
 The scan requests LOW_POWER, five-second batches and an Apple proximity manufacturer filter. Own-device RPA verification precedes takeover work, but unrelated matching Apple advertisements can still wake the process. The newest verified observation uses its elapsed-realtime scan timestamp; stale/out-of-order data is rejected and at most sixteen verified addresses are cached. Meaningful state changes exclude timestamps/private-address rotation. AACP takes precedence over the thirty-second BLE snapshot shared with UI/widgets. Reads reject expired values. A cancellable in-process expiry can clear rendered state when scheduled, but does not keep the process alive; frozen/killed processes can leave a widget until its next system update.
 
-Disconnected scan handling does not create the engine. Eligible takeover checks current system media/call state on each own-device batch and queues an interruptible `services/NearbyTakeoverService.kt` job. It carries the raw verified observation, original timestamp, boot identity and key digest, then revalidates selected device/keys, freshness, preferences, phone state and manual-disconnect suppression. A newer observation takes precedence.
+Disconnected scan handling does not create the engine. Eligible takeover checks current system media/call state on each own-device batch and queues an interruptible `services/NearbyTakeoverService.kt` job. It carries the raw verified observation, original timestamp, boot identity and key digest, then revalidates target device/keys, freshness, preferences, phone state and manual-disconnect suppression. A newer observation takes precedence.
 
-A job binds for at most ten seconds. It releases its exact session on cancellation/timeout, preserving any replacement manual session, or hands ownership to CDM after connection. An association is required. Persisted admission and actual-attempt intervals are each at least sixty seconds. At most three actual attempts are allowed per selected device and observed eligibility; rejected/expired queued work does not consume them. Device changes reset the count while retaining global intervals. There is no periodic job or idle media/phone listener. Batching, job delay and missing advertisements can miss short transitions; immediate takeover/disappearance detection is not promised. See [Android background BLE guidance](https://developer.android.com/develop/connectivity/bluetooth/ble/background).
+A job binds for at most ten seconds. It releases its exact session on cancellation/timeout, preserving any replacement manual session, or hands ownership to CDM after connection. An association is required. Persisted admission and actual-attempt intervals are each at least sixty seconds. At most three actual attempts are allowed per selected device and observed eligibility; rejected/expired queued work does not consume them. Budgets are per device; global intervals survive device changes. There is no periodic job or idle media/phone listener. Batching, job delay and missing advertisements can miss short transitions; immediate takeover/disappearance detection is not promised. See [Android background BLE guidance](https://developer.android.com/develop/connectivity/bluetooth/ble/background).
 
 ## Evidence and remaining work
 

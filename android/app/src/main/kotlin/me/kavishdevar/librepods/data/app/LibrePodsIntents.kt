@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods.data.app
 
 object LibrePodsIntents {
+    const val ACTION_RECONNECT_AUDIO = "me.kavishdevar.librepods.action.RECONNECT_AUDIO"
     const val ACTION_CONNECT = "me.kavishdevar.librepods.action.CONNECT"
     const val ACTION_SET_ANC_MODE = "me.kavishdevar.librepods.action.SET_ANC_MODE"
 
