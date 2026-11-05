@@ -1,4 +1,4 @@
-# Rewrite migration — active work
+# Rewrite migration — integration checkpoint
 
 ## Goal and authorization
 
@@ -26,11 +26,11 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 - [x] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
 - [x] Port popup/island lifecycle policies to rewrite overlays. Bound packet history and defer billing initialization.
 - [x] Add settings-ui as presentation dependency and build supported screenshot hierarchy with rewrite state/actions. No invented unsupported controls or vendor artwork.
-- [ ] Run affected host tests and FOSS build; separate source/build proof from device/runtime evidence; commit and push to origin/rewrite-port.
+- [x] Run affected host tests and FOSS build; separate source/build proof from device/runtime evidence; commit and push to origin/rewrite-port.
 
 ## Current state / next action
 
-All implementation phases are integrated on rewrite-port. Earlier pushed checkpoints: scaffold f15eeb0, sessions/CDM5a24cd0, Nearby38a3827, legacy import3b7c390, widgets a709df0, popups/lazy runtime45477a4. `git ls-remote upstream refs/heads/android/rewrite` still reports the pinned3d4d270 on2026-11-06.
+All implementation phases are integrated on rewrite-port. Main integration commit: db93f12. Earlier pushed checkpoints: scaffold f15eeb0, sessions/CDM5a24cd0, Nearby38a3827, legacy import3b7c390, widgets a709df0, popups/lazy runtime45477a4. `git ls-remote upstream refs/heads/android/rewrite` still reports the pinned3d4d270 on2026-11-06.
 
 - Core owns per-device cancellable AACP sessions, bounded ordered writes,64-packet history and finite retries. ATT uses serialized four-second child transactions; UI observation reattaches per reconnect. Classic, AACP and BLE state are separate. Actual battery/control acknowledgements are distinguished from cached/requested data.
 - CDM owns connection lifetime. UI binds only STARTED; no foreground service fallback. Media/phone/display resources exist only for connecting/connected AACP sessions. Nearby is default-off, system LOW_POWER/5s batched PendingIntent scanning, independently decoded with RPA identity/freshness/replay checks and rewrite case decoding. Finite jobs revalidate observation/boot/keys/settings and have10s ownership plus per-device/global budgets; no callback scanner, idle listener or periodic job.
@@ -46,7 +46,9 @@ Verification: core32 + app25 + settings-ui4 =61 host tests pass. FOSS APK passes
 
 No new product screen pixels, physical migration, real Bluetooth/CDM/Nearby takeover/profile/assistant behavior or battery savings are certified. Historical S25/S26 evidence is not upgraded-Compose/rewrite certification. No physical device changes occurred.
 
-Next: commit/push this verified integration to origin/rewrite-port, verify remote head, and finish the authorized code migration. Retain these runtime/visual/localization limits in the final report; do not represent them as tested. Any later device validation requires its own authorized scope.
+The authorized code migration and supported screenshot UI integration are complete. Work continues from rewrite-port; moody-penguin remains the preservation source. A final address-fallback correction lets empty/invalid legacy self-MAC values fall through to a permitted real adapter address, while rejecting Android placeholders. The maintainer fork is the only push destination.
+
+On a future context reset, read this checkpoint before acting. Do not restart migration, restore the old BLE engine or repeat completed extraction work. Runtime/visual/localization limits above remain open follow-up scope, not successful test claims. Any device validation requires its own authorized scope.
 
 ## Resume constraints and references
 

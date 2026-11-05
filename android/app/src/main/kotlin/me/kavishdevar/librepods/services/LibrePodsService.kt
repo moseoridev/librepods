@@ -282,10 +282,12 @@ class LibrePodsService: Service() {
     private val routingAttemptAt = mutableMapOf<MacAddress, Long>()
 
     private fun selfMacAddress(): String? {
-        val saved = getSharedPreferences("settings", MODE_PRIVATE).getString("self_mac_address", null)
-        val raw = saved ?: try { getSystemService(BluetoothManager::class.java).adapter?.address } catch (_: SecurityException) { null }
-        return raw?.uppercase()?.takeIf { it.matches(Regex("([0-9A-F]{2}:){5}[0-9A-F]{2}")) &&
-            it != "02:00:00:00:00:00" && it != "00:00:00:00:00:00" }
+        fun valid(value: String?) = value?.uppercase()?.takeIf {
+            it.matches(Regex("([0-9A-F]{2}:){5}[0-9A-F]{2}")) &&
+                it != "02:00:00:00:00:00" && it != "00:00:00:00:00:00"
+        }
+        valid(getSharedPreferences("settings", MODE_PRIVATE).getString("self_mac_address", null))?.let { return it }
+        return valid(try { getSystemService(BluetoothManager::class.java).adapter?.address } catch (_: SecurityException) { null })
     }
 
     private fun attemptConnect(trigger: String) {
