@@ -1,6 +1,5 @@
 package me.kavishdevar.librepods.core.bluetooth.aacp.packet
 
-import android.util.Log
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.MessageOpcode
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.Opcode
 import me.kavishdevar.librepods.core.devices.Battery
@@ -28,24 +27,25 @@ data class BatteryInfoPacket(
         ): BatteryInfoPacket {
             val payload = packet.sliceArray(6 until packet.size)
 
+            require(payload.isNotEmpty()) { "Missing battery count" }
             var offset = 0
-            val batteryCount = payload[offset].toInt()
+            val batteryCount = payload[offset].toInt() and 0xff
+            require(batteryCount in 1..4 && payload.size == 1 + batteryCount * 5) { "Invalid battery packet length/count" }
             val batteries = mutableSetOf<Battery>()
             offset += 1
             for (i in 0 until batteryCount) {
                 val componentByte = payload[offset]
                 val component = BatteryComponent.fromAirPodsByte(componentByte)
                 val levelByte = payload[offset + 2]
-                val level = levelByte.toInt()
+                val level = (levelByte.toInt() and 0xff).takeIf { it in 0..100 } ?: -1
                 val statusByte = payload[offset + 3]
                 val status = BatteryStatus.fromAirPodsByte(statusByte)
 
-                Log.i(TAG, "parsed battery#$i: component=${component.name}, level=$level, status=${status.name}")
 
+                require(batteries.none { it.component == component }) { "Duplicate battery component" }
                 batteries.add(Battery(component, level, status, BatterySource.AACP, System.currentTimeMillis()))
                 offset += 5
             }
-            Log.i(TAG, "parsed Battery Info: $batteries")
 
             return BatteryInfoPacket(batteries, payload)
         }

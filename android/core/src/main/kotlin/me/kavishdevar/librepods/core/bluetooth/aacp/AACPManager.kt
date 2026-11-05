@@ -238,7 +238,8 @@ class AACPManager(private val device: AppleDevice) {
 
                     state.copy(
                         battery = merged,
-                        aacpPackets = state.aacpPackets + batteryPacket
+                        batteryReceived = true,
+                        aacpPackets = state.aacpPackets.takeLast(63) + batteryPacket
                     )
                 }
             }
@@ -251,9 +252,8 @@ class AACPManager(private val device: AppleDevice) {
 
                 device.updateState {
                     it.copy(
-                        controlStates = it.controlStates.toMutableMap().apply {
-                            put(controlCommand.identifier, controlCommand.value)
-                        }
+                        controlStates = it.controlStates + (controlCommand.identifier to controlCommand.value),
+                        confirmedControlStates = it.confirmedControlStates + (controlCommand.identifier to controlCommand.value)
                     )
                 }
 
@@ -566,19 +566,11 @@ class AACPManager(private val device: AppleDevice) {
     }
 
     fun sendControlCommand(identifier: Byte, value: ByteArray): Boolean {
-        val controlCommand = ControlCommand(ControlCommandIdentifier.fromByte(identifier) ?: return false, value)
-
-        val packet = ControlCommandPacket.create(controlCommand)
-
-        device.updateState {
-            it.copy(
-                controlStates = it.controlStates.toMutableMap().apply {
-                    put(ControlCommandIdentifier.fromByte(identifier) ?: return false, value)
-                }
-            )
-        }
-
-        return sendPacket(packet)
+        val id = ControlCommandIdentifier.fromByte(identifier) ?: return false
+        val packet = ControlCommandPacket.create(ControlCommand(id, value))
+        if (!sendPacket(packet)) return false
+        device.updateState { it.copy(controlStates = it.controlStates + (id to value.copyOf())) }
+        return true
     }
 
     fun sendControlCommand(identifier: Byte, value: Byte): Boolean = sendControlCommand(identifier, byteArrayOf(value))
@@ -1010,6 +1002,8 @@ class AACPManager(private val device: AppleDevice) {
                 }.toSet(),
                 connectedDevices = emptyList(),
                 controlStates = emptyMap(),
+                confirmedControlStates = emptyMap(),
+                batteryReceived = false,
                 aacpPackets = emptyList(),
                 headTrackingState = BuddyState.INACTIVE,
                 hrmState = BuddyState.INACTIVE,

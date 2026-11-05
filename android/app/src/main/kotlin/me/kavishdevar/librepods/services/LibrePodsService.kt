@@ -255,6 +255,7 @@ class LibrePodsService: Service() {
         runtimeActive = wanted
         if (wanted) {
             me.kavishdevar.librepods.core.utils.GestureFeedback.init(this)
+            synchronizeWidgetBatteryReceiver()
             MediaController.initialize(getSystemService(AudioManager::class.java),
                 getSharedPreferences("settings", MODE_PRIVATE), null) { attemptConnect("media") }
             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
@@ -267,6 +268,7 @@ class LibrePodsService: Service() {
 
     private fun stopRuntime() {
         runtimeActive = false
+        synchronizeWidgetBatteryReceiver()
         me.kavishdevar.librepods.core.utils.GestureFeedback.release()
         MediaController.release()
         if (phoneRegistered) {
@@ -323,6 +325,7 @@ class LibrePodsService: Service() {
         stopRuntime()
         devices.value.values.filterIsInstance<AppleDevice>().forEach { it.close() }
         serviceCoroutineScope.cancel("Service stopped")
+        me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(this)
         super.onDestroy()
     }
 
@@ -459,6 +462,7 @@ class LibrePodsService: Service() {
             var previousConnectionState = ConnectionState.DISCONNECTED
             device.connectionState.collect { state ->
                 reconcileRuntime()
+                updateWidgets()
                 if (proximityCardWindow.isVisible) proximityCardWindow.updateConnectionState(state == ConnectionState.CONNECTED)
 
                 previousConnectionState = state
@@ -657,7 +661,8 @@ class LibrePodsService: Service() {
                     updateDeviceNotification(device = device)
                 }
 
-                if (state.controlStates != previousState.controlStates) {
+                if (state.controlStates != previousState.controlStates || state.confirmedControlStates != previousState.confirmedControlStates) {
+                    updateWidgets()
                     Log.i(
                         TAG,
                         "control states changed for device ${device.macAddress.toRedactedString()}"
@@ -1020,93 +1025,24 @@ class LibrePodsService: Service() {
     }
 
     fun updateWidgets() {
-        // TODO: Room
-        val widgetMobileBatteryEnabled = getSharedPreferences(
-            "settings",
-            MODE_PRIVATE
-        ).getBoolean("show_phone_battery_in_widget", false)
+        synchronizeWidgetBatteryReceiver()
+        me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(this)
+    }
 
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-        val componentName = ComponentName(this, BatteryWidget::class.java)
-        val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
-
-        val remoteViews = RemoteViews(packageName, R.layout.battery_widget).also { it ->
-            val openActivityIntent = PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            it.setOnClickPendingIntent(R.id.battery_widget, openActivityIntent)
-
-            // TODO: device-specific widgets
-            val device =
-                devices.value.values.firstOrNull { it is AppleDevice && it.state.value.battery.any { it.level > 0 } } as? AppleDevice
-
-            Log.d(TAG, "picked device: ${device?.macAddress?.toRedactedString()} for widget update")
-
-            val leftBattery =
-                device?.state?.value?.battery?.find { it.component == BatteryComponent.LEFT }
-            val rightBattery =
-                device?.state?.value?.battery?.find { it.component == BatteryComponent.RIGHT }
-            val caseBattery =
-                device?.state?.value?.battery?.find { it.component == BatteryComponent.CASE }
-
-            it.setTextViewText(R.id.left_battery_widget, leftBattery?.let {
-                "${it.level}%"
-            } ?: "")
-            it.setProgressBar(
-                R.id.left_battery_progress, 100, leftBattery?.level ?: 0, false
-            )
-            it.setViewVisibility(
-                R.id.left_charging_icon,
-                if (leftBattery?.status == BatteryStatus.CHARGING || leftBattery?.status == BatteryStatus.OPTIMIZED_CHARGING) View.VISIBLE else View.GONE
-            )
-
-            it.setTextViewText(R.id.right_battery_widget, rightBattery?.let {
-                "${it.level}%"
-            } ?: "")
-            it.setProgressBar(
-                R.id.right_battery_progress, 100, rightBattery?.level ?: 0, false
-            )
-            it.setViewVisibility(
-                R.id.right_charging_icon,
-                if (rightBattery?.status == BatteryStatus.CHARGING || rightBattery?.status == BatteryStatus.OPTIMIZED_CHARGING) View.VISIBLE else View.GONE
-            )
-
-            it.setTextViewText(R.id.case_battery_widget, caseBattery?.let {
-                "${it.level}%"
-            } ?: "")
-            it.setProgressBar(
-                R.id.case_battery_progress, 100, caseBattery?.level ?: 0, false
-            )
-            it.setViewVisibility(
-                R.id.case_charging_icon,
-                if (caseBattery?.status == BatteryStatus.CHARGING || caseBattery?.status == BatteryStatus.OPTIMIZED_CHARGING) View.VISIBLE else View.GONE
-            )
-
-            it.setViewVisibility(
-                R.id.phone_battery_widget_container,
-                if (widgetMobileBatteryEnabled) View.VISIBLE else View.GONE
-            )
-            if (widgetMobileBatteryEnabled) {
-                val batteryManager = getSystemService(BatteryManager::class.java)
-                val batteryLevel =
-                    batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-                val charging =
-                    batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_STATUS) == BatteryManager.BATTERY_STATUS_CHARGING
-                it.setTextViewText(
-                    R.id.phone_battery_widget, "$batteryLevel%"
-                )
-                it.setViewVisibility(
-                    R.id.phone_charging_icon, if (charging) View.VISIBLE else View.GONE
-                )
-                it.setProgressBar(
-                    R.id.phone_battery_progress, 100, batteryLevel, false
-                )
+    private var widgetBatteryReceiver: BroadcastReceiver? = null
+    fun synchronizeWidgetBatteryReceiver() {
+        val publisher = me.kavishdevar.librepods.presentation.widgets.WidgetPublisher
+        val needed = runtimeActive && publisher.hasBatteryWidgets(this) && publisher.needsPhoneBattery(this)
+        if (needed && widgetBatteryReceiver == null) {
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) { publisher.update(context) }
             }
+            widgetBatteryReceiver = receiver
+            registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
+        } else if (!needed && widgetBatteryReceiver != null) {
+            runCatching { unregisterReceiver(checkNotNull(widgetBatteryReceiver)) }
+            widgetBatteryReceiver = null
         }
-        appWidgetManager.updateAppWidget(widgetIds, remoteViews)
     }
 
     private fun processComponentStateChange(

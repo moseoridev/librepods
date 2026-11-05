@@ -22,8 +22,8 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 - [x] Restore functional ATT reads/writes (rewrite currently returns null/false before its old code); bind work to device session.
 - [x] Port CDM ownership/reconciliation, idle shutdown, receiver/media/phone observer lifetimes. Separate Bluetooth audio connectivity from AACP and BLE.
 - [x] Port Nearby default-off, PendingIntent LOW_POWER batches, freshness/identity and bounded finite takeover jobs. Preserve rewrite case BLE decoding.
-- [ ] Import old preferences/keys/device selection and per-instance widget configuration into rewrite state without overwriting existing Room data.
-- [ ] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
+- [x] Import old preferences/keys/device selection and per-instance widget configuration into rewrite state without overwriting existing Room data.
+- [x] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
 - [ ] Port popup/island lifecycle policies to rewrite overlays. Bound packet history and defer billing initialization.
 - [ ] Add settings-ui as presentation dependency and build supported screenshot hierarchy with rewrite state/actions. No invented unsupported controls or vendor artwork.
 - [ ] Run affected host tests and FOSS build; separate source/build proof from device/runtime evidence; commit and push to origin/rewrite-port.
@@ -38,9 +38,13 @@ Core/CDM checkpoint committed/pushed as5a24cd0. Nearby is now integrated: scanne
 
 Local `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug` passes after the final Nearby changes: core26 (session12, decoder7, recovery3, finite-owner3, ATT response1) + app12 (budget3, stale-query4, presence5), total38. Log `/tmp/librepods-rewrite-nearby.log`. This proves host contracts and compilation, not PendingIntent delivery, CDM binding, real Bluetooth, battery savings or OEM behavior. Private case advertisement matching retains the upstream heuristic; do not describe it as authenticated encryption.
 
-Nearby checkpoint committed/pushed as38a3827. Legacy preferences migration is implemented and the local app host tests/FOSS build pass (mapper4 additional tests). It runs before repository initialization in a Room3 write transaction, preserves existing app/settings/widget rows, fills only compatible missing device keys, validates key ownership/length, and retains original SharedPreferences/widget appearance stores. It has not been run against a physical installation. Log `/tmp/librepods-rewrite-migration.log`.
+Nearby checkpoint committed/pushed as38a3827; legacy import checkpoint as3b7c390. The import runs before repositories load, in a Room3 write transaction. Existing app/settings/widget rows win; only missing compatible device keys are filled. Key ownership/length are checked. Original SharedPreferences and provider-specific widget appearance/order stores remain intact; Room owns widget/device routing. Physical-install migration has not been executed.
 
-Next: commit/push the migration checkpoint, port own widget renderer/configuration and per-widget device routing. Widget appearance stores intentionally retain their schema/bytes; Room owns device routing. Then restore popup policies and supported screenshot UI. During final feature audit check rewrite's missing stem-event consumer before presenting long-press assistant/custom actions as functional; old unsupported settings remain in the preserved source store. No physical device operations performed.
+Own widget renderer, native Save/Cancel settings, source-derived size/host surface rules and per-instance appearance stores are now restored and adapted to rewrite state. Configuration can select the target device; command PendingIntents carry widget IDs and unique data. Updates/actions never bind or start an engine. Phone-battery observation exists only for an active connection runtime plus installed widgets requesting it. Restore/delete also migrate routing snapshots. Offline names come from the existing AppleRepository's persisted record cache, not another connection engine.
+
+Session-local batteryReceived/confirmedControlStates now distinguish actual packets from cached/requested values. A malformed battery length/count/duplicate component is rejected before publication; zero remains valid. Widget mode selection uses actual acknowledgements, and unsupported Adaptive is omitted. Battery history now follows the64-entry bound too. Local `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug` passes: core28 + app21 =49 host tests. Log `/tmp/librepods-rewrite-widgets.log`. This is code/build proof; no fresh widget pixels, Android binding, actual restored IDs/Knox, real Bluetooth, or power claims.
+
+Next: commit/push widgets checkpoint. Restore popup/island connection/screen-off policies and lazy billing, then wire settings-ui to supported screenshot routes. Audit the missing rewrite stem-event consumer before presenting assistant/custom long-press actions as functional; unsupported legacy settings remain preserved in the source store. No physical device operations performed.
 
 ## Resume constraints and references
 

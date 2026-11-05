@@ -71,6 +71,8 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
         runBlocking(Dispatchers.IO) {
             me.kavishdevar.librepods.migration.LegacyPreferencesMigration.migrate(this@LibrePodsApplication, database)
             appDataRepository.awaitInitialized()
+            appleRepository.initialize()
+            widgetConfigRepository.awaitInitialized()
         }
 
         islandWindow = IslandWindow(applicationContext, appDataRepository.settings.value)

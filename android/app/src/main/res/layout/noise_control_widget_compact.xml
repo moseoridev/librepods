@@ -1,0 +1,11 @@
+<!-- A measured row keeps the battery adjacent to the linked controls at every density. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_frame" android:clipToOutline="true" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_battery_surface">
+ <FrameLayout android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/widget_controls_surface">
+  <LinearLayout android:id="@+id/noise_control_widget" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical">
+   <include layout="@layout/widget_control_buttons"/>
+   <FrameLayout android:id="@+id/widget_control_gap" android:layout_width="0dp" android:layout_height="0dp" android:importantForAccessibility="no"/>
+   <TextView android:id="@+id/widget_device_name" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+   <LinearLayout android:id="@+id/widget_control_batteries" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical"/>
+  </LinearLayout>
+ </FrameLayout>
+</FrameLayout>

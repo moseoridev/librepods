@@ -75,7 +75,7 @@
 
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/listening_mode_widget_info" />
+                android:resource="@xml/noise_control_widget_info" />
         </receiver>
 
         <receiver
@@ -119,6 +119,7 @@
             android:label="@string/test">
         </activity>
 
+        <activity android:name=".presentation.widgets.WidgetSettingsActivity" android:exported="false" />
         <activity
             android:name=".presentation.activities.NoiseControlWidgetConfigurationActivity"
             android:exported="false" />

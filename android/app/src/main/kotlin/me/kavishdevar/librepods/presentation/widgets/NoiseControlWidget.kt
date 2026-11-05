@@ -16,76 +16,60 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.presentation.widgets
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.widget.RemoteViews
+import android.os.Bundle
+import android.widget.Toast
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.services.LibrePodsService
-import kotlin.io.encoding.ExperimentalEncodingApi
+import me.kavishdevar.librepods.bluetooth.CompanionConnection
 
 class NoiseControlWidget : AppWidgetProvider() {
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.listening_mode_widget)
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        WidgetPublisher.update(context, forceIds = ids.toSet())
+    }
 
-            val intent = Intent(context, LibrePodsService::class.java).apply {
-                action = "ACTION_SET_ANC_MODE"
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) {
+        WidgetPublisher.update(context, forceIds = setOf(id))
+    }
 
-            val offIntent = Intent(intent).putExtra("ANC_MODE", 1)
-            val transparencyIntent = Intent(intent).putExtra("ANC_MODE", 3)
-            val adaptiveIntent = Intent(intent).putExtra("ANC_MODE", 4)
-            val ancIntent = Intent(intent).putExtra("ANC_MODE", 2)
+    override fun onDeleted(context: Context, ids: IntArray) {
+        (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.delete(ids)
+        WidgetPublisher.forget(ids)
+        WidgetPreferences.delete(context, ids, controls = true)
+    }
 
-            views.setOnClickPendingIntent(
-                R.id.widget_off_button,
-                PendingIntent.getService(
-                    context,
-                    0,
-                    offIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            views.setOnClickPendingIntent(
-                R.id.widget_transparency_button,
-                PendingIntent.getService(
-                    context,
-                    1,
-                    transparencyIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            views.setOnClickPendingIntent(
-                R.id.widget_adaptive_button,
-                PendingIntent.getService(
-                    context,
-                    2,
-                    adaptiveIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            views.setOnClickPendingIntent(
-                R.id.widget_anc_button,
-                PendingIntent.getService(
-                    context,
-                    3,
-                    ancIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-            )
-            appWidgetManager.updateAppWidget(appWidgetId, views)
+    override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
+        (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.restore(oldIds, newIds)
+        WidgetPreferences.restore(context, oldIds, newIds, controls = true)
+        WidgetPublisher.forget(oldIds)
+        WidgetPublisher.update(context, forceIds = newIds.toSet())
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action != ACTION_MODE && intent.action != ACTION_CYCLE) return
+        val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        val mode = if (intent.action == ACTION_CYCLE) {
+            val state = WidgetDataSource.state(context, widgetId)
+            val modes = state.availableModes
+            modes[(modes.indexOf(state.mode) + 1) % modes.size]
+        } else intent.getIntExtra(EXTRA_MODE, -1)
+        if (mode !in 1..4) return
+        if (!WidgetDataSource.setMode(context, widgetId, mode)) {
+            Toast.makeText(context, R.string.widget_open_to_connect, Toast.LENGTH_SHORT).show()
+            WidgetPublisher.update(context)
         }
+        // Selection follows the AirPods acknowledgement, not an optimistic local value.
+    }
+
+    companion object {
+        const val ACTION_MODE = "me.kavishdevar.librepods.widget.SET_MODE"
+        const val ACTION_CYCLE = "me.kavishdevar.librepods.widget.CYCLE_MODE"
+        const val EXTRA_MODE = "mode"
     }
 }

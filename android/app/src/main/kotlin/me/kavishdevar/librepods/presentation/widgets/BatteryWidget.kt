@@ -18,7 +18,40 @@
 
 package me.kavishdevar.librepods.presentation.widgets
 
+import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
-import kotlin.io.encoding.ExperimentalEncodingApi
+import android.content.Context
+import android.os.Bundle
+import me.kavishdevar.librepods.core.devices.Battery
+import me.kavishdevar.librepods.bluetooth.CompanionConnection
 
-class BatteryWidget : AppWidgetProvider()
+class BatteryWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        CompanionConnection.activeEngine?.synchronizeWidgetBatteryReceiver()
+        WidgetPublisher.update(context, forceIds = ids.toSet())
+    }
+
+    override fun onAppWidgetOptionsChanged(context: Context, manager: AppWidgetManager, id: Int, options: Bundle) {
+        WidgetPublisher.update(context, forceIds = setOf(id))
+    }
+
+    override fun onEnabled(context: Context) { CompanionConnection.activeEngine?.synchronizeWidgetBatteryReceiver() }
+    override fun onDisabled(context: Context) { CompanionConnection.activeEngine?.synchronizeWidgetBatteryReceiver() }
+    override fun onDeleted(context: Context, ids: IntArray) {
+        (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.delete(ids)
+        WidgetPublisher.forget(ids)
+        WidgetPreferences.delete(context, ids, controls = false)
+        CompanionConnection.activeEngine?.synchronizeWidgetBatteryReceiver()
+    }
+
+    override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
+        (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.restore(oldIds, newIds)
+        WidgetPreferences.restore(context, oldIds, newIds, controls = false)
+        WidgetPublisher.forget(oldIds)
+        WidgetPublisher.update(context, forceIds = newIds.toSet())
+    }
+
+    companion object {
+        fun update(context: Context) = WidgetPublisher.update(context)
+    }
+}

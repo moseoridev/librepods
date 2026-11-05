@@ -34,6 +34,9 @@ data class AppleState(
 
     val battery: Set<Battery> = emptySet(),
     val controlStates: Map<ControlCommandIdentifier, ByteArray> = emptyMap(),
+    // Session-local acknowledgements; cached/requested state is not confirmation.
+    val confirmedControlStates: Map<ControlCommandIdentifier, ByteArray> = emptyMap(),
+    val batteryReceived: Boolean = false,
 
     val magicKeys: Map<MagicKeyType, ByteArray> = emptyMap(),
 

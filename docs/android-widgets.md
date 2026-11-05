@@ -1,12 +1,12 @@
 # Android widgets
 
-> Migration note: this is the preserved `moody-penguin` behavior/evidence inventory. It is not a claim that every feature is already ported to `rewrite-port`; see [active migration state](rewrite-migration.md).
+> The renderer is ported to rewrite state with per-widget Room device routing. Native geometry/device observations below were recorded on the preserved branch, not recaptured for this port; see [migration state](rewrite-migration.md) for current code/build proof.
 
 The branch supplies its own battery and controls widgets. It does not inject AirPods into Samsung's battery widget or integrate Galaxy Watch. The inspected Samsung provider/central-reader paths require privileged access; this does not rule out every possible nonroot watch integration. Watch support is excluded by maintainer choice.
 
 ## State and publication
 
-Implementation lives under `android/app/src/main/java/me/kavishdevar/librepods/presentation/widgets/`. `WidgetState` normalizes component batteries and confirmed noise mode; `WidgetPublisher` constructs complete RemoteViews containing both state and click actions. Providers and `WidgetSettingsActivity` share that path. Connection ownership and optional BLE snapshots are described in [lifecycle notes](android-background-lifecycle.md).
+Implementation lives under `android/app/src/main/kotlin/me/kavishdevar/librepods/presentation/widgets/`. `WidgetState` normalizes component batteries and confirmed noise mode; `WidgetPublisher` constructs complete RemoteViews containing both state and click actions. Providers and `WidgetSettingsActivity` share that path. `WidgetDataSource` reads the configured device from `WidgetConfigRepository`, live state from `CompanionConnection.activeEngine` and offline metadata from `AppleRepository`. Appearance/order remain in the original provider-specific preference stores. Each command PendingIntent identifies its widget; another widget cannot overwrite its target. Connection ownership and optional BLE snapshots are described in [lifecycle notes](android-background-lifecycle.md).
 
 - A new AACP session waits for an accepted battery packet. Rejected packet lengths cannot make cached data fresh or trigger popup/audio decisions. Noise mode stays unselected until confirmed.
 - Disconnection clears mode selection and disables commands; the header opens the app. Automatic component selection omits unknown values; manually selected unknown/invalid/disconnected values show a dash. Genuine zero stays zero.

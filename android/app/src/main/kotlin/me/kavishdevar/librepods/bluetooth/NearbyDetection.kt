@@ -230,6 +230,8 @@ object NearbyDetection {
         val next = currentSnapshots()
         _snapshots.value = next
         CompanionConnection.activeEngine?.onNearbySnapshots(next)
+        if (CompanionConnection.activeEngine == null)
+            me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(app)
         expiry?.cancel()
         // One finite in-process expiry, no alarm/wake lock/process persistence.
         val firstExpiry = decoders.values.flatMap { listOfNotNull(it.getMostRecentStatus()?.lastSeen, it.getCaseStatus()?.lastSeen) }.minOrNull()
