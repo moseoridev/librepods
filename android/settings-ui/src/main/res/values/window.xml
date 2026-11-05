@@ -1,0 +1,16 @@
+<resources>
+    <!-- Base.V21.Theme.AppCompat.Light: window lighting used by native 4dp shadows. -->
+    <item name="settings_window_ambient_shadow_alpha" type="dimen">0.04</item>
+    <item name="settings_window_spot_shadow_alpha" type="dimen">0.1</item>
+    <!-- Platform.V7.AppCompat.Light inherits this public Android window theme.
+         Samsung's DeviceDefault light source differs from Theme.Material.Light. -->
+    <style name="SettingsWindowTheme" parent="android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:ambientShadowAlpha">@dimen/settings_window_ambient_shadow_alpha</item>
+        <item name="android:spotShadowAlpha">@dimen/settings_window_spot_shadow_alpha</item>
+    </style>
+    <!-- Apply to a consumer's window theme before creating its view hierarchy. -->
+    <style name="SettingsWindowOverlay" parent="">
+        <item name="android:ambientShadowAlpha">@dimen/settings_window_ambient_shadow_alpha</item>
+        <item name="android:spotShadowAlpha">@dimen/settings_window_spot_shadow_alpha</item>
+    </style>
+</resources>

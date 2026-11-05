@@ -24,3 +24,5 @@ rootProject.name = "LibrePods"
 include(":app")
 include(":core")
 include(":privileged")
+
+include(":settings-ui")
