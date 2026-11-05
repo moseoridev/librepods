@@ -1,132 +1,63 @@
 package me.kavishdevar.librepods.presentation.screens.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import android.Manifest
+import android.content.Context
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.debounce
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.presentation.components.primitives.StyledList
-import me.kavishdevar.librepods.presentation.components.primitives.StyledListItemOrientation
+import me.kavishdevar.librepods.bluetooth.NearbyDetection
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
-import me.kavishdevar.librepods.presentation.components.primitives.StyledSlider
-import me.kavishdevar.librepods.presentation.components.primitives.styledListItem
+import me.kavishdevar.librepods.presentation.components.primitives.StyledToggle
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
-fun BLESettingsScreenRoute(
-    viewModel: AppSettingsViewModel,
-    navigateBack: (() -> Unit)?
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val settings = uiState.settings
-
-    BLESettingsScreen(
-        navigateBack = navigateBack,
-        scanMode = settings.bleScanMode,
-        onScanModeChanged = { scanMode ->
-            viewModel.updateSettings {
-                it.copy(bleScanMode = scanMode)
-            }
-        },
-        reportDelay = settings.bleReportDelay,
-        onReportDelayChanged = { reportDelay ->
-            viewModel.updateSettings {
-                it.copy(bleReportDelay = reportDelay)
-            }
-        },
-    )
+fun BLESettingsScreenRoute(viewModel: AppSettingsViewModel, navigateBack: (() -> Unit)?) {
+    BLESettingsScreen(navigateBack)
 }
 
+/** User opt-in; arbitrary scan rates cannot bypass the bounded background policy. */
 @Composable
-fun BLESettingsScreen(
-    navigateBack: (() -> Unit)? = null,
-    scanMode: Int,
-    onScanModeChanged: (Int) -> Unit,
-    reportDelay: Long,
-    onReportDelayChanged: (Long) -> Unit,
-) {
-    val scrollState = rememberScrollState()
-
-    StyledScaffold(
-        title = stringResource(R.string.ble_settings),
-        navigateBack = navigateBack
-    ) { topPadding, bottomPadding ->
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(topPadding))
-
-            Text(
-                text = stringResource(R.string.do_not_change),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-
-            StyledList(title = stringResource(R.string.scanMode)) {
-                styledListItem(
-                    onClick = { onScanModeChanged(0) },
-                    contentText = stringResource(R.string.low_power),
-                    supportingText = stringResource(R.string.ble_scan_mode_low_power_description),
-                    orientation = StyledListItemOrientation.Vertical,
-                    selected = scanMode == 0
-                )
-                styledListItem(
-                    onClick = { onScanModeChanged(1) },
-                    contentText = stringResource(R.string.balanced),
-                    supportingText = stringResource(R.string.ble_scan_mode_balanced_description),
-                    orientation = StyledListItemOrientation.Vertical,
-                    selected = scanMode == 1
-                )
-                styledListItem(
-                    onClick = { onScanModeChanged(2) },
-                    contentText = stringResource(R.string.low_latency),
-                    supportingText = stringResource(R.string.ble_scan_mode_low_latency_description),
-                    orientation = StyledListItemOrientation.Vertical,
-                    selected = scanMode == 2
-                )
-            }
-
-            val sliderValue = remember { mutableFloatStateOf(reportDelay.toFloat()) }
-
-            LaunchedEffect(sliderValue) {
-                snapshotFlow { sliderValue.floatValue }
-                    .debounce(1.seconds)
-                    .collect { newValue ->
-                        onReportDelayChanged(newValue.toLong())
-                    }
-            }
-
-            StyledSlider(
-                label = stringResource(R.string.ble_report_delay),
-                value = sliderValue.floatValue,
-                onValueChange = { sliderValue.floatValue = it },
-                valueRange = 50f..2500f,
-                snapPoints = listOf(50f, 100f, 250f, 500f, 750f, 1000f, 1500f, 2000f, 2500f),
-                description = sliderValue.floatValue.toString() + "ms",
-                independent = true // i thought I got rid of all this lol <- TODO
-            )
-
-            Spacer(modifier = Modifier.height(bottomPadding))
+fun BLESettingsScreen(navigateBack: (() -> Unit)? = null) {
+    val context = LocalContext.current
+    val preferences = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    var enabled by remember { mutableStateOf(preferences.getBoolean(NearbyDetection.PREFERENCE, false)) }
+    fun setEnabled(value: Boolean) {
+        preferences.edit().putBoolean(NearbyDetection.PREFERENCE, value).apply()
+        enabled = value
+        NearbyDetection.synchronize(context)
+    }
+    val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        setEnabled(result.values.all { it })
+    }
+    DisposableEffect(preferences) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == NearbyDetection.PREFERENCE) enabled = preferences.getBoolean(key, false)
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+    StyledScaffold(title = stringResource(R.string.background_detection_title), navigateBack = navigateBack) { top, bottom ->
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+            Spacer(Modifier.height(top))
+            StyledToggle(label = stringResource(R.string.background_detection_title),
+                description = stringResource(R.string.background_detection_description), checked = enabled,
+                onCheckedChange = { requested ->
+                    val required = arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+                    if (requested && required.any { context.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED })
+                        permissions.launch(required)
+                    else setEnabled(requested)
+                })
+            Spacer(Modifier.height(bottom))
         }
     }
 }

@@ -17,12 +17,18 @@ import me.kavishdevar.librepods.bluetooth.CompanionConnection
 class AirPodsCompanionService : CompanionDeviceService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var bound = false
+    private var engine: LibrePodsService? = null
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            if (bound) (binder as LibrePodsService.LocalBinder).getService()
-                .reconcileClassicConnections(CompanionConnection.connected.value)
+            if (!bound) return
+            engine = (binder as LibrePodsService.LocalBinder).getService()
+            engine?.reconcileClassicConnections(CompanionConnection.connected.value)
+            CompanionConnection.engineOwners.value = CompanionConnection.associated.value.keys
         }
-        override fun onServiceDisconnected(name: ComponentName?) = Unit
+        override fun onServiceDisconnected(name: ComponentName?) {
+            engine = null
+            CompanionConnection.engineOwners.value = emptySet()
+        }
     }
 
     override fun onCreate() {
@@ -30,6 +36,7 @@ class AirPodsCompanionService : CompanionDeviceService() {
         scope.launch {
             CompanionConnection.associated.collect { devices ->
                 if (devices.isNotEmpty()) {
+                    if (engine != null) CompanionConnection.engineOwners.value = devices.keys
                     if (!bound) bound = bindService(Intent(this@AirPodsCompanionService,
                         LibrePodsService::class.java), connection, BIND_AUTO_CREATE)
                 } else releaseEngine()
@@ -44,6 +51,8 @@ class AirPodsCompanionService : CompanionDeviceService() {
     override fun onDeviceDisappeared(associationInfo: AssociationInfo) = CompanionConnection.reconcile(this)
 
     private fun releaseEngine() {
+        CompanionConnection.engineOwners.value = emptySet()
+        engine = null
         if (bound) unbindService(connection)
         bound = false
     }

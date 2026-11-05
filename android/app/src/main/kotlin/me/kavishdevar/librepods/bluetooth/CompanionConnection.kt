@@ -40,6 +40,8 @@ object CompanionConnection {
     private val _associated = MutableStateFlow<Map<String, BluetoothDevice>>(emptyMap())
     val associated = _associated.asStateFlow()
     private var engine: LibrePodsService? = null
+    val activeEngine: LibrePodsService? get() = engine
+    internal val engineOwners = MutableStateFlow<Set<String>>(emptySet())
 
     fun attach(service: LibrePodsService) {
         engine = service

@@ -71,6 +71,12 @@ class AppleDevice(
     private val _connectionNumber = MutableStateFlow(0)
     override val connectionNumber = _connectionNumber.asStateFlow()
 
+    private val initialized = kotlinx.coroutines.CompletableDeferred<Unit>()
+    val settingsInitialized: Boolean get() = initialized.isCompleted
+    suspend fun awaitInitialized() = initialized.await()
+    private var requestRevision = 0L
+    private var classicRevision = 0L
+
     fun loadInitialState(state: AppleState, settings: AppleSettings, metadata: AppleMetadata) {
         _state.update { current -> current.copy(
             capabilities = current.capabilities.ifEmpty { state.capabilities },
@@ -79,6 +85,7 @@ class AppleDevice(
         ) }
         _settings.value = settings
         _metadata.update { current -> if (current.model == AirPodsModel.UNKNOWN) metadata else current }
+        initialized.complete(Unit)
     }
 
     // exists because audio processing is done by Service and other parts use Device as source of truth for microphone state and I didn't want to make whole updateState public
@@ -127,6 +134,8 @@ class AppleDevice(
     private var classicConnected = currentState == ConnectionState.AVAILABLE
     @Volatile private var closed = false
     private var retry: Job? = null
+    private val nearbyOwner = me.kavishdevar.librepods.core.bluetooth.FiniteConnectionOwner()
+    var onManualDisconnect: (() -> Unit)? = null
     val hasClassicConnection: Boolean get() = classicConnected
 
     val aacp = AACPManager(this)
@@ -152,6 +161,10 @@ class AppleDevice(
     override fun connect(): Boolean {
         if (closed) return false
         recoveryScope.launch {
+            val revision = ++requestRevision
+            initialized.await()
+            if (revision != requestRevision || closed) return@launch
+            nearbyOwner.handoff() // A manual request takes ownership from a finite Nearby job.
             recovery.manualRetry()
             retry?.cancel()
             beginConnection()
@@ -161,7 +174,7 @@ class AppleDevice(
 
     fun connectAutomatically(): Boolean {
         if (closed) return false
-        recoveryScope.launch { beginConnection() }
+        recoveryScope.launch { initialized.await(); beginConnection() }
         return true
     }
 
@@ -176,10 +189,13 @@ class AppleDevice(
     fun onClassicConnectionChanged(connected: Boolean) {
         recoveryScope.launch {
             if (closed) return@launch
+            val revision = ++classicRevision
             classicConnected = connected
             if (connected) {
+                nearbyOwner.handoff()
                 recovery.connected(macAddress.value)
-                beginConnection()
+                initialized.await()
+                if (revision == classicRevision && classicConnected) beginConnection()
             } else {
                 recovery.disconnected()
                 retry?.cancel()
@@ -220,6 +236,9 @@ class AppleDevice(
 
     override fun disconnect() {
         recoveryScope.launch {
+            requestRevision++
+            nearbyOwner.handoff()
+            onManualDisconnect?.invoke()
             recovery.suppress()
             retry?.cancel()
             _state.update { it.copy(lastDisconnected = System.currentTimeMillis()) }
@@ -233,6 +252,55 @@ class AppleDevice(
             }
             _connectionState.value = ConnectionState.DISCONNECTED
         }
+    }
+
+    /** Main-thread admission. Closing the lease cannot cancel a newer manual/CDM owner. */
+    fun beginNearbyConnection(): java.io.Closeable? {
+        if (closed || !settingsInitialized || classicConnected || !recovery.allowsAutomaticConnection ||
+            connectionState.value in setOf(ConnectionState.CONNECTING, ConnectionState.CONNECTED)) return null
+        val lease = nearbyOwner.acquire {
+            if (!classicConnected) {
+                aacp.disconnect()
+                _connectionState.value = ConnectionState.DISCONNECTED
+            }
+        }
+        beginConnection()
+        return java.io.Closeable { recoveryScope.launch { lease.close() } }
+    }
+
+    /** BLE is a fresh, lower-priority observation, never proof of a control/audio connection. */
+    fun acceptNearby(batteries: Set<Battery>, status: me.kavishdevar.librepods.core.bluetooth.ble.NearbyDecoder.AirPodsStatus?) {
+        if (closed) return
+        val connected = connectionState.value == ConnectionState.CONNECTED
+        _state.update { old ->
+            val updates = batteries.filter { fresh ->
+                !connected || old.battery.none { it.component == fresh.component && it.source == BatterySource.AACP }
+            }.associateBy { it.component }
+            old.copy(battery = (old.battery.filterNot { it.component in updates } + updates.values).toSet(),
+                state = status?.connectionState?.let { when (it) {
+                    "Disconnected" -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Disconnected
+                    "Idle" -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Idle
+                    "Music" -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Music
+                    "Call" -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Call
+                    "Ringing" -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Ringing
+                    else -> me.kavishdevar.librepods.core.data.apple.AccessoryState.Unknown
+                } } ?: old.state,
+                caseLidOpen = status?.lidOpen ?: old.caseLidOpen,
+                componentState = if (connected || status == null) old.componentState else setOf(
+                    DeviceComponentState(DeviceComponent.LEFT, if (status.isLeftInEar) ComponentStatus.IN_EAR else if (status.isLeftCharging) ComponentStatus.IN_CASE else ComponentStatus.OUT_OF_EAR),
+                    DeviceComponentState(DeviceComponent.RIGHT, if (status.isRightInEar) ComponentStatus.IN_EAR else if (status.isRightCharging) ComponentStatus.IN_CASE else ComponentStatus.OUT_OF_EAR)))
+        }
+        if (connectionState.value == ConnectionState.DISCONNECTED && (status != null || batteries.isNotEmpty()))
+            _connectionState.value = ConnectionState.AVAILABLE
+    }
+
+    fun expireNearby() {
+        _state.update { old -> old.copy(
+            battery = old.battery.filter { it.source == BatterySource.AACP }.toSet(),
+            caseLidOpen = false,
+            state = me.kavishdevar.librepods.core.data.apple.AccessoryState.Unknown,
+            componentState = if (connectionState.value == ConnectionState.CONNECTED) old.componentState else emptySet()) }
+        if (connectionState.value == ConnectionState.AVAILABLE) _connectionState.value = ConnectionState.DISCONNECTED
     }
 
     fun close() {

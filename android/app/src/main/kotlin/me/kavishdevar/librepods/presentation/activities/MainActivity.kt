@@ -208,6 +208,7 @@ fun Main() {
         fun bind() {
             if (!onboardingComplete || bound) return
             me.kavishdevar.librepods.bluetooth.CompanionConnection.reconcile(context)
+            me.kavishdevar.librepods.bluetooth.NearbyDetection.synchronize(context)
             bound = context.bindService(Intent(context, LibrePodsService::class.java), connection, Context.BIND_AUTO_CREATE)
         }
         val observer = LifecycleEventObserver { _, event ->

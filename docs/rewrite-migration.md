@@ -21,7 +21,7 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 - [x] Port per-device session ownership, cancellable socket connect, ordered bounded writes, EOF/failure teardown and finite recovery. Preserve meaningful old host tests.
 - [x] Restore functional ATT reads/writes (rewrite currently returns null/false before its old code); bind work to device session.
 - [x] Port CDM ownership/reconciliation, idle shutdown, receiver/media/phone observer lifetimes. Separate Bluetooth audio connectivity from AACP and BLE.
-- [ ] Port Nearby default-off, PendingIntent LOW_POWER batches, freshness/identity and bounded finite takeover jobs. Preserve rewrite case BLE decoding.
+- [x] Port Nearby default-off, PendingIntent LOW_POWER batches, freshness/identity and bounded finite takeover jobs. Preserve rewrite case BLE decoding.
 - [ ] Import old preferences/keys/device selection and per-instance widget configuration into rewrite state without overwriting existing Room data.
 - [ ] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
 - [ ] Port popup/island lifecycle policies to rewrite overlays. Bound packet history and defer billing initialization.
@@ -34,7 +34,11 @@ Preservation scaffold committed/pushed as f15eeb0. settings-ui builds against re
 
 Per-device AACP/ATT and CDM/runtime code are integrated. The local FOSS APK and core/app host tests pass (core16: session12, recovery3, ATT response1; app9: stale-query4, multi-association presence5). MainActivity binds only while STARTED; no default foreground start; media/phone/sound resources run only for connected/connecting devices. ATT uses serialized finite child transactions, closes late sockets, and UI polling follows screen lifecycle/reconnect. User association setup is available in app settings. Packet diagnostics retain at most64 packets per device. No Android binding/Bluetooth/power/device behavior is demonstrated by these host tests.
 
-Nearby is intentionally not yet restored: default scanning is off; no constructor-owned timer remains. Next: port system PendingIntent scan and finite takeover, preserve rewrite's case decoder, then preferences/keys and own widgets. Do not re-enable the original BLE callback scan merely to restore functionality. Current verification log `/tmp/librepods-rewrite-runtime-build.log`. No physical device operations performed.
+Core/CDM checkpoint committed/pushed as5a24cd0. Nearby is now integrated: scanner/service-independent NearbyDecoder preserves old RPA/freshness/replay protection and rewrite case TLV/AES battery decoding; explicit default-off preference, system LOW_POWER/5s PendingIntent delivery, finite expiry, per-device budgets with global60s admission/actual-attempt cooldowns, raw-observation/boot/key revalidation and10s JobService handoff are implemented. The old always-on callback BLEManager is removed. Do not restore it.
+
+Local `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug` passes after the final Nearby changes: core26 (session12, decoder7, recovery3, finite-owner3, ATT response1) + app12 (budget3, stale-query4, presence5), total38. Log `/tmp/librepods-rewrite-nearby.log`. This proves host contracts and compilation, not PendingIntent delivery, CDM binding, real Bluetooth, battery savings or OEM behavior. Private case advertisement matching retains the upstream heuristic; do not describe it as authenticated encryption.
+
+Next: commit/push this checkpoint, implement legacy preferences/keys/settings import without overwriting existing Room rows, port own widgets/configuration to rewrite state, then popup policies and actual screenshot UI. No physical device operations performed.
 
 ## Resume constraints and references
 

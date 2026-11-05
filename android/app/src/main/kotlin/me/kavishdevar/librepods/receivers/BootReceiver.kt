@@ -9,6 +9,9 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in listOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_USER_UNLOCKED)) return
         val pending = goAsync()
-        CompanionConnection.reconcile(context) { pending.finish() }
+        var remaining = 2
+        val complete = { if (--remaining == 0) pending.finish() }
+        CompanionConnection.reconcile(context, complete)
+        me.kavishdevar.librepods.bluetooth.NearbyDetection.synchronize(context, complete)
     }
 }
