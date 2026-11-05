@@ -69,6 +69,7 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
         XposedServiceHelper.registerListener(this)
 
         runBlocking(Dispatchers.IO) {
+            me.kavishdevar.librepods.migration.LegacyPreferencesMigration.migrate(this@LibrePodsApplication, database)
             appDataRepository.awaitInitialized()
         }
 

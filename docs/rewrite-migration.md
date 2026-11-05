@@ -38,7 +38,9 @@ Core/CDM checkpoint committed/pushed as5a24cd0. Nearby is now integrated: scanne
 
 Local `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug` passes after the final Nearby changes: core26 (session12, decoder7, recovery3, finite-owner3, ATT response1) + app12 (budget3, stale-query4, presence5), total38. Log `/tmp/librepods-rewrite-nearby.log`. This proves host contracts and compilation, not PendingIntent delivery, CDM binding, real Bluetooth, battery savings or OEM behavior. Private case advertisement matching retains the upstream heuristic; do not describe it as authenticated encryption.
 
-Next: commit/push this checkpoint, implement legacy preferences/keys/settings import without overwriting existing Room rows, port own widgets/configuration to rewrite state, then popup policies and actual screenshot UI. No physical device operations performed.
+Nearby checkpoint committed/pushed as38a3827. Legacy preferences migration is implemented and the local app host tests/FOSS build pass (mapper4 additional tests). It runs before repository initialization in a Room3 write transaction, preserves existing app/settings/widget rows, fills only compatible missing device keys, validates key ownership/length, and retains original SharedPreferences/widget appearance stores. It has not been run against a physical installation. Log `/tmp/librepods-rewrite-migration.log`.
+
+Next: commit/push the migration checkpoint, port own widget renderer/configuration and per-widget device routing. Widget appearance stores intentionally retain their schema/bytes; Room owns device routing. Then restore popup policies and supported screenshot UI. During final feature audit check rewrite's missing stem-event consumer before presenting long-press assistant/custom actions as functional; old unsupported settings remain in the preserved source store. No physical device operations performed.
 
 ## Resume constraints and references
 
