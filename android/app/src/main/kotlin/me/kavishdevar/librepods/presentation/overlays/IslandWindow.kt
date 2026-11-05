@@ -73,6 +73,18 @@ class IslandWindow(
     private var composeView: ComposeView? = null
     private var lifecycleOwner: IslandLifecycleOwner? = null
 
+    private var screenContext: Context? = null
+    private val screenReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: android.content.Intent?) {
+            if (intent?.action == android.content.Intent.ACTION_SCREEN_OFF) forceClose()
+        }
+    }
+    private fun observeScreen() {
+        if (screenContext != null) return
+        context.registerReceiver(screenReceiver, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
+        screenContext = context
+    }
+
     private var autoCloseHandler: Handler? = null
     private var autoCloseRunnable: Runnable? = null
 
@@ -112,30 +124,10 @@ class IslandWindow(
             return
         }
 
+        forceClose()
         this.context = context
         this.usingAccessibilityService = context is LibrePodsAccessibilityService
         this.windowManager = context.getSystemService(WindowManager::class.java)
-
-        updateWindowParams(islandState)
-
-        composeView?.let { view ->
-            if (view.parent != null) {
-                windowManager.removeView(view)
-            }
-        }
-
-        setupComposeView()
-
-        if (composeView?.parent == null) {
-            val params = createLayoutParams(islandState)
-            try {
-                lifecycleOwner?.start()
-                windowManager.addView(composeView, params)
-                composeView?.visibility = View.VISIBLE
-            } catch (e: Exception) {
-                Log.e("IslandWindow", "Error adding overlay view: $e")
-            }
-        }
     }
 
     fun updateSettings(appSettings: AppSettingsEntity) {
@@ -198,6 +190,10 @@ class IslandWindow(
             return
         }
 
+        if (!context.getSystemService(android.os.PowerManager::class.java).isInteractive ||
+            context.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked ||
+            (!usingAccessibilityService && !android.provider.Settings.canDrawOverlays(context))) return
+
         Log.d("IslandWindow", "Showing island window: accessibility = $usingAccessibilityService")
 
         this.batteryLevel = batteryLevel
@@ -233,8 +229,10 @@ class IslandWindow(
                 lifecycleOwner?.start()
                 windowManager.addView(composeView, params)
                 composeView?.visibility = View.VISIBLE
+                observeScreen()
             } catch (e: Exception) {
                 Log.e("IslandWindow", "Error adding overlay view: $e")
+                forceClose()
             }
         }
 
@@ -262,16 +260,16 @@ class IslandWindow(
             WindowManager.LayoutParams.WRAP_CONTENT,
             windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
             PixelFormat.TRANSPARENT
         ).apply {
+            setFitInsetsTypes(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout())
+            setFitInsetsIgnoringVisibility(true)
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             x = appSettings.islandSettings.offsetX.roundToInt()
-            y = appSettings.islandSettings.offsetY.roundToInt()
+            y = appSettings.islandSettings.offsetY.roundToInt().coerceAtLeast(0)
 
-            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
         }
     }
 
@@ -359,22 +357,36 @@ class IslandWindow(
         updateWindowParams(islandState)
     }
 
-    private fun cleanupAndRemoveView() {
-        try {
-            composeView?.let { view ->
-                if (view.parent != null) {
-                    windowManager.removeView(view)
-                }
-            }
-            lifecycleOwner?.stop()
-        } catch (e: Exception) {
-            Log.e("IslandWindow", "Error removing view: $e")
-        } finally {
-            composeView = null
-            lifecycleOwner = null
-            islandState = IslandState.CLOSE
+    /** Immediate teardown for screen-off/disconnect; animated close is only for ordinary dismissal. */
+    fun forceClose() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Handler(Looper.getMainLooper()).post { forceClose() }
+            return
         }
+        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable = null
+        cleanupAndRemoveView()
     }
+
+    private fun cleanupAndRemoveView() {
+        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable = null
+        screenContext?.let { runCatching { it.unregisterReceiver(screenReceiver) } }
+        screenContext = null
+        val view = composeView
+        val owner = lifecycleOwner
+        composeView = null
+        lifecycleOwner = null
+        islandState = IslandState.CLOSE
+        openApp = {}
+        onNoiseControlModeChanged = {}
+        onAdaptiveStrengthChanged = {}
+        if (view?.parent != null) runCatching { windowManager.removeView(view) }
+            .onFailure { Log.w("OverlayWindow", "Could not remove overlay", it) }
+        runCatching { view?.disposeComposition() }
+        runCatching { owner?.stop() }
+    }
+
 }
 
 private class IslandLifecycleOwner: LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {

@@ -212,6 +212,63 @@ class LibrePodsService: Service() {
         }
     }
 
+    private data class OverlayOwner(val device: AppleDevice, val generation: Int)
+    private val pendingIsland = me.kavishdevar.librepods.presentation.overlays.policy.PendingIslandRequest<OverlayOwner>()
+    private var pendingIslandExpiry: kotlinx.coroutines.Job? = null
+    private var islandOwner: OverlayOwner? = null
+    private var bottomOwner: OverlayOwner? = null
+    private val connectionPopupPolicy by lazy { me.kavishdevar.librepods.presentation.overlays.policy.PopupMarkers.policy(this) }
+    private var observingDisplay = false
+    private val displayReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> { islandWindow.forceClose(); proximityCardWindow.forceClose(); islandOwner = null; bottomOwner = null }
+                Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> showPendingIsland()
+            }
+        }
+    }
+    private fun displayReady() = getSystemService(android.os.PowerManager::class.java).isInteractive &&
+        !getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked
+    private fun current(owner: OverlayOwner) = devices.value[owner.device.macAddress] === owner.device &&
+        owner.device.connectionState.value == ConnectionState.CONNECTED && owner.device.connectionNumber.value == owner.generation
+    private fun clearPendingIsland() { pendingIsland.clear(); pendingIslandExpiry?.cancel(); pendingIslandExpiry = null }
+    private fun islandBattery(device: AppleDevice): Int? {
+        val state = device.state.value
+        if (!state.batteryReceived) return null
+        return state.battery.filter { it.component != BatteryComponent.CASE && it.level in 0..100 &&
+            it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
+            .minOfOrNull { it.level }
+    }
+    private fun showPendingIsland() {
+        if (pendingIsland.owner == null) return
+        val ready = displayReady() && pendingIsland.owner?.device?.let { islandBattery(it) } != null
+        val owner = pendingIsland.consume(android.os.SystemClock.elapsedRealtime(), ready, ::current) ?: return
+        pendingIslandExpiry?.cancel()
+        showIsland(owner.device)
+    }
+    private fun closeOwnedPopups(device: AppleDevice) {
+        pendingIsland.clearOwner { it.device === device }
+        if (pendingIsland.owner == null) { pendingIslandExpiry?.cancel(); pendingIslandExpiry = null }
+        if (islandOwner?.device === device) { islandWindow.forceClose(); islandOwner = null }
+        if (bottomOwner?.device === device) { proximityCardWindow.forceClose(); bottomOwner = null }
+    }
+    private fun showConnectionPopup(device: AppleDevice, state: AppleState) {
+        val usable = state.battery.any { it.source == me.kavishdevar.librepods.core.devices.BatterySource.AACP &&
+            it.level in 0..100 && it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
+        if (!connectionPopupPolicy.consumeReady(device.macAddress.value,
+                device.connectionState.value == ConnectionState.CONNECTED, state.batteryReceived, usable)) return
+        // Consumption precedes preference/permission/display checks: no hidden bottom-card replay.
+        if (!device.settings.value.showBottomSheetPopup || !displayReady() ||
+            (!proximityCardWindow.usingAccessibilityService && !Settings.canDrawOverlays(this))) return
+        clearPendingIsland()
+        islandWindow.forceClose()
+        islandOwner = null
+        proximityCardWindow.forceClose()
+        bottomOwner = OverlayOwner(device, device.connectionNumber.value)
+        proximityCardWindow.show(device.metadata.value.name, state.battery,
+            AirPodsSpecs.getSpec(device.metadata.value.model), { device.connect() }, true)
+    }
+
     private fun attemptConnect(trigger: String) {
         me.kavishdevar.librepods.bluetooth.NearbyDetection.considerTakeover(this)
     }
@@ -248,14 +305,19 @@ class LibrePodsService: Service() {
     private fun reconcileRuntime() {
         if (destroying) return
         val wanted = devices.value.values.any { device ->
-            (device is AppleDevice && device.hasClassicConnection) ||
-                device.connectionState.value in setOf(ConnectionState.CONNECTING, ConnectionState.CONNECTED)
+            device.connectionState.value in setOf(ConnectionState.CONNECTING, ConnectionState.CONNECTED)
         }
         if (wanted == runtimeActive) return
         runtimeActive = wanted
         if (wanted) {
             me.kavishdevar.librepods.core.utils.GestureFeedback.init(this)
             synchronizeWidgetBatteryReceiver()
+            if (!observingDisplay) {
+                registerReceiver(displayReceiver, IntentFilter().apply {
+                    addAction(Intent.ACTION_SCREEN_OFF); addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_USER_PRESENT)
+                }, RECEIVER_NOT_EXPORTED)
+                observingDisplay = true
+            }
             MediaController.initialize(getSystemService(AudioManager::class.java),
                 getSharedPreferences("settings", MODE_PRIVATE), null) { attemptConnect("media") }
             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
@@ -268,6 +330,10 @@ class LibrePodsService: Service() {
 
     private fun stopRuntime() {
         runtimeActive = false
+        clearPendingIsland()
+        islandWindow.forceClose(); proximityCardWindow.forceClose()
+        islandOwner = null; bottomOwner = null
+        if (observingDisplay) { runCatching { unregisterReceiver(displayReceiver) }; observingDisplay = false }
         synchronizeWidgetBatteryReceiver()
         me.kavishdevar.librepods.core.utils.GestureFeedback.release()
         MediaController.release()
@@ -324,6 +390,9 @@ class LibrePodsService: Service() {
         me.kavishdevar.librepods.bluetooth.CompanionConnection.detach(this)
         stopRuntime()
         devices.value.values.filterIsInstance<AppleDevice>().forEach { it.close() }
+        val notifications = getSystemService(NotificationManager::class.java)
+        connectionNotifications.keys.forEach { notifications.cancel(it.value, 2) }
+        connectionNotifications.clear()
         serviceCoroutineScope.cancel("Service stopped")
         me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(this)
         super.onDestroy()
@@ -463,7 +532,11 @@ class LibrePodsService: Service() {
             device.connectionState.collect { state ->
                 reconcileRuntime()
                 updateWidgets()
-                if (proximityCardWindow.isVisible) proximityCardWindow.updateConnectionState(state == ConnectionState.CONNECTED)
+                updateDeviceNotification(device)
+                if (device is AppleDevice && state != ConnectionState.CONNECTED && state != ConnectionState.CONNECTING)
+                    closeOwnedPopups(device)
+                if (bottomOwner?.device === device && proximityCardWindow.isVisible)
+                    proximityCardWindow.updateConnectionState(state == ConnectionState.CONNECTED)
 
                 previousConnectionState = state
             }
@@ -509,41 +582,6 @@ class LibrePodsService: Service() {
                     }
                 }
 
-                if (state.caseLidOpen != previousState.caseLidOpen) {
-                    if (state.caseLidOpen) {
-                        if (appDataRepository.settings.value.proximityCardSettings.requireBothBudsInCase) {
-                            val leftInCase = state.componentState.find { it.component == DeviceComponent.LEFT }?.status == ComponentStatus.IN_CASE ||
-                                state.battery.find { it.component == BatteryComponent.LEFT }?.status == BatteryStatus.CHARGING ||
-                                state.battery.find { it.component == BatteryComponent.LEFT }?.status == BatteryStatus.OPTIMIZED_CHARGING
-
-                            val rightInCase = state.componentState.find { it.component == DeviceComponent.RIGHT }?.status == ComponentStatus.IN_CASE ||
-                                state.battery.find { it.component == BatteryComponent.RIGHT }?.status == BatteryStatus.CHARGING ||
-                                state.battery.find { it.component == BatteryComponent.RIGHT }?.status == BatteryStatus.OPTIMIZED_CHARGING
-
-                            if (state.componentState.all { it.status == ComponentStatus.IN_CASE } || (leftInCase && rightInCase)) {
-                                proximityCardWindow.show(
-                                    name = device.metadata.value.name,
-                                    batteries = state.battery,
-                                    spec = AirPodsSpecs.getSpec(device.metadata.value.model),
-                                    onConnect = {
-                                        device.connect()
-                                    },
-                                    airPodsConnected = device.connectionState.value == ConnectionState.CONNECTED
-                                )
-                            } else proximityCardWindow.close()
-                        } else {
-                            proximityCardWindow.show(
-                                name = device.metadata.value.name,
-                                batteries = state.battery,
-                                spec = AirPodsSpecs.getSpec(device.metadata.value.model),
-                                onConnect = {
-                                    device.connect()
-                                },
-                                airPodsConnected = device.connectionState.value == ConnectionState.CONNECTED
-                            )
-                        }
-                    } else proximityCardWindow.close()
-                }
                 if (state.capabilities != previousState.capabilities || state.magicKeys != previousState.magicKeys) {
                     Log.i(
                         TAG,
@@ -557,6 +595,11 @@ class LibrePodsService: Service() {
                     }
                 }
 
+                if (state.batteryReceived && (!previousState.batteryReceived || !state.battery.hasSameState(previousState.battery))) {
+                    showConnectionPopup(device, state)
+                    showPendingIsland()
+                }
+
                 if (!state.battery.hasSameState(previousState.battery)) {
                     Log.i(
                         TAG,
@@ -567,7 +610,7 @@ class LibrePodsService: Service() {
                     Log.d(TAG, "updating widgets")
                     updateWidgets()
 
-                    if (islandWindow.isVisible) {
+                    if (islandOwner?.device === device && islandWindow.isVisible) {
                         Log.d(TAG, "updating island window")
                         val leftBattery = state.battery.find { it.component == BatteryComponent.LEFT }
                         val rightBattery = state.battery.find { it.component == BatteryComponent.RIGHT }
@@ -585,7 +628,7 @@ class LibrePodsService: Service() {
                         islandWindow.updateBattery(displayBatteryLevel)
                     }
 
-                    if (proximityCardWindow.isVisible) proximityCardWindow.updateBatteries(state.battery)
+                    if (bottomOwner?.device === device && proximityCardWindow.isVisible) proximityCardWindow.updateBatteries(state.battery)
 
                     updateDeviceNotification(device = device)
 
@@ -769,6 +812,12 @@ class LibrePodsService: Service() {
                     Log.i(TAG, "settings changed for device ${device.macAddress.toRedactedString()}")
                     Log.d(TAG, "settings: $settings")
 
+                    if (!settings.showIslandPopup && islandOwner?.device === device) { islandWindow.forceClose(); islandOwner = null }
+                    if (!settings.showBottomSheetPopup && bottomOwner?.device === device) { proximityCardWindow.forceClose(); bottomOwner = null }
+                    if (!settings.showIslandPopup) {
+                        pendingIsland.clearOwner { it.device === device }
+                        if (pendingIsland.owner == null) { pendingIslandExpiry?.cancel(); pendingIslandExpiry = null }
+                    }
                     appleRepository.saveSettings(device.macAddress, settings)
                     me.kavishdevar.librepods.bluetooth.NearbyDetection.keysChanged(this@LibrePodsService)
                 }
@@ -793,8 +842,9 @@ class LibrePodsService: Service() {
                     val notificationManager = getSystemService(NotificationManager::class.java)
                     val channel =
                         notificationManager.getNotificationChannel("device_${device.macAddress}")
-                    channel?.name = "Device ${metadata.name}"
-                    notificationManager.createNotificationChannel(channel)
+                    channel?.let { it.name = "Device ${metadata.name}"; notificationManager.createNotificationChannel(it) }
+                    updateWidgets()
+                    updateDeviceNotification(device)
                 }
                 previousMetadata = metadata
             }
@@ -832,6 +882,28 @@ class LibrePodsService: Service() {
         reversed: Boolean = false,
         otherDeviceName: String? = null
     ) {
+        val apple = device as? AppleDevice ?: return
+        val owner = OverlayOwner(apple, apple.connectionNumber.value)
+        if (destroying || !current(owner)) return
+        if (type != IslandType.CONNECTED) clearPendingIsland()
+        if (!apple.settings.value.showIslandPopup ||
+            (!islandWindow.usingAccessibilityService && !Settings.canDrawOverlays(this)) ||
+            (type == IslandType.CONNECTED && proximityCardWindow.isVisible)) {
+            clearPendingIsland(); return
+        }
+        if (!displayReady() || islandBattery(apple) == null) {
+            if (type == IslandType.CONNECTED) {
+                val changed = pendingIsland.owner != owner
+                pendingIsland.request(owner, android.os.SystemClock.elapsedRealtime())
+                if (changed) {
+                    pendingIslandExpiry?.cancel()
+                    pendingIslandExpiry = serviceCoroutineScope.launch { kotlinx.coroutines.delay(30_001); pendingIsland.clearOwner { it == owner } }
+                }
+            }
+            return
+        }
+        clearPendingIsland()
+        if (islandWindow.isVisible) return
         Log.d(TAG, "Showing island window")
 
         val state = device.state.value
@@ -857,10 +929,9 @@ class LibrePodsService: Service() {
 
                     Log.i(TAG, "Showing island for device ${device.macAddress.toRedactedString()}")
 
-                    val leftBattery = state.battery.find { it.component == BatteryComponent.LEFT }?.level ?: 0
-                    val rightBattery = state.battery.find { it.component == BatteryComponent.RIGHT }?.level ?: 0
-                    val batteryPercentage = leftBattery.coerceAtMost(rightBattery)
+                    val batteryPercentage = islandBattery(device) ?: return
 
+                    islandOwner = owner
                     islandWindow.show(
                         name = metadata.name,
                         batteryLevel = batteryPercentage,
@@ -905,123 +976,63 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun updateDeviceNotification(
-        device: Device<*, *, *>
-    ) {
-        val notificationManager = getSystemService(NotificationManager::class.java)
+    private data class ConnectionNotificationContent(val name: String, val batteries: String,
+        val connected: Boolean, val modes: List<Int>, val locale: String)
+    private val connectionNotifications = mutableMapOf<MacAddress, ConnectionNotificationContent>()
 
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notificationId = device.macAddress.toNotificationId()
-
-        if (device.connectionState.value == ConnectionState.CONNECTED || device.connectionState.value == ConnectionState.AVAILABLE) {
-            when (device) {
-                is AppleDevice -> {
-                    Log.d(
-                        TAG,
-                        "Updating notification for Apple device ${device.macAddress.toRedactedString()}"
-                    )
-
-                    val updatedNotificationBuilder =
-                        NotificationCompat.Builder(this, "device_${device.macAddress}")
-                            .setSmallIcon(R.drawable.ic_airpods)
-                            .setContentTitle(device.metadata.value.name)
-                            .setContentText(device.state.value.battery.joinToString(" ") { "${it.component.name[0]}: ${it.level}%" })
-                            .setContentIntent(pendingIntent)
-                            .setCategory(Notification.CATEGORY_STATUS)
-                            .setPriority(NotificationCompat.PRIORITY_LOW)
-                            .setOngoing(true)
-                    if (device.connectionState.value == ConnectionState.CONNECTED) {
-                        if (device.state.value.controlStates[ControlCommandIdentifier.ALLOW_OFF_OPTION]?.getOrNull(0) == 0x01.toByte()) {
-                            updatedNotificationBuilder.addAction(
-                                R.drawable.ic_noise_cancellation,
-                                getString(R.string.off),
-                                PendingIntent.getService(
-                                    this,
-                                    notificationId + 1,
-                                    Intent(this, LibrePodsService::class.java).apply {
-                                        action = LibrePodsIntents.ACTION_SET_ANC_MODE
-                                        putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, device.macAddress.toString())
-                                        putExtra(LibrePodsIntents.Extras.ANC_MODE, 1)
-                                    },
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                ),
-                            )
-                        }
-                        updatedNotificationBuilder
-                            .addAction(
-                                R.drawable.ic_transparency, // icon never shows up?? (tested on AOSP ROMs)
-                                getString(R.string.transparency),
-                                PendingIntent.getService(
-                                    this,
-                                    notificationId + 3,
-                                    Intent(this, LibrePodsService::class.java).apply {
-                                        action = LibrePodsIntents.ACTION_SET_ANC_MODE
-                                        putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, device.macAddress.toString())
-                                        putExtra(LibrePodsIntents.Extras.ANC_MODE, 3)
-                                    },
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                ),
-                            )
-                            .addAction(
-                                R.drawable.ic_adaptive,
-                                getString(R.string.adaptive),
-                                PendingIntent.getService(
-                                    this,
-                                    notificationId + 4,
-                                    Intent(this, LibrePodsService::class.java).apply {
-                                        action = LibrePodsIntents.ACTION_SET_ANC_MODE
-                                        putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, device.macAddress.toString())
-                                        putExtra(LibrePodsIntents.Extras.ANC_MODE, 4)
-                                    },
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                ),
-                            )
-                            .addAction(
-                                R.drawable.ic_noise_cancellation,
-                                getString(R.string.noise_cancellation),
-                                PendingIntent.getService(
-                                    this,
-                                    notificationId + 2,
-                                    Intent(this, LibrePodsService::class.java).apply {
-                                        action = LibrePodsIntents.ACTION_SET_ANC_MODE
-                                        putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, device.macAddress.toString())
-                                        putExtra(LibrePodsIntents.Extras.ANC_MODE, 2)
-                                    },
-                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                ),
-                            )
-                    } else {
-                        updatedNotificationBuilder.addAction(
-                            R.drawable.ic_power,
-                            getString(R.string.connect),
-                            PendingIntent.getService(
-                                this,
-                                notificationId + 5,
-                                Intent(this, LibrePodsService::class.java).apply {
-                                    action = LibrePodsIntents.ACTION_CONNECT
-                                    putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, device.macAddress.toString())
-                                },
-                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                            )
-                        )
-                    }
-
-                    val updatedNotification = updatedNotificationBuilder.build()
-
-                    notificationManager.notify(notificationId, updatedNotification)
-                }
-            }
-
-        } else {
-            notificationManager.cancel(notificationId)
+    fun updateDeviceNotification(device: Device<*, *, *>) {
+        if (destroying || device !is AppleDevice) return
+        val manager = getSystemService(NotificationManager::class.java)
+        val address = device.macAddress
+        val state = device.connectionState.value
+        if (state != ConnectionState.CONNECTED && state != ConnectionState.AVAILABLE) {
+            manager.cancel(address.value, 2)
+            connectionNotifications.remove(address)
+            return
         }
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        val widget = me.kavishdevar.librepods.presentation.widgets.WidgetDataSource.state(this, null, address)
+        val modes = if (state == ConnectionState.CONNECTED && widget.connected) widget.availableModes else emptyList()
+        val batteries = device.state.value.battery.filter { it.level in 0..100 &&
+            it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
+            .sortedBy { it.component.ordinal }.joinToString(" ") { "${it.component.name[0]}: ${if (it.status == BatteryStatus.CHARGING) "⚡" else ""}${it.level}%" }
+        val content = ConnectionNotificationContent(device.metadata.value.name, batteries,
+            state == ConnectionState.CONNECTED, modes, resources.configuration.locales.toLanguageTags())
+        if (connectionNotifications[address] == content && manager.activeNotifications.any { it.tag == address.value && it.id == 2 }) return
+        val channelId = "device_$address"
+        val channel = manager.getNotificationChannel(channelId) ?: NotificationChannel(channelId, content.name, NotificationManager.IMPORTANCE_LOW)
+        channel.name = content.name
+        manager.createNotificationChannel(channel)
+        val open = Intent(this, MainActivity::class.java).setData(android.net.Uri.parse("librepods://device/$address"))
+        val pending = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val builder = NotificationCompat.Builder(this, channelId).setSmallIcon(R.drawable.ic_airpods)
+            .setContentTitle(content.name).setContentText(content.batteries).setContentIntent(pending)
+            .setCategory(Notification.CATEGORY_STATUS).setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true)
+        val labels = mapOf(1 to R.string.off, 3 to R.string.transparency, 4 to R.string.adaptive, 2 to R.string.noise_cancellation)
+        modes.forEach { mode ->
+            val action = Intent(this, LibrePodsService::class.java).apply {
+                this.action = LibrePodsIntents.ACTION_SET_ANC_MODE
+                data = android.net.Uri.parse("librepods://device/$address/mode/$mode")
+                putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, address.value)
+                putExtra(LibrePodsIntents.Extras.ANC_MODE, mode)
+            }
+            builder.addAction(R.drawable.ic_airpods, getString(checkNotNull(labels[mode])),
+                PendingIntent.getService(this, mode, action, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        }
+        if (state == ConnectionState.AVAILABLE) {
+            // Without a companion owner, the user's visible Activity owns this manual attempt.
+            val connect = Intent(this, MainActivity::class.java).apply {
+                action = LibrePodsIntents.ACTION_CONNECT
+                data = android.net.Uri.parse("librepods://device/$address/connect")
+                putExtra(LibrePodsIntents.Extras.MAC_ADDRESS, address.value)
+            }
+            builder.addAction(R.drawable.ic_power, getString(R.string.connect),
+                PendingIntent.getActivity(this, 0, connect, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        }
+        // Remove the old tagless rewrite notification, then publish with a per-device tag.
+        manager.cancel(address.toNotificationId())
+        manager.notify(address.value, 2, builder.build())
+        connectionNotifications[address] = content
     }
 
     fun updateWidgets() {
@@ -1066,9 +1077,7 @@ class LibrePodsService: Service() {
             Log.i(TAG, "User put in at least one component, showing island.")
         }
 
-        if (new == EarPresence.NONE && appDataRepository.settings.value.islandSettings.keepCompactVisible) {
-            islandWindow.close()
-        }
+        if (new == EarPresence.NONE && device is AppleDevice) closeOwnedPopups(device)
 
         var justEnabledA2dp = false
 

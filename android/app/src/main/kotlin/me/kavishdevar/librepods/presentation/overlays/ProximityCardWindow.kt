@@ -52,6 +52,18 @@ class ProximityCardWindow(
     private var composeView: ComposeView? = null
     private var lifecycleOwner: ProxCardLifecycleOwner? = null
 
+    private var screenContext: Context? = null
+    private val screenReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: android.content.Intent?) {
+            if (intent?.action == android.content.Intent.ACTION_SCREEN_OFF) forceClose()
+        }
+    }
+    private fun observeScreen() {
+        if (screenContext != null) return
+        context.registerReceiver(screenReceiver, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
+        screenContext = context
+    }
+
     private var autoCloseHandler: Handler? = null
     private var autoCloseRunnable: Runnable? = null
 
@@ -82,32 +94,10 @@ class ProximityCardWindow(
             return
         }
 
+        forceClose()
         this.context = context
         this.usingAccessibilityService = context is LibrePodsAccessibilityService
         this.windowManager = context.getSystemService(WindowManager::class.java)
-
-        updateWindowParams()
-
-        composeView?.let { view ->
-            if (view.parent != null) {
-                windowManager.removeView(view)
-            }
-        }
-
-        setupComposeView()
-
-        if (cardState == ProximityCardState.VISIBLE) {
-            if (composeView?.parent == null) {
-                val params = createLayoutParams()
-                try {
-                    lifecycleOwner?.start()
-                    windowManager.addView(composeView, params)
-                    composeView?.visibility = View.VISIBLE
-                } catch (e: Exception) {
-                    Log.e("ProximityCardWindow", "Error adding overlay view: $e")
-                }
-            }
-        }
     }
 
     fun updateSettings(appSettings: AppSettingsEntity) {
@@ -144,6 +134,10 @@ class ProximityCardWindow(
             return
         }
 
+        if (!context.getSystemService(android.os.PowerManager::class.java).isInteractive ||
+            context.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked ||
+            (!usingAccessibilityService && !android.provider.Settings.canDrawOverlays(context))) return
+
         this.name = name
         this.batteries = batteries
         this.spec = spec
@@ -161,8 +155,10 @@ class ProximityCardWindow(
                 lifecycleOwner?.start()
                 windowManager.addView(composeView, params)
                 composeView?.visibility = View.VISIBLE
+                observeScreen()
             } catch (e: Exception) {
                 Log.e("ProximityCardWindow", "Error adding overlay view: $e")
+                forceClose()
             }
         } else {
             updateWindowParams()
@@ -196,11 +192,11 @@ class ProximityCardWindow(
             cardSettings.height.toInt(),
             windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
             PixelFormat.TRANSPARENT
         ).apply {
+            setFitInsetsTypes(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout())
+            setFitInsetsIgnoringVisibility(true)
             gravity = if (isTabletDevice) {
                 Gravity.CENTER
             } else {
@@ -210,7 +206,7 @@ class ProximityCardWindow(
             x = 0
             y = if (isTabletDevice) 0 else cardSettings.offsetY.roundToInt()
 
-            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
         }
     }
 
@@ -246,7 +242,7 @@ class ProximityCardWindow(
                     ProximityCardContent(
                         name = name,
                         batteries = batteries,
-                        settings = appSettings.proximityCardSettings,
+                        settings = currentAppSettings.proximityCardSettings,
 
                         primaryImageRes = spec.primaryImageRes,
                         caseImageRes = spec.caseImageRes,
@@ -276,22 +272,34 @@ class ProximityCardWindow(
 
     }
 
-    private fun cleanupAndRemoveView() {
-        try {
-            composeView?.let { view ->
-                if (view.parent != null) {
-                    windowManager.removeView(view)
-                }
-            }
-            lifecycleOwner?.stop()
-        } catch (e: Exception) {
-            Log.e("ProximityCardWindow", "Error removing view: $e")
-        } finally {
-            composeView = null
-            lifecycleOwner = null
-            cardState = ProximityCardState.CLOSED
+    /** Immediate teardown for screen-off/disconnect; animated close is only for ordinary dismissal. */
+    fun forceClose() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Handler(Looper.getMainLooper()).post { forceClose() }
+            return
         }
+        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable = null
+        cleanupAndRemoveView()
     }
+
+    private fun cleanupAndRemoveView() {
+        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable = null
+        screenContext?.let { runCatching { it.unregisterReceiver(screenReceiver) } }
+        screenContext = null
+        val view = composeView
+        val owner = lifecycleOwner
+        composeView = null
+        lifecycleOwner = null
+        cardState = ProximityCardState.CLOSED
+        onConnect = {}
+        if (view?.parent != null) runCatching { windowManager.removeView(view) }
+            .onFailure { Log.w("OverlayWindow", "Could not remove overlay", it) }
+        runCatching { view?.disposeComposition() }
+        runCatching { owner?.stop() }
+    }
+
 }
 
 private class ProxCardLifecycleOwner: LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {

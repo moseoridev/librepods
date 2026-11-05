@@ -80,7 +80,7 @@ internal object LegacySettingsMapper {
             firstSuccessfulConnectionTime = number("first_connection_successful_time").takeIf { it > 0 },
             reviewPrompted = bool("review_prompted", false),
             timeUntilFOSSPremiumExpiry = (number("premium_expiry_time") - now).coerceAtLeast(0))
-        return Plan(AppSettingsEntity(), state, device,
+        return Plan(AppSettingsEntity(proximityCardSettings = me.kavishdevar.librepods.data.app.ProximityCardSettings(useVideo = true)), state, device,
             address?.let { mac -> widgetIds.filter { it >= 0 }.map { WidgetConfigEntity(it, mac) } }.orEmpty())
     }
 

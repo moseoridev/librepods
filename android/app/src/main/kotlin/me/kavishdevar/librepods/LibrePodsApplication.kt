@@ -93,7 +93,7 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
             }
         }
 
-        BillingManager.provider = BillingProviderFactory.create(this)
+        BillingManager.configure { BillingProviderFactory.create(this) }
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
 
@@ -102,7 +102,7 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
     }
 
     override fun onResume(owner: LifecycleOwner) {
-        BillingManager.provider.queryPurchases()
+        BillingManager.queryIfInitialized()
         XposedState.isAvailable = XposedServiceHolder.service != null
         XposedState.bluetoothScopeEnabled = XposedServiceHolder.service?.scope?.contains("com.google.android.bluetooth") == true || XposedServiceHolder.service?.scope?.contains("com.android.bluetooth") == true
     }

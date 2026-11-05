@@ -18,6 +18,7 @@ class BluetoothConnectionReceiver : BroadcastReceiver() {
         if (intent.action == BluetoothDevice.ACTION_ACL_DISCONNECTED) {
             if (intent.getIntExtra(BluetoothDevice.EXTRA_TRANSPORT, BluetoothDevice.TRANSPORT_BREDR) != BluetoothDevice.TRANSPORT_BREDR) return
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)?.let {
+                me.kavishdevar.librepods.presentation.overlays.policy.PopupMarkers.disconnected(context, it.address)
                 CompanionConnection.disconnected(context, it.address)
             }
             return
@@ -25,6 +26,7 @@ class BluetoothConnectionReceiver : BroadcastReceiver() {
         if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
             when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
                 BluetoothAdapter.STATE_OFF, BluetoothAdapter.STATE_TURNING_OFF -> {
+                    me.kavishdevar.librepods.presentation.overlays.policy.PopupMarkers.disconnected(context)
                     CompanionConnection.disconnected(context)
                     val pending = goAsync()
                     me.kavishdevar.librepods.bluetooth.NearbyDetection.synchronize(context) { pending.finish() }

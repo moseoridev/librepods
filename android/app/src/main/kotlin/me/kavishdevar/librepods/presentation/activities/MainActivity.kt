@@ -196,7 +196,17 @@ fun Main() {
         var bound = false
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                if (bound) librepodsService.value = (binder as LibrePodsService.LocalBinder).getService()
+                if (!bound) return
+                val engine = (binder as LibrePodsService.LocalBinder).getService()
+                librepodsService.value = engine
+                engine.devices.value.values.forEach { engine.updateDeviceNotification(it) }
+                val activity = context as? Activity
+                if (activity?.intent?.action == me.kavishdevar.librepods.data.app.LibrePodsIntents.ACTION_CONNECT) {
+                    val address = activity.intent.getStringExtra(me.kavishdevar.librepods.data.app.LibrePodsIntents.Extras.MAC_ADDRESS)
+                        ?.let { runCatching { me.kavishdevar.librepods.core.bluetooth.MacAddress(it) }.getOrNull() }
+                    engine.devices.value[address]?.connect()
+                    activity.intent.action = null
+                }
             }
             override fun onServiceDisconnected(name: ComponentName?) { librepodsService.value = null }
         }

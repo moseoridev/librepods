@@ -24,7 +24,7 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 - [x] Port Nearby default-off, PendingIntent LOW_POWER batches, freshness/identity and bounded finite takeover jobs. Preserve rewrite case BLE decoding.
 - [x] Import old preferences/keys/device selection and per-instance widget configuration into rewrite state without overwriting existing Room data.
 - [x] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
-- [ ] Port popup/island lifecycle policies to rewrite overlays. Bound packet history and defer billing initialization.
+- [x] Port popup/island lifecycle policies to rewrite overlays. Bound packet history and defer billing initialization.
 - [ ] Add settings-ui as presentation dependency and build supported screenshot hierarchy with rewrite state/actions. No invented unsupported controls or vendor artwork.
 - [ ] Run affected host tests and FOSS build; separate source/build proof from device/runtime evidence; commit and push to origin/rewrite-port.
 
@@ -44,7 +44,11 @@ Own widget renderer, native Save/Cancel settings, source-derived size/host surfa
 
 Session-local batteryReceived/confirmedControlStates now distinguish actual packets from cached/requested values. A malformed battery length/count/duplicate component is rejected before publication; zero remains valid. Widget mode selection uses actual acknowledgements, and unsupported Adaptive is omitted. Battery history now follows the64-entry bound too. Local `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug` passes: core28 + app21 =49 host tests. Log `/tmp/librepods-rewrite-widgets.log`. This is code/build proof; no fresh widget pixels, Android binding, actual restored IDs/Knox, real Bluetooth, or power claims.
 
-Next: commit/push widgets checkpoint. Restore popup/island connection/screen-off policies and lazy billing, then wire settings-ui to supported screenshot routes. Audit the missing rewrite stem-event consumer before presenting assistant/custom long-press actions as functional; unsupported legacy settings remain preserved in the source store. No physical device operations performed.
+Widgets checkpoint committed/pushed as a709df0. Popup/island policies now use per-device connection markers, fresh AACP battery gating and a memory-only30s connected-island request. Screen-off/session end/owner replacement tears down windows and video; overlays are not created at idle initialization. Connection video uses a muted one-shot player with finite metadata caching and cleanup. Billing provider initialization waits for UI demand. Notifications use per-device tags, capability-aware actions, actual batteries and unchanged-content suppression; user Connect opens the Activity that owns its connection. Runtime media resources stop when no AACP session is connecting/connected.
+
+Local app host tests and FOSS APK pass after these changes (`/tmp/librepods-rewrite-popup.log`): app25, with unchanged core28 previously passing, total53 host tests. This does not demonstrate real overlay clipping, video presentation, notification delivery or physical connection behavior.
+
+Next: wire settings-ui to supported screenshot routes. Audit the missing rewrite stem-event consumer before presenting assistant/custom long-press actions as functional; unsupported legacy settings remain preserved in the source store. No physical device operations performed.
 
 ## Resume constraints and references
 

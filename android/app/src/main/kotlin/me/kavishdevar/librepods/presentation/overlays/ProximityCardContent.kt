@@ -125,20 +125,12 @@ fun ProximityCardContent(
 
     val context = LocalContext.current
 
-    val videoResId = remember(darkTheme) {
+    val videoContext = remember(context, darkTheme) {
         val config = Configuration(context.resources.configuration).apply {
             uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
-                if (darkTheme) Configuration.UI_MODE_NIGHT_YES
-                else Configuration.UI_MODE_NIGHT_NO
+                if (darkTheme) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
         }
-
-        val themedContext = context.createConfigurationContext(config)
-
-        themedContext.resources.getIdentifier(
-            context.resources.getResourceEntryName(videoResId),
-            "raw",
-            context.packageName
-        )
+        context.createConfigurationContext(config)
     }
 
     val draggableState = rememberDraggableState { delta ->
@@ -258,11 +250,10 @@ fun ProximityCardContent(
                         contentAlignment = Alignment.Center
                     ) {
                         if (settings.useVideo) {
-                            VideoBatteryLayout(
-                                batteryList = batteries,
-                                videoResId = videoResId,
-                                surfaceColor = backgroundColor
-                            )
+                            androidx.compose.runtime.CompositionLocalProvider(LocalContext provides videoContext) {
+                                VideoBatteryLayout(batteryList = batteries, videoResId = videoResId,
+                                    fallbackImageRes = primaryImageRes, surfaceColor = backgroundColor)
+                            }
                         } else {
                             BatteryView(
                                 batteryList = batteries,
@@ -298,6 +289,7 @@ fun ProximityCardContent(
 private fun VideoBatteryLayout(
     batteryList: Set<Battery>,
     @RawRes videoResId: Int,
+    fallbackImageRes: Int,
     surfaceColor: Color
 ) {
     val headsetBattery = batteryList.find { it.component == BatteryComponent.HEADSET }
@@ -316,10 +308,7 @@ private fun VideoBatteryLayout(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            LoopingVideoView(
-                videoResId = videoResId,
-                modifier = Modifier.fillMaxWidth()
-            )
+            ConnectionVideo(resource = videoResId, fallback = fallbackImageRes, loadingColor = surfaceColor, modifier = Modifier.fillMaxSize())
         }
 
         if (headsetBattery != null) {
@@ -392,85 +381,4 @@ private fun VideoBatteryLayout(
             }
         }
     }
-}
-
-@Composable
-fun LoopingVideoView(
-    @RawRes videoResId: Int,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    var isVideoReady by remember { mutableStateOf(false) }
-    var aspectRatio by remember { mutableFloatStateOf(16f / 9f) }
-
-    LaunchedEffect(videoResId) {
-        val retriever = MediaMetadataRetriever()
-        try {
-            val afd = context.resources.openRawResourceFd(videoResId)
-            retriever.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
-            val w = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toFloatOrNull()
-            val h = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toFloatOrNull()
-            if (w != null && h != null && h > 0f) {
-                aspectRatio = w / h
-            }
-        } catch (_: Exception) {
-        } finally {
-            retriever.release()
-        }
-    }
-
-    AndroidView(
-        modifier = modifier
-            .aspectRatio(aspectRatio)
-            .alpha(if (isVideoReady) 1f else 0f),
-        factory = { ctx ->
-            TextureView(ctx).apply {
-                isOpaque = false
-                surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                    private var mediaPlayer: MediaPlayer? = null
-
-                    override fun onSurfaceTextureAvailable(
-                        surfaceTexture: SurfaceTexture,
-                        width: Int,
-                        height: Int
-                    ) {
-                        val surface = AndroidSurface(surfaceTexture)
-                        mediaPlayer = MediaPlayer().apply {
-                            val uri = Uri.parse("android.resource://${ctx.packageName}/$videoResId")
-                            setDataSource(ctx, uri)
-                            setSurface(surface)
-                            isLooping = true
-                            setOnInfoListener { _, what, _ ->
-                                if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                                    isVideoReady = true
-                                }
-                                false
-                            }
-                            setOnPreparedListener { mp ->
-                                mp.start()
-                            }
-                            prepareAsync()
-                        }
-                    }
-
-                    override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) = Unit
-
-                    override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
-                        mediaPlayer?.release()
-                        mediaPlayer = null
-                        return true
-                    }
-
-                    override fun onSurfaceTextureUpdated(st: SurfaceTexture) {
-                        if (!isVideoReady) isVideoReady = true
-                        val mp = mediaPlayer ?: return
-                        if (mp.isPlaying && mp.duration > 0 && mp.currentPosition >= mp.duration - 60) {
-                            mp.seekTo(0)
-                        }
-                    }
-                }
-            }
-        }
-    )
 }
