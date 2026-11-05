@@ -66,10 +66,6 @@ class BLEManager(
     private val lastSeenMap = mutableMapOf<MacAddress, Long>()
     private var connectionTimeoutJob: Job? = null
 
-    init {
-        startTimeoutChecker()
-    }
-
     private val timeoutDuration = 5.seconds
 
     private fun startTimeoutChecker() {
@@ -109,6 +105,8 @@ class BLEManager(
     }
 
     fun start() {
+        if (flushJob?.isActive == true) return
+        startTimeoutChecker()
         val bleScanner = bluetoothAdapter?.bluetoothLeScanner
         if (bleScanner == null) {
             Log.w(TAG, "error starting BLE scanner: not available")

@@ -55,6 +55,8 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.cbor)
     implementation(libs.protobuf.kotlin)

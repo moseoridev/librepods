@@ -51,7 +51,7 @@ class NoiseControlWidget : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(
                 R.id.widget_off_button,
-                PendingIntent.getForegroundService(
+                PendingIntent.getService(
                     context,
                     0,
                     offIntent,
@@ -60,7 +60,7 @@ class NoiseControlWidget : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.widget_transparency_button,
-                PendingIntent.getForegroundService(
+                PendingIntent.getService(
                     context,
                     1,
                     transparencyIntent,
@@ -69,7 +69,7 @@ class NoiseControlWidget : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.widget_adaptive_button,
-                PendingIntent.getForegroundService(
+                PendingIntent.getService(
                     context,
                     2,
                     adaptiveIntent,
@@ -78,7 +78,7 @@ class NoiseControlWidget : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.widget_anc_button,
-                PendingIntent.getForegroundService(
+                PendingIntent.getService(
                     context,
                     3,
                     ancIntent,

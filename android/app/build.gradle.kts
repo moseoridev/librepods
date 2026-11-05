@@ -152,6 +152,8 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(project(":core"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.accompanist.permissions)

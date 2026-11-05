@@ -33,6 +33,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 // TODO: fragile play/pause, don't refactor unless needed. userPlayedMedia and iPaused etc. probably should not be here
 object MediaController {
     private var initialVolume: Int? = null
+    private var initialized = false
     private lateinit var audioManager: AudioManager
     var iPausedTheMedia = false
     var userPlayedTheMedia = false
@@ -70,12 +71,13 @@ object MediaController {
 
     fun initialize(audioManager: AudioManager, sharedPreferences: SharedPreferences, localMac: String?, musicPlayed: () -> Unit) {
         this.localMac = localMac
-        if (this::audioManager.isInitialized) {
+        if (initialized) {
             return
         }
+        initialized = true
         this.audioManager = audioManager
         this.sharedPreferences = sharedPreferences
-        this.musicPlayed = MediaController.musicPlayed
+        this.musicPlayed = musicPlayed
         Log.d("MediaController", "Initializing MediaController")
         relativeVolume = sharedPreferences.getBoolean("relative_conversation_awareness_volume", false)
         conversationAwarenessVolume = sharedPreferences.getInt("conversation_awareness_volume", (audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 0.4).toInt())
@@ -98,6 +100,26 @@ object MediaController {
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
 
         audioManager.registerAudioPlaybackCallback(cb, null)
+    }
+
+    fun release() {
+        if (!initialized) return
+        initialized = false
+        audioManager.unregisterAudioPlaybackCallback(cb)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+        handler.removeCallbacksAndMessages(null)
+        initialVolume?.let { audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, it, 0) }
+        initialVolume = null
+        iPausedTheMedia = false
+        userPlayedTheMedia = false
+        pausedWhileTakingOver = false
+        pausedForOtherDevice = false
+        recentlyLostOwnership = false
+        lastPlayWithReplay = false
+        lastKnownIsMusicActive = null
+        musicPlayed = {}
+        lastSelfActionAt = 0L
+        lastPlaybackCallbackAt = 0L
     }
 
     val cb = object : AudioManager.AudioPlaybackCallback() {
@@ -210,7 +232,7 @@ object MediaController {
 
     @Synchronized
     fun getMusicActive(): Boolean {
-        return audioManager.isMusicActive
+        return initialized && audioManager.isMusicActive
     }
 
     @Synchronized

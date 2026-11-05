@@ -18,9 +18,9 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 - [x] Create separate rewrite branch; preserve old branch.
 - [x] Restore contributor guidance, independent settings-ui, source tools and evidence references.
 - [x] Keep fork CI manual-only; configure library under rewrite build; establish local FOSS build.
-- [ ] Port per-device session ownership, cancellable socket connect, ordered bounded writes, EOF/failure teardown and finite recovery. Preserve meaningful old host tests.
-- [ ] Restore functional ATT reads/writes (rewrite currently returns null/false before its old code); bind work to device session.
-- [ ] Port CDM ownership/reconciliation, idle shutdown, receiver/media/phone observer lifetimes. Separate Bluetooth audio connectivity from AACP and BLE.
+- [x] Port per-device session ownership, cancellable socket connect, ordered bounded writes, EOF/failure teardown and finite recovery. Preserve meaningful old host tests.
+- [x] Restore functional ATT reads/writes (rewrite currently returns null/false before its old code); bind work to device session.
+- [x] Port CDM ownership/reconciliation, idle shutdown, receiver/media/phone observer lifetimes. Separate Bluetooth audio connectivity from AACP and BLE.
 - [ ] Port Nearby default-off, PendingIntent LOW_POWER batches, freshness/identity and bounded finite takeover jobs. Preserve rewrite case BLE decoding.
 - [ ] Import old preferences/keys/device selection and per-instance widget configuration into rewrite state without overwriting existing Room data.
 - [ ] Port own widgets, publication/phone-battery observer policy and host geometry to rewrite device state.
@@ -30,9 +30,11 @@ Move to upstream `android/rewrite` while retaining our connection lifetime, canc
 
 ## Current state / next action
 
-Preservation scaffold is ready: settings-ui builds against rewrite Material3 beta01 after adapting SliderState trackRange/callback/topToBottom APIs. A local core test + settings-ui assemble + FOSS APK build passed before the subsequent CDM changes. Core host reports contain16 passing tests (session12, recovery3, ATT response1). This is not device proof.
+Preservation scaffold committed/pushed as f15eeb0. settings-ui builds against rewrite Material3 beta01 after adapting SliderState trackRange/callback/topToBottom APIs. Historical rendering evidence remains historical, not upgraded-Compose parity.
 
-Per-device AACP/ATT lifetime code and CDM/runtime integration are in the worktree and being verified together. Current command: `:core:testDebugUnitTest :app:testFossDebugUnitTest :app:assembleFossDebug`, log `/tmp/librepods-rewrite-runtime-build.log`; tool session94293 (recheck process/log if the handle is gone). Do not restart a still-running build. Next: finish that verification, fix failures, commit the core/runtime checkpoint, then implement association UI and PendingIntent Nearby. No physical device operations performed.
+Per-device AACP/ATT and CDM/runtime code are integrated. The local FOSS APK and core/app host tests pass (core16: session12, recovery3, ATT response1; app9: stale-query4, multi-association presence5). MainActivity binds only while STARTED; no default foreground start; media/phone/sound resources run only for connected/connecting devices. ATT uses serialized finite child transactions, closes late sockets, and UI polling follows screen lifecycle/reconnect. User association setup is available in app settings. Packet diagnostics retain at most64 packets per device. No Android binding/Bluetooth/power/device behavior is demonstrated by these host tests.
+
+Nearby is intentionally not yet restored: default scanning is off; no constructor-owned timer remains. Next: port system PendingIntent scan and finite takeover, preserve rewrite's case decoder, then preferences/keys and own widgets. Do not re-enable the original BLE callback scan merely to restore functionality. Current verification log `/tmp/librepods-rewrite-runtime-build.log`. No physical device operations performed.
 
 ## Resume constraints and references
 

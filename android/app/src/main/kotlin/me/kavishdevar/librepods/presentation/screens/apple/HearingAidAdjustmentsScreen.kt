@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,10 +83,10 @@ fun HearingAidAdjustmentsScreen(
 
     val initialized = rememberSaveable { mutableStateOf(false) }
 
-    DisposableEffect(Unit) {
+    LifecycleStartEffect(viewModel) {
         viewModel.observeATTCharacteristic(ATTHandle.HEARING_AID)
 
-        onDispose {
+        onStopOrDispose {
             viewModel.stopObservingATTCharacteristic()
         }
     }

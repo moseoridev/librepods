@@ -23,15 +23,18 @@ package me.kavishdevar.librepods.core.utils
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import androidx.annotation.RequiresApi
 import me.kavishdevar.librepods.core.R
 import java.util.concurrent.atomic.AtomicBoolean
 
-object GestureFeedback {
+private class GestureFeedbackPlayer(context: Context) {
 
     private val TAG = "GestureFeedback"
 
+    private var released = false
     private val soundsLoaded = AtomicBoolean(false)
 
     private val soundPool = SoundPool.Builder()
@@ -69,12 +72,13 @@ object GestureFeedback {
     private val RIGHT_VOLUME = Pair(0.0f, 1.0f)
     private val VERTICAL_VOLUME = Pair(1.0f, 1.0f)
 
-    fun init (context: Context) {
+    init {
         soundId = soundPool.load(context, R.raw.blip_no, 1)
         confirmYesId = soundPool.load(context, R.raw.confirm_yes, 1)
         confirmNoId = soundPool.load(context, R.raw.confirm_no, 1)
 
         soundPool.setOnLoadCompleteListener { _, _, _ ->
+            if (released) return@setOnLoadCompleteListener
             Log.d(TAG, "Sounds loaded")
             soundsLoaded.set(true)
 
@@ -82,7 +86,9 @@ object GestureFeedback {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     fun playDirectional(isVertical: Boolean, value: Double) {
+        if (released) return
         if (!soundsLoaded.get()) {
             Log.d(TAG, "Sounds not yet loaded, skipping playback")
             return
@@ -160,6 +166,7 @@ object GestureFeedback {
     }
 
     fun playConfirmation(isYes: Boolean) {
+        if (released) return
         if (currentHorizontalStreamId > 0) {
             soundPool.stop(currentHorizontalStreamId)
         }
@@ -173,4 +180,23 @@ object GestureFeedback {
             Log.d(TAG, "Playing ${if (isYes) "YES" else "NO"} confirmation - streamID=$streamId")
         }
     }
+    fun release() {
+        if (released) return
+        released = true
+        soundsLoaded.set(false)
+        soundPool.setOnLoadCompleteListener(null)
+        soundPool.release()
+    }
+
+}
+
+/** Sound resources exist only while the connection runtime owns them. */
+object GestureFeedback {
+    private var player: GestureFeedbackPlayer? = null
+    @Synchronized fun init(context: Context) {
+        if (player == null) player = GestureFeedbackPlayer(context.applicationContext)
+    }
+    @Synchronized fun release() { player?.release(); player = null }
+    @Synchronized fun playDirectional(isVertical: Boolean, value: Double) { player?.playDirectional(isVertical, value) }
+    @Synchronized fun playConfirmation(isYes: Boolean) { player?.playConfirmation(isYes) }
 }

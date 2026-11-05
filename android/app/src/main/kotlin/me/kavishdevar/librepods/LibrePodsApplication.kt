@@ -93,7 +93,6 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
         BillingManager.provider = BillingProviderFactory.create(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
-        GestureFeedback.init(this)
 
         super<Application>.onCreate()
 

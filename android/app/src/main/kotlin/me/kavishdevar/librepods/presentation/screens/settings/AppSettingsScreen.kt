@@ -121,6 +121,8 @@ fun AppSettingsScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(topPadding))
+            me.kavishdevar.librepods.presentation.components.common.BackgroundConnectionSettings()
+
 
             Spacer(modifier = Modifier.height(20.dp))
 

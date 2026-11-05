@@ -24,6 +24,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
+import me.kavishdevar.librepods.core.devices.ConnectionState
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
@@ -161,7 +163,20 @@ class AppleViewModel(
     }
 
     fun observeATTCharacteristic(handle: ATTHandle) {
-            attObserveJob = device.observeATTCharacteristic(handle)
+        stopObservingATTCharacteristic()
+        attObserveJob = viewModelScope.launch {
+            device.connectionState.collectLatest { state ->
+                if (state == ConnectionState.CONNECTED) {
+                    val poll = device.observeATTCharacteristic(handle)
+                    try { poll.join() } finally { poll.cancel() }
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        stopObservingATTCharacteristic()
+        super.onCleared()
     }
     fun stopObservingATTCharacteristic() {
         attObserveJob?.cancel()

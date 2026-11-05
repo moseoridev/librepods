@@ -97,7 +97,10 @@ class LibrePodsService: Service() {
     private val _devices = MutableStateFlow<Map<MacAddress, Device<*, *, *>>>(emptyMap())
     val devices = _devices.asStateFlow()
 
-    private val serviceCoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceCoroutineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+    private var runtimeActive = false
+    private var phoneRegistered = false
+    private var destroying = false
 
     val irkMap = mutableMapOf<MacAddress, ByteArray>()
     val encKeyMap = mutableMapOf<MacAddress, ByteArray>()
@@ -157,7 +160,7 @@ class LibrePodsService: Service() {
 
     @Suppress("unused")
     private fun observeCameraState() {
-        CoroutineScope(Dispatchers.IO).launch {
+        serviceCoroutineScope.launch {
             LibrePodsAccessibilityService.isCameraOpen.collect { isCamera ->
                 if (isCamera) {
                     Log.d(TAG, "Camera is open")
@@ -257,7 +260,7 @@ class LibrePodsService: Service() {
                     TAG,
                     "Connecting to ${device.macAddress.toRedactedString()} (state state: $accessoryState) for $trigger"
                 )
-                device.connect()
+                device.connectAutomatically()
                 break
             }
         }
@@ -265,37 +268,53 @@ class LibrePodsService: Service() {
 
     override fun onCreate() {
         super.onCreate()
-
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel("hrm_alert", getString(R.string.heart_rate_alert), NotificationManager.IMPORTANCE_HIGH))
         observeAppSettings()
-
-        registerBluetoothReceivers()
-
         loadDevices()
+        me.kavishdevar.librepods.bluetooth.CompanionConnection.attach(this)
+        me.kavishdevar.librepods.bluetooth.CompanionConnection.reconcile(this)
+    }
 
-        bleManager.start()
-
-        MediaController.initialize(
-            audioManager = getSystemService(AudioManager::class.java),
-            sharedPreferences = getSharedPreferences("settings", MODE_PRIVATE),
-            localMac = null, // TODO: smart routing. MAC_ADDRESS message gives host mac?,
-            musicPlayed = {
-                attemptConnect("media")
-            }
-        )
-
-        if (
-            checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
-            checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED
-        ) {
-            val telephonyManager = getSystemService(TelephonyManager::class.java)
-
-            telephonyManager.registerTelephonyCallback(
-                mainExecutor,
-                telephonyCallback
-            )
+    /** Called by finite, generation-checked classic queries and explicit disconnect events. */
+    fun reconcileClassicConnections(connected: Map<String, BluetoothDevice>) {
+        if (destroying) return
+        connected.values.forEach { onDeviceConnected(it) }
+        devices.value.values.filterIsInstance<AppleDevice>().filter { it.hasClassicConnection }.forEach { device ->
+            if (connected.keys.none { it.equals(device.macAddress.value, true) })
+                device.onClassicConnectionChanged(false)
         }
+        reconcileRuntime()
+    }
 
-        startForegroundNotification()
+    private fun reconcileRuntime() {
+        if (destroying) return
+        val wanted = devices.value.values.any { device ->
+            (device is AppleDevice && device.hasClassicConnection) ||
+                device.connectionState.value in setOf(ConnectionState.CONNECTING, ConnectionState.CONNECTED)
+        }
+        if (wanted == runtimeActive) return
+        runtimeActive = wanted
+        if (wanted) {
+            me.kavishdevar.librepods.core.utils.GestureFeedback.init(this)
+            MediaController.initialize(getSystemService(AudioManager::class.java),
+                getSharedPreferences("settings", MODE_PRIVATE), null) { attemptConnect("media") }
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
+                getSystemService(TelephonyManager::class.java).registerTelephonyCallback(mainExecutor, telephonyCallback)
+                phoneRegistered = true
+            }
+        } else stopRuntime()
+    }
+
+    private fun stopRuntime() {
+        runtimeActive = false
+        me.kavishdevar.librepods.core.utils.GestureFeedback.release()
+        MediaController.release()
+        if (phoneRegistered) {
+            getSystemService(TelephonyManager::class.java).unregisterTelephonyCallback(telephonyCallback)
+            phoneRegistered = false
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -336,12 +355,15 @@ class LibrePodsService: Service() {
             }
         }
 
-        return super.onStartCommand(intent, flags, startId)
+        stopSelf(startId) // UI/CDM bindings, not a sticky started service, own the engine.
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        unregisterBluetoothReceivers()
-        bleManager.stop()
+        destroying = true
+        me.kavishdevar.librepods.bluetooth.CompanionConnection.detach(this)
+        stopRuntime()
+        devices.value.values.filterIsInstance<AppleDevice>().forEach { it.close() }
         serviceCoroutineScope.cancel("Service stopped")
         super.onDestroy()
     }
@@ -349,7 +371,7 @@ class LibrePodsService: Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     private fun onDeviceConnected(bluetoothDevice: BluetoothDevice) {
-        if (devices.value[MacAddress(bluetoothDevice.address)]?.connectionState?.value == ConnectionState.CONNECTED) {
+        if (devices.value[MacAddress(bluetoothDevice.address)]?.let { it is AppleDevice && it.hasClassicConnection } == true) {
             Log.d(TAG, "Device already connected: ${bluetoothDevice.address}")
             return
         }
@@ -361,63 +383,27 @@ class LibrePodsService: Service() {
             return
         }
 
-        when (device) {
-            is AppleDevice -> CoroutineScope(Dispatchers.IO).launch {
-                Log.i(TAG, "Loading device ${device.macAddress.toRedactedString()} from db")
-
-                appleRepository.load(device.macAddress)?.let { entity ->
-                    val cache = entity.cache
-                    Log.i(
-                        TAG,
-                        "Loaded cached state for device ${device.macAddress.toRedactedString()}: $cache"
-                    )
-                    val settings = entity.settings
-                    Log.i(
-                        TAG,
-                        "Loaded settings for device ${device.macAddress.toRedactedString()}: $settings"
-                    )
-                    val metadata = entity.metadata
-                    Log.i(
-                        TAG,
-                        "Loaded metadata for device ${device.macAddress.toRedactedString()}: $metadata"
-                    )
-
-                    device.loadInitialState(
-                        state = AppleState().copy(
-                            capabilities = cache.capabilities,
-                            magicKeys = cache.magicKeys,
-                            controlStates = cache.controlStates,
-                        ),
-                        settings = settings,
-                        metadata = metadata
-                    )
-
-                    if (device.settings.value.hrmAlertEnabled) {
-                        device.startHr()
-                    }
-                }
-            }
-        }
-
-        device.connect()
+        _devices.update { it + (device.macAddress to device) }
+        if (device is AppleDevice) device.onClassicConnectionChanged(true) else device.connect()
 
         Log.i(
             TAG,
             "Device connected: ${device.macAddress.toRedactedString()} (${device.javaClass.simpleName})"
         )
 
-        _devices.update { it + (device.macAddress to device) }
     }
 
     private fun onDeviceDisconnected(mac: MacAddress) {
         Log.i(TAG, "Device disconnected: $mac")
         val device = devices.value[mac]?: return
-        device.disconnect()
+        if (device is AppleDevice) device.onClassicConnectionChanged(false) else device.disconnect()
         updateDeviceNotification(device = device)
     }
 
     private fun loadDevices() {
-        val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
+        val bluetoothAdapter = getSystemService(BluetoothManager::class.java)?.adapter ?: return
+        if (!bluetoothAdapter.isEnabled) return
         val bondedDevices = bluetoothAdapter.bondedDevices
 
         bondedDevices.forEach { bluetoothDevice ->
@@ -436,51 +422,6 @@ class LibrePodsService: Service() {
         }
     }
 
-    private val bluetoothReceiver = object : BroadcastReceiver() {
-        @SuppressLint("MissingPermission")
-        override fun onReceive(context: Context?, intent: Intent) {
-            val bluetoothDevice = intent.getParcelableExtra(
-                "android.bluetooth.device.extra.DEVICE",
-                BluetoothDevice::class.java
-            )
-            val action = intent.action
-
-            if (bluetoothDevice != null) {
-                when (action) {
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                        if (bluetoothDevice.uuids == null) {
-                            bluetoothDevice.fetchUuidsWithSdp()
-                        } else {
-                            onDeviceConnected(bluetoothDevice)
-                        }
-                    }
-
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> onDeviceDisconnected(
-                        MacAddress(
-                            bluetoothDevice.address
-                        )
-                    )
-
-                    BluetoothDevice.ACTION_UUID -> onDeviceConnected(bluetoothDevice)
-                }
-            }
-        }
-    }
-
-    fun registerBluetoothReceivers() {
-        val intentFilter = IntentFilter().apply {
-            addAction("android.bluetooth.device.action.ACL_CONNECTED")
-            addAction("android.bluetooth.device.action.ACL_DISCONNECTED")
-            addAction("android.bluetooth.device.action.UUID")
-        }
-
-        registerReceiver(bluetoothReceiver, intentFilter, RECEIVER_EXPORTED)
-    }
-
-    fun unregisterBluetoothReceivers() {
-        unregisterReceiver(bluetoothReceiver)
-    }
-
     private fun createDevice(
         bluetoothDevice: BluetoothDevice
     ): Device<*, *, *>? {
@@ -490,9 +431,6 @@ class LibrePodsService: Service() {
         val bluetoothManager = getSystemService(BluetoothManager::class.java)
         val bluetoothAdapter = bluetoothManager.adapter
 
-        val isConnectedMethod = BluetoothDevice::class.java.getMethod("isConnected")
-        isConnectedMethod.isAccessible = true
-
         val device = when {
             bluetoothDevice.uuids?.contains(aacpUuid) == true -> {
                 Log.i(TAG, "Apple device detected: ${bluetoothDevice.address.redactMac()}")
@@ -500,7 +438,7 @@ class LibrePodsService: Service() {
                     context = this,
                     bluetoothAdapter = bluetoothAdapter,
                     bluetoothDevice = bluetoothDevice,
-                    currentState = if (isConnectedMethod.invoke(bluetoothDevice) as Boolean) ConnectionState.AVAILABLE else ConnectionState.DISCONNECTED
+                    currentState = ConnectionState.DISCONNECTED
                 )
             }
 
@@ -508,7 +446,7 @@ class LibrePodsService: Service() {
         }
 
         when (device) {
-            is AppleDevice -> CoroutineScope(Dispatchers.IO).launch {
+            is AppleDevice -> serviceCoroutineScope.launch {
                 Log.i(TAG, "Loading device ${device.macAddress.toRedactedString()} from db")
 
                 appleRepository.load(device.macAddress)?.let { entity ->
@@ -571,20 +509,8 @@ class LibrePodsService: Service() {
         serviceCoroutineScope.launch {
             var previousConnectionState = ConnectionState.DISCONNECTED
             device.connectionState.collect { state ->
+                reconcileRuntime()
                 if (proximityCardWindow.isVisible) proximityCardWindow.updateConnectionState(state == ConnectionState.CONNECTED)
-
-                if (previousConnectionState == ConnectionState.DISCONNECTED && state == ConnectionState.AVAILABLE) {
-                    when (device) {
-                        is AppleDevice -> {
-                            val settings = device.settings.value
-                            val state = device.state.value
-                            if (settings.alwaysConnectWhenAccessoryDisconnected && System.currentTimeMillis() - state.lastDisconnected > 5_000) {
-                                Log.i(TAG, "device ${device.macAddress.toRedactedString()} is nearby, connecting")
-                                device.connect()
-                            }
-                        }
-                    }
-                }
 
                 previousConnectionState = state
             }
@@ -929,7 +855,7 @@ class LibrePodsService: Service() {
     }
 
     fun observeAppleMicrophoneFrames(device: AppleDevice) {
-        serviceCoroutineScope.launch {
+        serviceCoroutineScope.launch(Dispatchers.IO) {
             device.microphoneFrames.collect { frame ->
                 val state = device.state.value
 
@@ -1151,48 +1077,6 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun startForegroundNotification() {
-        val disconnectedNotificationChannel = NotificationChannel(
-            "foreground_service_status",
-            getString(R.string.foreground_service_status),
-            NotificationManager.IMPORTANCE_NONE
-        )
-
-        val hrmAlertChannel = NotificationChannel(
-            "hrm_alert",
-            getString(R.string.heart_rate_alert),
-            NotificationManager.IMPORTANCE_HIGH
-        )
-
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.createNotificationChannel(disconnectedNotificationChannel)
-        notificationManager.createNotificationChannel(hrmAlertChannel)
-
-        val notificationSettingsIntent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
-            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-            putExtra(Settings.EXTRA_CHANNEL_ID, "foreground_service_status")
-        }
-
-        val pendingIntentNotifDisable = PendingIntent.getActivity(
-            this,
-            0,
-            notificationSettingsIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(this, "foreground_service_status")
-            .setSmallIcon(R.drawable.ic_airpods).setContentTitle(getString(R.string.service_running))
-            .setContentText(getString(R.string.foreground_notification_description))
-            .setContentIntent(pendingIntentNotifDisable).setCategory(Notification.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build()
-
-        try {
-            startForeground(1, notification)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     fun updateWidgets() {
         // TODO: Room
         val widgetMobileBatteryEnabled = getSharedPreferences(
@@ -1368,12 +1252,12 @@ class LibrePodsService: Service() {
     }
 
     private fun processHeartRateSample(heartRateSample: HeartRateSample, interval: Duration, alertThreshold: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
+        serviceCoroutineScope.launch {
             Log.d(TAG, "inserting to local db")
             heartRateRepository.insert(heartRateSample)
         }
 
-        CoroutineScope(Dispatchers.Default).launch {
+        serviceCoroutineScope.launch(Dispatchers.Default) {
             val notificationManager = getSystemService(NotificationManager::class.java)
 
             if (heartRateSample.bpm > alertThreshold) {
@@ -1398,7 +1282,7 @@ class LibrePodsService: Service() {
             }
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        serviceCoroutineScope.launch {
             if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 7) {
                 if (checkSelfPermission(HealthPermission.getWritePermission(HeartRateRecord::class)) != PackageManager.PERMISSION_GRANTED) return@launch
                 val healthConnectHeartRateSample = HeartRateRecord.Sample(
@@ -1421,7 +1305,7 @@ class LibrePodsService: Service() {
                 )
 
                 if (healthConnectClient != null) {
-                    CoroutineScope(Dispatchers.IO).launch {
+                    serviceCoroutineScope.launch {
                         try {
                             healthConnectClient!!.insertRecords(listOf(heartRateRecord))
                         } catch (e: Exception) {

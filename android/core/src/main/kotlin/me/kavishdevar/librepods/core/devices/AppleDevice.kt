@@ -9,6 +9,8 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import me.kavishdevar.librepods.core.bluetooth.ConnectionRecovery
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,9 +72,13 @@ class AppleDevice(
     override val connectionNumber = _connectionNumber.asStateFlow()
 
     fun loadInitialState(state: AppleState, settings: AppleSettings, metadata: AppleMetadata) {
-        _state.value = state
+        _state.update { current -> current.copy(
+            capabilities = current.capabilities.ifEmpty { state.capabilities },
+            magicKeys = state.magicKeys + current.magicKeys,
+            controlStates = state.controlStates + current.controlStates
+        ) }
         _settings.value = settings
-        _metadata.value = metadata
+        _metadata.update { current -> if (current.model == AirPodsModel.UNKNOWN) metadata else current }
     }
 
     // exists because audio processing is done by Service and other parts use Device as source of truth for microphone state and I didn't want to make whole updateState public
@@ -117,6 +123,12 @@ class AppleDevice(
         _microphoneFrames.emit(frame)
     }
 
+    private val recovery = ConnectionRecovery()
+    private var classicConnected = currentState == ConnectionState.AVAILABLE
+    @Volatile private var closed = false
+    private var retry: Job? = null
+    val hasClassicConnection: Boolean get() = classicConnected
+
     val aacp = AACPManager(this)
     val att = ATTManager(this)
 
@@ -133,62 +145,101 @@ class AppleDevice(
             )
         }
 
-        if (currentState == ConnectionState.AVAILABLE) {
-            connect()
-        }
+        if (classicConnected) recovery.connected(macAddress.value)
     }
 
+    /** Manual request: retries are finite and blocking socket IO never runs on the caller. */
     override fun connect(): Boolean {
-        _connectionState.update {
-            ConnectionState.CONNECTING
+        if (closed) return false
+        recoveryScope.launch {
+            recovery.manualRetry()
+            retry?.cancel()
+            beginConnection()
         }
+        return true
+    }
 
-        val success = aacp.connect() // && att.connect()
+    fun connectAutomatically(): Boolean {
+        if (closed) return false
+        recoveryScope.launch { beginConnection() }
+        return true
+    }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            _state.update {
-                it.copy(
-                    loudSoundReductionEnabled = readATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION)?.getOrNull(0)?.toInt() == 1,
-                    transparencyData = readATTCharacteristic(ATTHandle.TRANSPARENCY)?: byteArrayOf(),
-                    hearingAidData = readATTCharacteristic(ATTHandle.HEARING_AID)?: byteArrayOf()
-                )
+    private fun beginConnection() {
+        if (closed || !recovery.allowsAutomaticConnection) return
+        if (connectionState.value == ConnectionState.CONNECTING ||
+            connectionState.value == ConnectionState.CONNECTED) return
+        _connectionState.value = ConnectionState.CONNECTING
+        aacp.connect()
+    }
+
+    fun onClassicConnectionChanged(connected: Boolean) {
+        recoveryScope.launch {
+            if (closed) return@launch
+            classicConnected = connected
+            if (connected) {
+                recovery.connected(macAddress.value)
+                beginConnection()
+            } else {
+                recovery.disconnected()
+                retry?.cancel()
+                aacp.disconnect()
+                _connectionState.value = ConnectionState.DISCONNECTED
             }
         }
-
-        _connectionState.update {
-            if (success) ConnectionState.CONNECTED else ConnectionState.DISCONNECTED
-        }
-        _connectionNumber.update {
-            it + 1
-        }
-
-        return success
     }
+
+    internal fun onControlConnected() {
+        if (closed) return
+        _connectionState.value = ConnectionState.CONNECTED
+        _connectionNumber.update { it + 1 }
+        aacp.sessionScope?.launch {
+            val loud = readATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION)
+            val transparency = readATTCharacteristic(ATTHandle.TRANSPARENCY)
+            val hearing = readATTCharacteristic(ATTHandle.HEARING_AID)
+            _state.update { old -> old.copy(
+                loudSoundReductionEnabled = loud?.firstOrNull()?.let { it.toInt() == 1 } ?: old.loudSoundReductionEnabled,
+                transparencyData = transparency ?: old.transparencyData,
+                hearingAidData = hearing ?: old.hearingAidData
+            ) }
+        }
+    }
+
+    internal fun onControlDisconnected() {
+        _connectionState.value = ConnectionState.DISCONNECTED
+        if (closed || !classicConnected) return
+        val wait = recovery.nextDelayMillis() ?: return
+        // Recovery is device owned, not attached to the failed session.
+        retry = recoveryScope.launch {
+            delay(wait)
+            if (classicConnected && !closed) connectAutomatically()
+        }
+    }
+
+    private val recoveryScope = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun disconnect() {
-        _state.update {
-            it.copy(
-                lastDisconnected = System.currentTimeMillis()
-            )
-        }
-        _connectionState.update {
-            ConnectionState.DISCONNECTING
-        }
-
-        aacp.disconnect()
-//        att.disconnect()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
-            try {
-                bluetoothDevice.disconnect()
-            } catch (e: Exception) {
-                Log.e(TAG, "couldn't disconnect bluetooth device", e)
+        recoveryScope.launch {
+            recovery.suppress()
+            retry?.cancel()
+            _state.update { it.copy(lastDisconnected = System.currentTimeMillis()) }
+            aacp.disconnect()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
+                try {
+                    bluetoothDevice.disconnect()
+                } catch (e: Exception) {
+                    Log.e(TAG, "couldn't disconnect bluetooth device", e)
+                }
             }
+            _connectionState.value = ConnectionState.DISCONNECTED
         }
+    }
 
-        _connectionState.update {
-            ConnectionState.DISCONNECTED
-        }
+    fun close() {
+        closed = true
+        classicConnected = false
+        recoveryScope.cancel()
+        aacp.close()
     }
 
     fun setControlCommand(identifier: ControlCommandIdentifier, value: ByteArray): Boolean = aacp.sendControlCommand(identifier.value, value)
@@ -210,7 +261,7 @@ class AppleDevice(
 
     // can't use att notifications; keeping ATT connected causes airpods to disconnect every few seconds for some reason
     // we will poll the characteristic every 1 seconds instead.
-    fun observeATTCharacteristic(handle: ATTHandle): Job = CoroutineScope(Dispatchers.IO).launch {
+    fun observeATTCharacteristic(handle: ATTHandle): Job = (aacp.sessionScope ?: returnCancelledScope()).launch {
         while (true) {
             val value = readATTCharacteristic(handle)
             if (value != null) {
@@ -223,6 +274,8 @@ class AppleDevice(
             delay(1000.milliseconds)
         }
     }
+
+    private fun returnCancelledScope() = CoroutineScope(kotlinx.coroutines.Job().also { it.cancel() })
 
     suspend fun readATTCharacteristic(handle: ATTHandle): ByteArray? = att.readCharacteristic(handle)
 

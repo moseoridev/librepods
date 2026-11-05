@@ -45,6 +45,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.play.core.review.ReviewManagerFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import me.kavishdevar.librepods.BuildConfig
@@ -59,8 +63,6 @@ import me.kavishdevar.librepods.services.LibrePodsService
 import me.kavishdevar.librepods.utils.XposedState
 import kotlin.time.Duration.Companion.hours
 
-private lateinit var serviceConnection: ServiceConnection
-private lateinit var connectionStatusReceiver: BroadcastReceiver
 //lateinit var testReviewReceiver: BroadcastReceiver
 
 class MainActivity: ComponentActivity() {
@@ -79,7 +81,7 @@ class MainActivity: ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val settings by appDataRepository.settings.collectAsState()
+            val settings by appDataRepository.settings.collectAsStateWithLifecycle()
 
             val systemDarkTheme = isSystemInDarkTheme()
 
@@ -144,21 +146,7 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    override fun onDestroy() {
-        if (::serviceConnection.isInitialized) try {
-            unbindService(serviceConnection)
-            Log.d("MainActivity", "Unbound service")
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error while unbinding service: $e")
-        }
-        if (::connectionStatusReceiver.isInitialized) try {
-            unregisterReceiver(connectionStatusReceiver)
-            Log.d("MainActivity", "Unregistered receiver")
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error while unregistering receiver: $e")
-        }
-        super.onDestroy()
-    }
+
 }
 
 @Composable
@@ -167,7 +155,7 @@ fun Main() {
     val librepodsService = remember { mutableStateOf<LibrePodsService?>(null) }
 
     val appDataRepository: AppDataRepository = (LocalContext.current.applicationContext as LibrePodsApplication).appDataRepository
-    val appState by appDataRepository.state.collectAsState()
+    val appState by appDataRepository.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         if (BuildConfig.PLAY_BUILD) {
@@ -201,60 +189,40 @@ fun Main() {
 
     val devicesState = remember(librepodsService.value) {
         librepodsService.value?.devices ?: MutableStateFlow(emptyMap())
-    }.collectAsState()
+    }.collectAsStateWithLifecycle()
 
-    DisposableEffect(onboardingComplete) {
-        if (!onboardingComplete) {
-            onDispose { }
-        } else {
-            val connection = object : ServiceConnection {
-                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                    val binder = service as LibrePodsService.LocalBinder
-                    librepodsService.value = binder.getService()
-                }
-
-                override fun onServiceDisconnected(name: ComponentName?) {
-                    librepodsService.value = null
-                }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(onboardingComplete, lifecycleOwner) {
+        var bound = false
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                if (bound) librepodsService.value = (binder as LibrePodsService.LocalBinder).getService()
             }
-
-            context.startForegroundService(Intent(context, LibrePodsService::class.java))
-
-            context.bindService(
-                Intent(context, LibrePodsService::class.java),
-                connection,
-                Context.BIND_AUTO_CREATE
-            )
-
-            onDispose {
-                try {
-                    context.unbindService(connection)
-                } catch(e: Exception) {
-                    Log.w("Main", "Error while unbinding service: $e")
-                }
+            override fun onServiceDisconnected(name: ComponentName?) { librepodsService.value = null }
+        }
+        fun release() {
+            if (bound) context.unbindService(connection)
+            bound = false
+            librepodsService.value = null
+        }
+        fun bind() {
+            if (!onboardingComplete || bound) return
+            me.kavishdevar.librepods.bluetooth.CompanionConnection.reconcile(context)
+            bound = context.bindService(Intent(context, LibrePodsService::class.java), connection, Context.BIND_AUTO_CREATE)
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> bind()
+                Lifecycle.Event.ON_STOP -> release()
+                else -> Unit
             }
         }
-    }
-
-    fun bindService() {
-        context.startForegroundService(Intent(context, LibrePodsService::class.java))
-        serviceConnection = object: ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                val binder = service as LibrePodsService.LocalBinder
-                val service = binder.getService()
-                librepodsService.value = service
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                librepodsService.value = null
-            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) bind()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            release()
         }
-
-        context.bindService(
-            Intent(context, LibrePodsService::class.java),
-            serviceConnection,
-            Context.BIND_AUTO_CREATE
-        )
     }
 
     NavigationRoot(
@@ -269,7 +237,6 @@ fun Main() {
             appDataRepository.updateState {
                 it.copy(hasCompletedOnboarding = true)
             }
-            bindService()
         },
         devicesState = devicesState
     )
