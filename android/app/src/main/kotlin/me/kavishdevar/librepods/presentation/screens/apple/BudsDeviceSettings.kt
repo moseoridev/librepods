@@ -103,7 +103,7 @@ internal fun BudsDeviceSettings(
                 scrollState = scroll,
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset()).testTag("device-page-${page.name}"),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    verticalArrangement = Arrangement.spacedBy(SettingsStyle.GroupSpacing)) {
                     val go: (DevicePage) -> Unit = { page = it }
                     when (page) {
                         DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume) { actions.setControlCommand(Command.LISTENING_MODE, it) }
@@ -165,8 +165,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
     DeviceBatteries(ui)
     SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.name, onClick = { go(DevicePage.Name) }) }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
-        SettingsCard {
-            SettingsSectionLabel(stringResource(R.string.listening_mode))
+        SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
                 if (ui.value(Command.ALLOW_OFF_OPTION) == 1) add(1)
                 add(3)
@@ -174,11 +173,11 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
                 add(2)
             }
             // A requested or persisted control value is not an acknowledgement from this session.
-            SettingsModeStrip(modes, ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt(),
+            item { _, _ -> SettingsModeStrip(modes, ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt(),
                 onSelect = { mode -> if (ui.connectionState == ConnectionState.CONNECTED) selectMode(mode) },
                 label = { modeLabel(it) }, artwork = { mode, _ ->
                     Icon(painterResource(modeIcon(mode)), null, Modifier.size(24.dp))
-                })
+                }) }
         }
     }
     mediaVolume()
@@ -373,7 +372,7 @@ private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean)
 
 @Composable
 private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    SettingsToggle(label = stringResource(R.string.head_gestures), checked = ui.settings.headGesturesEnabled,
+    SettingsToggle(label = stringResource(R.string.head_gestures), checked = ui.settings.headGesturesEnabled, header = true,
         onCheckedChange = vm::setHeadGesturesEnabled)
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
         SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head))
@@ -445,12 +444,10 @@ private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, send: (
         pending = null
     }
     SettingsCard {
-        SettingsSectionLabel(label)
-        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            SettingsSeekBar(value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
-                Modifier.weight(1f).semantics { contentDescription = label }, enabled = enabled && remote != null)
-            Text(remote?.let { "$value%" } ?: "—", Modifier.padding(start = 12.dp))
-        }
+        SettingsSeekBarRow(label, value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
+            startLabel = "", endLabel = remote?.let { "$value%" } ?: "—",
+            enabled = enabled && remote != null,
+            activeTrackColor = androidx.compose.ui.graphics.Color.Unspecified)
     }
 }
 
@@ -509,14 +506,20 @@ private fun PhoneMediaVolume() {
 internal fun MediaVolumeControl(volume: Int, maximum: Int, enabled: Boolean, onValueChange: (Int) -> Unit) {
     val label = stringResource(R.string.media_volume_label)
     SettingsCard {
-        SettingsSectionLabel(label)
-        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(LocalIcons.current.SpeakerMin, null)
-            SettingsSeekBar(volume.toFloat(), { onValueChange(it.roundToInt()) },
-                0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
-                    .semantics { contentDescription = label }, enabled = enabled && maximum > 0,
-                steps = (maximum - 1).coerceAtLeast(0))
-            Icon(LocalIcons.current.SpeakerMax, null)
+        // Same title/inset geometry as wm.k1.D / SettingsSeekBarRow. The
+        // media-specific icon slots adapt the iOS volume role without changing audio state.
+        Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.RowInset).padding(bottom = 12.dp)) {
+            Column(Modifier.heightIn(min = SettingsStyle.RowMinHeight).padding(vertical = SettingsStyle.RowVerticalPadding)) {
+                Text(label, style = SettingsStyle.RowTitle)
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(LocalIcons.current.SpeakerMin, null)
+                SettingsSeekBar(volume.toFloat(), { onValueChange(it.roundToInt()) },
+                    0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
+                        .semantics { contentDescription = label }, enabled = enabled && maximum > 0,
+                    steps = (maximum - 1).coerceAtLeast(0))
+                Icon(LocalIcons.current.SpeakerMax, null)
+            }
         }
     }
 }

@@ -1,6 +1,12 @@
 # Settings UI component provenance
 
-The standalone [`:settings-ui` library](../android/settings-ui/README.md) contains presentation primitives for LibrePods settings. The product app does not depend on it yet. Product screens, existing `Styled*` adapters, state and commands have not been migrated. Neutral public names describe roles; vendor names appear here to identify evidence.
+The standalone [`:settings-ui` library](../android/settings-ui/README.md) contains presentation primitives for LibrePods settings. The rewrite product app depends on it through `BudsDeviceSettings`; state and commands remain in the rewrite ViewModel/core. Other existing `Styled*` screens are outside that device-settings route. Neutral public names describe roles; vendor names appear here to identify evidence.
+
+## Product composition check
+
+The sixteen-page role audit and current synthetic captures are retained [locally](/Users/moseoridev/programming/android/librepodsDeviceEvidence/rewrite-buds-design-20261106/design-audit.json). Product callers now use the native20dp group token, the master-toggle presentation for Head Gestures, an external section label for listening modes and `SettingsSeekBarRow` for tone/adaptive volume. Media volume reuses the source17sp title and18dp/14dp content insets with own speaker slots. Fonts/colors/shapes and row/control primitives are unchanged. The eight offline interaction/navigation tests pass after these presentation changes.
+
+AirPods artwork, own icons, rich independent mode choices, media speaker slots and the supported iOS page content are explicit caller adaptations. The vendor Home artwork/backdrop is not bundled. The source-role review and new app captures do not establish whole-page RGB equality, nor replace the accepted native matrices below. No new stock/root/display manipulation was required.
 
 ## Verification ledger
 
