@@ -81,6 +81,7 @@ android {
         targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -180,6 +181,11 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.billing)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.aboutlibraries.compose)
     implementation(libs.aboutlibraries.compose.m3)

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import androidx.compose.foundation.Image
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -40,7 +43,7 @@ import me.kavishdevar.librepods.ui.theme.SettingsTheme
 import kotlin.math.roundToInt
 
 /** Presentation routes only. Transport, persistence and capabilities remain owned by rewrite. */
-private enum class DevicePage(val title: Int, val parent: DevicePage? = null) {
+internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) {
     Home(0), Audio(R.string.audio_routing, Home), Controls(R.string.controls_gestures, Home),
     Accessibility(R.string.accessibility, Home), Battery(R.string.battery, Home),
     Microphone(R.string.microphone_mode, Audio), Equalizer(R.string.equalizer, Audio),
@@ -63,10 +66,33 @@ fun BudsDeviceSettingsRoute(
     navigateToProximity: () -> Unit,
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    var page by rememberSaveable(viewModel) { mutableStateOf(DevicePage.Home) }
+    val actions = remember(viewModel) { ViewModelSettingsActions(viewModel) }
+    BudsDeviceSettings(ui, actions, navigateBack, navigateToHearingProtection,
+        navigateToHearingAid, navigateToRecording, navigateToHeartRate, navigateToDebug,
+        navigateToOverlays, navigateToProximity, mediaVolume = { PhoneMediaVolume() })
+}
+
+/** The product composition, independent of Bluetooth, repositories and system volume. */
+@Composable
+internal fun BudsDeviceSettings(
+    ui: AppleUiState,
+    actions: DeviceSettingsActions,
+    navigateBack: (() -> Unit)? = null,
+    navigateToHearingProtection: () -> Unit = {},
+    navigateToHearingAid: () -> Unit = {},
+    navigateToRecording: () -> Unit = {},
+    navigateToHeartRate: () -> Unit = {},
+    navigateToDebug: () -> Unit = {},
+    navigateToOverlays: () -> Unit = {},
+    navigateToProximity: () -> Unit = {},
+    initialPage: DevicePage = DevicePage.Home,
+    darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
+    mediaVolume: @Composable () -> Unit,
+) {
+    var page by rememberSaveable(actions) { mutableStateOf(initialPage) }
     val back = { if (page != DevicePage.Home) page = page.parent ?: DevicePage.Home else navigateBack?.invoke(); Unit }
     BackHandler(page != DevicePage.Home, onBack = back)
-    SettingsTheme {
+    SettingsTheme(darkTheme = darkTheme) {
         key(page) {
             val scroll = rememberScrollState()
             SettingsScaffold(
@@ -80,28 +106,30 @@ fun BudsDeviceSettingsRoute(
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     val go: (DevicePage) -> Unit = { page = it }
                     when (page) {
-                        DevicePage.Home -> DeviceHome(ui, go, viewModel::disconnect) { viewModel.setControlCommand(Command.LISTENING_MODE, it) }
-                        DevicePage.Audio -> AudioPage(ui, viewModel, go)
+                        DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume) { actions.setControlCommand(Command.LISTENING_MODE, it) }
+                        DevicePage.Audio -> AudioPage(ui, actions, go)
                         DevicePage.Controls -> ControlsPage(ui, go)
-                        DevicePage.Accessibility -> AccessibilityPage(ui, viewModel)
-                        DevicePage.Battery -> BatteryPage(ui, viewModel)
-                        DevicePage.Microphone -> CommandChoices(ui, viewModel, Command.MIC_MODE,
+                        DevicePage.Accessibility -> AccessibilityPage(ui, actions)
+                        DevicePage.Battery -> BatteryPage(ui, actions)
+                        DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
                             listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right))
-                        DevicePage.Equalizer -> EqualizerPage(ui, viewModel)
-                        DevicePage.Routing -> CommandChoices(ui, viewModel, Command.SMART_ROUTING_MODE,
+                        DevicePage.Equalizer -> EqualizerPage(ui, actions)
+                        DevicePage.Routing -> CommandChoices(ui, actions, Command.SMART_ROUTING_MODE,
                             listOf(1 to R.string.on, 2 to R.string.off))
-                        DevicePage.Left, DevicePage.Right -> LongPressPage(ui, viewModel, page == DevicePage.Left)
-                        DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, viewModel, page == DevicePage.Mute)
-                        DevicePage.Head -> HeadPage(ui, viewModel)
+                        DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
+                        DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, actions, page == DevicePage.Mute)
+                        DevicePage.Head -> HeadPage(ui, actions)
                         DevicePage.Version -> SettingsList {
-                            SettingsListItem(name = stringResource(R.string.version), description = ui.metadata.version3)
+                            SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3))
                             SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
                             SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
+                            if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
+                                SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
                         }
                         DevicePage.Name -> {
                             val draft = rememberTextFieldState(ui.metadata.name)
                             SettingsInputField(draft)
-                            SettingsButton(onClick = { viewModel.renameDevice(draft.text.toString().trim()); page = DevicePage.Home },
+                            SettingsButton(onClick = { actions.renameDevice(draft.text.toString().trim()); page = DevicePage.Home },
                                 enabled = draft.text.isNotBlank(), style = SettingsButtonStyle.Filled) {
                                 Text(stringResource(R.string.widget_save))
                             }
@@ -119,7 +147,7 @@ fun BudsDeviceSettingsRoute(
                                 if (LocalDebugMode.current) SettingsListItem(name = "Debug", onClick = navigateToDebug)
                             }
                             SettingsToggle(label = stringResource(R.string.disconnect_when_not_wearing), checked = ui.settings.disconnectWhenNotWearing,
-                                onCheckedChange = { enabled -> viewModel.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
+                                onCheckedChange = { enabled -> actions.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
                         }
                     }
                     Spacer(Modifier.height(16.dp))
@@ -133,7 +161,7 @@ private fun AppleUiState.value(command: Command): Int? = state.controlStates[com
 private fun AppleUiState.has(capability: BaseCapability) = capability in AirPodsSpecs.getSpec(metadata.model).baseCapabilities
 
 @Composable
-private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, selectMode: (Int) -> Unit) {
+private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit) {
     DeviceBatteries(ui)
     SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.name, onClick = { go(DevicePage.Name) }) }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
@@ -153,7 +181,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
                 })
         }
     }
-    PhoneMediaVolume()
+    mediaVolume()
     SettingsList {
         SettingsListItem(name = stringResource(R.string.audio_routing), onClick = { go(DevicePage.Audio) }, homeMenu = true,
             leadingContent = { Icon(LocalIcons.current.SpeakerMax, null, Modifier.size(28.dp)) })
@@ -167,7 +195,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
         SettingsListItem(name = stringResource(R.string.model_name), description = ui.metadata.modelName)
         SettingsListItem(name = stringResource(R.string.model_number), description = ui.metadata.modelNumber)
         SettingsListItem(name = stringResource(R.string.serial_number), description = ui.metadata.serialNumber)
-        SettingsListItem(name = stringResource(R.string.version), description = ui.metadata.version3, onClick = { go(DevicePage.Version) })
+        SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3), onClick = { go(DevicePage.Version) })
     }
     SettingsList {
         SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
@@ -178,13 +206,13 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
 @Composable
 private fun DeviceBatteries(ui: AppleUiState) {
     val spec = AirPodsSpecs.getSpec(ui.metadata.model)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-        SettingsDeviceIllustration(painterResource(spec.primaryImageRes))
-        spec.caseImageRes?.let { SettingsDeviceIllustration(painterResource(it)) }
-    }
     val batteries = ui.state.battery.associateBy { it.component }
-    val primary = if (BatteryComponent.HEADSET in batteries) listOf(BatteryComponent.HEADSET)
+    val primary = if (spec.components.any { it.type == DeviceComponent.HEADSET }) listOf(BatteryComponent.HEADSET)
         else listOf(BatteryComponent.LEFT, BatteryComponent.RIGHT)
+    // Max specs inherit a default case image upstream, but have only a headset component.
+    val caseImage = spec.caseImageRes.takeUnless { BatteryComponent.HEADSET in primary }
+    val icons = LocalIcons.current
+    val iconMap = icons.IconMap
     val meter: @Composable (BatteryComponent) -> Unit = { component ->
         val battery = batteries[component]
         val level = battery?.level?.takeIf { it in 0..100 }
@@ -196,13 +224,50 @@ private fun DeviceBatteries(ui: AppleUiState) {
         })
         val percentage = level?.let { "$it%" } ?: "—"
         val charging = battery?.status == BatteryStatus.CHARGING || battery?.status == BatteryStatus.OPTIMIZED_CHARGING
-        SettingsBatteryMeter(level, label, percentage, "$label $percentage", maxWidth = 92.dp,
-            chargeLabel = if (charging) stringResource(R.string.charging_label) else "", artwork = {
-                Icon(if (charging) LocalIcons.current.Bolt else LocalIcons.current.Headphones, null, Modifier.size(18.dp))
+        val deviceComponent = when (component) {
+            BatteryComponent.LEFT -> DeviceComponent.LEFT
+            BatteryComponent.RIGHT -> DeviceComponent.RIGHT
+            BatteryComponent.CASE -> DeviceComponent.CASE
+            BatteryComponent.HEADSET -> DeviceComponent.HEADSET
+        }
+        val iconName = spec.components.firstOrNull { it.type == deviceComponent }?.iconName
+        val artwork = iconMap[iconName] ?: when (component) {
+            BatteryComponent.LEFT -> icons.LeftCircleFill
+            BatteryComponent.RIGHT -> icons.RightCircleFill
+            BatteryComponent.CASE -> icons.AirPods4Case
+            BatteryComponent.HEADSET -> iconMap[spec.genericIconName] ?: icons.Headphones
+        }
+        val description = if (charging) "$label $percentage ${stringResource(R.string.charging_label)}" else "$label $percentage"
+        SettingsBatteryMeter(level, label, percentage, description, maxWidth = 92.dp,
+            modifier = Modifier.testTag("battery-${component.name}"),
+            nameContent = {
+                if (charging) Icon(icons.Bolt, null, Modifier.size(12.dp))
+                Text(label)
+            }, artwork = {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(artwork, null, Modifier.fillMaxSize())
+                }
             })
     }
-    SettingsBatteryRow(primaryMeters = primary.map { component -> @Composable { meter(component) } },
-        secondaryMeter = if (spec.caseImageRes != null) ({ meter(BatteryComponent.CASE) }) else null)
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(6.dp))
+        // AirPods art has different proportions from the Buds hero. Bound it to
+        // the source's 92dp hero region, sharing the battery row's group weights.
+        Row(Modifier.widthIn(max = 280.dp).fillMaxWidth().height(92.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Image(painterResource(spec.primaryImageRes), null,
+                Modifier.weight(primary.size.toFloat()).fillMaxHeight().padding(top = 12.dp).testTag("battery-primary-art"),
+                contentScale = ContentScale.Fit)
+            caseImage?.let { image ->
+                Box(Modifier.weight(1f).fillMaxHeight().padding(start = 3.dp, top = 12.dp)) {
+                    Image(painterResource(image), null, Modifier.fillMaxSize().testTag("battery-case-art"), contentScale = ContentScale.Fit)
+                }
+            }
+        }
+        SettingsBatteryRow(primaryMeters = primary.map { component -> @Composable { meter(component) } },
+            modifier = Modifier.padding(vertical = 14.dp),
+            secondaryMeter = if (caseImage != null) ({ meter(BatteryComponent.CASE) }) else null)
+    }
 }
 
 @Composable
@@ -214,7 +279,7 @@ private fun modeIcon(mode: Int): Int = when (mode) {
 }
 
 @Composable
-private fun AudioPage(ui: AppleUiState, vm: AppleViewModel, go: (DevicePage) -> Unit) {
+private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePage) -> Unit) {
     if (ui.has(BaseCapability.ADAPTIVE_VOLUME)) CommandToggle(ui, vm, Command.ADAPTIVE_VOLUME_CONFIG,
         R.string.personalized_volume, R.string.personalized_volume_description, premium = true)
     if (ui.has(BaseCapability.CONVERSATION_AWARENESS)) CommandToggle(ui, vm, Command.CONVERSATION_DETECT_CONFIG,
@@ -259,7 +324,7 @@ private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
 }
 
 @Composable
-private fun LongPressPage(ui: AppleUiState, vm: AppleViewModel, left: Boolean) {
+private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boolean) {
     val action = if (left) ui.settings.leftLongPressAction else ui.settings.rightLongPressAction
     SettingsList {
         SettingsListItem(name = stringResource(R.string.listening_mode_controls), selected = action == StemAction.CYCLE_listening_mode_MODES,
@@ -291,7 +356,7 @@ private fun LongPressPage(ui: AppleUiState, vm: AppleViewModel, left: Boolean) {
 }
 
 @Composable
-private fun CallPage(ui: AppleUiState, vm: AppleViewModel, mute: Boolean) {
+private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean) {
     val bytes = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]
     val flipped = bytes?.getOrNull(1)?.toInt() == 2
     SettingsList {
@@ -306,7 +371,7 @@ private fun CallPage(ui: AppleUiState, vm: AppleViewModel, mute: Boolean) {
 }
 
 @Composable
-private fun HeadPage(ui: AppleUiState, vm: AppleViewModel) {
+private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     SettingsToggle(label = stringResource(R.string.head_gestures), checked = ui.settings.headGesturesEnabled,
         onCheckedChange = vm::setHeadGesturesEnabled)
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
@@ -316,7 +381,7 @@ private fun HeadPage(ui: AppleUiState, vm: AppleViewModel) {
 }
 
 @Composable
-private fun AccessibilityPage(ui: AppleUiState, vm: AppleViewModel) {
+private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     CommandChoices(ui, vm, Command.DOUBLE_CLICK_INTERVAL,
         listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed)
     CommandChoices(ui, vm, Command.CLICK_HOLD_INTERVAL,
@@ -339,13 +404,13 @@ private fun AccessibilityPage(ui: AppleUiState, vm: AppleViewModel) {
 }
 
 @Composable
-private fun BatteryPage(ui: AppleUiState, vm: AppleViewModel) {
+private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     DeviceBatteries(ui)
     CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
 }
 
 @Composable
-private fun CommandToggle(ui: AppleUiState, vm: AppleViewModel, command: Command, label: Int,
+private fun CommandToggle(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, label: Int,
     description: Int? = null, premium: Boolean = false, onChange: ((Boolean) -> Unit)? = null) {
     SettingsToggle(label = stringResource(label), description = description?.let { stringResource(it) },
         checked = ui.value(command) == 1,
@@ -356,7 +421,7 @@ private fun CommandToggle(ui: AppleUiState, vm: AppleViewModel, command: Command
 }
 
 @Composable
-private fun CommandChoices(ui: AppleUiState, vm: AppleViewModel, command: Command, options: List<Pair<Int, Int>>, title: Int? = null) {
+private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, options: List<Pair<Int, Int>>, title: Int? = null) {
     SettingsList(title = title?.let { stringResource(it) }) {
         options.forEach { (value, label) ->
             SettingsListItem(name = stringResource(label), selected = ui.value(command) == value,
@@ -390,7 +455,7 @@ private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, send: (
 }
 
 @Composable
-private fun EqualizerPage(ui: AppleUiState, vm: AppleViewModel) {
+private fun EqualizerPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     val eq = ui.state.customEq
     var levels by remember(eq.low, eq.mid, eq.high) { mutableStateOf(listOf(eq.low, eq.mid, eq.high)) }
     var pending by remember { mutableStateOf<List<Int>?>(null) }
@@ -429,16 +494,22 @@ private fun PhoneMediaVolume() {
         ContextCompat.registerReceiver(context, receiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"), ContextCompat.RECEIVER_NOT_EXPORTED)
         onStopOrDispose { context.unregisterReceiver(receiver) }
     }
+    MediaVolumeControl(volume, maximum, !audio.isVolumeFixed) {
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, it, 0)
+        volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+    }
+}
+
+@Composable
+internal fun MediaVolumeControl(volume: Int, maximum: Int, enabled: Boolean, onValueChange: (Int) -> Unit) {
     val label = stringResource(R.string.media_volume_label)
     SettingsCard {
         SettingsSectionLabel(label)
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(LocalIcons.current.SpeakerMin, null)
-            SettingsSeekBar(volume.toFloat(), {
-                audio.setStreamVolume(AudioManager.STREAM_MUSIC, it.roundToInt(), 0)
-                volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
-            }, 0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
-                .semantics { contentDescription = label }, enabled = !audio.isVolumeFixed && maximum > 0,
+            SettingsSeekBar(volume.toFloat(), { onValueChange(it.roundToInt()) },
+                0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
+                    .semantics { contentDescription = label }, enabled = enabled && maximum > 0,
                 steps = (maximum - 1).coerceAtLeast(0))
             Icon(LocalIcons.current.SpeakerMax, null)
         }

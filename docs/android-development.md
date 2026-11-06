@@ -86,6 +86,29 @@ Product artwork comes from upstream LibrePods resources, or is locally authored 
 
 Retain original inputs, extraction/hash manifests, useful tool sources and final evidence. Generated build intermediates and superseded scratch outputs can be regenerated; do not delete the only input or evidence copy as routine cleanup. Update the topic's current evidence summary when a result changes it; use Git history for the narrative of past implementation steps.
 
+## Settings UI without a Bluetooth connection
+
+The debug APK includes `SettingsFixtureActivity`. It renders the **same** `BudsDeviceSettings` product composition with synthetic `AppleUiState` and an in-memory action adapter. The production adapter still forwards to `AppleViewModel`. Fixture actions do not create a device, bind the engine, persist settings or change system media volume. External feature destinations are inert. The fixture classes and activity registration live only in `src/debug`; they are excluded from release builds.
+
+After installing a FOSS debug APK within authorized device work, open a fixture on a selected phone or emulator:
+
+```sh
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --scenario charging --theme dark
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --scenario zero_unknown --width-dp 320 --font-scale 1.5
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --scenario headset
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --page Version
+```
+
+Use `--help` for pages, models and scenarios, including `pending` (requests never become acknowledgements), `disconnected` and `long_name`. Width and font overrides affect only this composition, including its layout configuration; they do not change the device's density/font settings. They simulate logical viewports, not different physical devices or OEM font renderers. The host application's ordinary Application initialization still runs; this entry does not instantiate the real connection route.
+
+`DeviceSettingsScreenTest` exercises the product composition with these same fixtures: battery alignment at the native viewport and320/360/412/600dp, light/default text and dark/1.5 text, zero versus missing readings, headset layout, request/acknowledgement separation, disconnected mode actions, coupled call choices and version detail. Build `:app:assembleFossDebug :app:assembleFossDebugAndroidTest` with the options above, then run:
+
+```sh
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --run-tests
+```
+
+The helper updates both APKs with `adb install -r -t`, invokes the instrumentation class directly and pulls synthetic captures to `android/app/build/outputs/settings-fixtures/` (`--output` overrides it). It leaves both apps and their data installed. Do not use Gradle's `connectedFossDebugAndroidTest` on the maintainer's configured phone: this AGP runner uninstalls the target app after testing. Its first run removed the main app and its local data on2026-11-06; the direct runner avoids that cleanup. Device test execution still requires authorized scope. These checks establish UI behavior and geometry, not firmware command acceptance, connection lifetime, power savings or full stock pixel parity.
+
 ## S25 root access for authorized device investigation
 
 The maintainer's Galaxy S25 (`SM-S931N`) can run root commands through the temporary `dev.moseori.ksuprobe` app. This is a diagnostic path for an already loaded KernelSU environment, not a rooting procedure or a LibrePods runtime dependency. A failed `adb shell su` does not establish whether this app can obtain root.
