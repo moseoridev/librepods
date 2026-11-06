@@ -101,13 +101,21 @@ python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --page Version
 
 Use `--help` for pages, models and scenarios, including `pending` (requests never become acknowledgements), `disconnected` and `long_name`. Width and font overrides affect only this composition, including its layout configuration; they do not change the device's density/font settings. They simulate logical viewports, not different physical devices or OEM font renderers. The host application's ordinary Application initialization still runs; this entry does not instantiate the real connection route.
 
-`DeviceSettingsScreenTest` exercises the product composition with these same fixtures: battery alignment at the native viewport and320/360/412/600dp, light/default text and dark/1.5 text, zero versus missing readings, headset layout, request/acknowledgement separation, disconnected mode actions, coupled call choices and version detail. It also covers all16 pages at360dp/light/1x and320dp/dark/1.5x, parent navigation,14 product menu links, independent long-press bits and disconnected EQ reset. The latter page checks produce64 top/bottom captures; they are separate from the wider battery-layout matrix. Build `:app:assembleFossDebug :app:assembleFossDebugAndroidTest` with the options above, then run:
+`DeviceSettingsScreenTest` is the behavioral regression suite. Its12 checks cover battery alignment and zero/missing/headset states; request/acknowledgement separation; actual menu navigation and return paths; coupled call choices; independent long-press bits; disconnected EQ reset; committed Korean/blank/long name editing with the real IME visible, save/dismiss/cancel; media/tone command separation; horizontal/vertical touch, EQ reset and pending values on navigation; and scroll-versus-tap behavior. These checks use synthetic state/actions, not a fake Bluetooth engine. The system media-volume API is replaced by in-memory caller state.
+
+Build `:app:assembleFossDebug :app:assembleFossDebugAndroidTest` with the options above, then run:
 
 ```sh
 python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --run-tests
 ```
 
-The helper updates both APKs with `adb install -r -t`, invokes the instrumentation class directly and pulls synthetic captures to `android/app/build/outputs/settings-fixtures/` (`--output` overrides it). It leaves both apps and their data installed. Do not use Gradle's `connectedFossDebugAndroidTest` on the maintainer's configured phone: this AGP runner uninstalls the target app after testing. Its first run removed the main app and its local data on2026-11-06; the direct runner avoids that cleanup. Device test execution still requires authorized scope. These checks establish UI behavior and geometry, not firmware command acceptance, connection lifetime, power savings or full stock pixel parity.
+`DeviceSettingsCaptureTest` is a **separate evidence-generation job**, not a visual regression test. It renders16 pages at320/360/412/600dp × light/dark × font1.0/1.5:256 conditions and512 top/bottom captures. Inspect those captures against the retained iOS hierarchy and Buds source-role evidence; a successful render/capture does not establish correct pixels or absence of all clipping.
+
+```sh
+python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --run-tests --capture-matrix
+```
+
+Use `--test-method METHOD` to rerun one behavior while resolving a failure; it is mutually exclusive with `--capture-matrix`. The helper updates both APKs with `adb install -r -t`, invokes the selected instrumentation class directly and pulls captures to `android/app/build/outputs/settings-fixtures/` (`--output` overrides it). Both apps/data stay installed. Test windows hold `FLAG_KEEP_SCREEN_ON` only for their lifetime; no timeout, density or font setting is changed. The phone must be unlocked before starting. Do not use Gradle's `connectedFossDebugAndroidTest` on the maintainer's configured phone: this AGP runner uninstalls the target app after testing. Its first run removed the main app/local data on2026-11-06; the direct runner avoids that cleanup. Device execution requires authorized scope. UI results do not establish firmware command acceptance, connection lifetime, power savings or universal pixel parity.
 
 ## S25 root access for authorized device investigation
 

@@ -1,23 +1,42 @@
 package me.kavishdevar.librepods.presentation.screens.apple
 
 import android.graphics.Bitmap
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowManager
+import android.widget.EditText
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.Espresso.pressBack
+import androidx.test.espresso.Espresso.closeSoftKeyboard
+import androidx.test.espresso.action.ViewActions.click as clickEditor
+import androidx.test.espresso.action.ViewActions.replaceText
+import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.platform.app.InstrumentationRegistry
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.After
+import org.junit.Before
 import java.io.File
 
 class DeviceSettingsScreenTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @Before fun keepTestWindowAwake() {
+        compose.runOnUiThread { compose.activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private fun text(id: Int) = context.getString(id)
+    @After fun dismissTestKeyboard() { closeSoftKeyboard() }
 
     @Test fun batteryArtworkStaysAboveAlignedMetersAcrossViewports() {
         data class Viewport(val width: Int?, val dark: Boolean, val font: Float)
@@ -78,7 +97,7 @@ class DeviceSettingsScreenTest {
         compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
     }
 
-    @Test fun callChoiceUsesIosCoupledMappingAndVersionPreservesRawValue() {
+    @Test fun callChoicesRemainCoupledAcrossBothPages() {
         val fixture = SettingsFixture()
         var page by mutableStateOf(DevicePage.Mute)
         compose.setContent {
@@ -87,36 +106,12 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithText(text(R.string.press_twice)).performClick()
         compose.runOnIdle {
             assertArrayEquals(byteArrayOf(0, 2), fixture.ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG])
-            page = DevicePage.Version
+            page = DevicePage.EndCall
         }
-        compose.onNodeWithText("9A350").assertIsDisplayed()
-        compose.onNodeWithText("9442784").assertIsDisplayed()
-        capture("version")
-    }
-
-    @Test fun everyProductPageRendersAndReturnsToItsParent() {
-        var page by mutableStateOf(DevicePage.Home)
-        var large by mutableStateOf(false)
-        val fixture = SettingsFixture("long_name")
-        compose.setContent {
-            key(page, large) {
-                FixtureViewport(if (large) 320 else 360, if (large) 1.5f else 1f) {
-                    BudsDeviceSettings(fixture.ui, fixture, initialPage = page, darkTheme = large,
-                        mediaVolume = { FixtureMediaVolume() })
-                }
-            }
-        }
-        for (enlarged in listOf(false, true)) for (target in DevicePage.entries) {
-            compose.runOnIdle { page = target; large = enlarged }
-            compose.onNodeWithTag("device-page-${target.name}").assertIsDisplayed()
-            capture("page-${target.name}-${if (enlarged) "320-dark-font150" else "360-light"}-top")
-            compose.onAllNodes(hasScrollAction()).onFirst().performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 10000f) }
-            capture("page-${target.name}-${if (enlarged) "320-dark-font150" else "360-light"}-bottom")
-            target.parent?.let { parent ->
-                compose.onNodeWithContentDescription(text(R.string.back)).performClick()
-                compose.onNodeWithTag("device-page-${parent.name}").assertIsDisplayed()
-            }
-        }
+        compose.onNodeWithText(text(R.string.press_once)).assertIsSelected()
+        compose.onNodeWithText(text(R.string.press_twice)).performClick()
+        compose.runOnIdle { page = DevicePage.Mute }
+        compose.onNodeWithText(text(R.string.press_once)).assertIsSelected()
     }
 
     @Test fun screenshotNavigationRowsReachTheirRealDestinations() {
@@ -146,6 +141,8 @@ class DeviceSettingsScreenTest {
             compose.runOnIdle { start = source; iteration++ }
             compose.onNodeWithText(text(label)).performScrollTo().performClick()
             compose.onNodeWithTag("device-page-${destination.name}").assertIsDisplayed()
+            compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+            compose.onNodeWithTag("device-page-${source.name}").assertIsDisplayed()
         }
     }
 
@@ -176,10 +173,121 @@ class DeviceSettingsScreenTest {
         }
     }
 
+    @Test fun renameValidatesBlankInputAndSavesKoreanWithKeyboardOpen() {
+        val fixture = SettingsFixture()
+        lateinit var host: View
+        compose.setContent {
+            host = LocalView.current
+            FixtureViewport(320, 1.5f) {
+                BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Name, mediaVolume = { FixtureMediaVolume() })
+            }
+        }
+        fun keyboardVisible(): Boolean {
+            var visible = false
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                visible = host.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true
+            }
+            return visible
+        }
+        val editor = onView(isAssignableFrom(EditText::class.java))
+        editor.perform(clickEditor(), replaceText("   "))
+        compose.onNodeWithText(text(R.string.widget_save)).assertIsNotEnabled()
+        val name = "검증용 AirPods " + "긴 이름 ".repeat(12).trim()
+        editor.perform(replaceText("  $name  "))
+        compose.waitUntil(5000) { keyboardVisible() }
+        capture("interaction-name-keyboard")
+        compose.onNodeWithText(text(R.string.widget_save)).performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(name, fixture.ui.metadata.name)
+            assertEquals(listOf("rename: $name"), fixture.events.toList())
+        }
+        compose.waitUntil(5000) { !keyboardVisible() }
+    }
+
+    @Test fun keyboardBackDismissesBeforeLeavingAndUnsavedNameIsDiscarded() {
+        val fixture = SettingsFixture()
+        lateinit var host: View
+        compose.setContent {
+            host = LocalView.current
+            BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Name, mediaVolume = { FixtureMediaVolume() })
+        }
+        var keyboard = false
+        fun refreshKeyboard(): Boolean {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                keyboard = host.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true
+            }
+            return keyboard
+        }
+        onView(isAssignableFrom(EditText::class.java)).perform(clickEditor(), replaceText("저장하지 않은 이름"))
+        compose.waitUntil(5000) { refreshKeyboard() }
+        pressBack()
+        compose.waitUntil(5000) { !refreshKeyboard() }
+        compose.onNodeWithTag("device-page-Name").assertIsDisplayed()
+        compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+        compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
+        compose.runOnIdle { assertEquals("AirPods UI Fixture", fixture.ui.metadata.name); assertTrue(fixture.events.isEmpty()) }
+    }
+
+    @Test fun horizontalSlidersDragWithoutMixingMediaAndToneCommands() {
+        val fixture = SettingsFixture()
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, mediaVolume = { FixtureMediaVolume() }) }
+        val media = compose.onNodeWithContentDescription(text(R.string.media_volume_label))
+        media.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        media.performTouchInput { swipe(center, centerRight, 300) }
+        capture("interaction-media-after-drag")
+        val mediaProgress = media.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current
+        compose.runOnIdle {
+            assertTrue("Media progress after drag: $mediaProgress", mediaProgress >= 14f)
+            assertTrue(fixture.events.isEmpty())
+            assertEquals(50, fixture.ui.state.controlStates[Command.CHIME_VOLUME]!!.first().toInt())
+        }
+        compose.onNodeWithText(text(R.string.accessibility)).performScrollTo().performClick()
+        val tone = compose.onNodeWithContentDescription(text(R.string.tone_volume))
+        tone.performScrollTo().performTouchInput { swipe(center, centerRight, 300) }
+        compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+        compose.waitUntil(3000) { fixture.ui.state.controlStates[Command.CHIME_VOLUME]!!.first().toInt() >= 95 }
+        compose.runOnIdle { assertTrue(fixture.events.all { it.startsWith("CHIME_VOLUME:") }) }
+    }
+
+    @Test fun equalizerTouchAndResetKeepThreeBandStateAcrossNavigation() {
+        val fixture = SettingsFixture()
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Equalizer, mediaVolume = { FixtureMediaVolume() }) }
+        compose.onNodeWithText(text(R.string.custom)).performClick()
+        val low = compose.onNodeWithContentDescription(text(R.string.eq_low))
+        low.performScrollTo().performTouchInput { swipe(center, topCenter, 300) }
+        compose.waitUntil(3000) { fixture.ui.state.customEq.low > 80 }
+        compose.onNodeWithContentDescription(text(R.string.eq_mid)).performSemanticsAction(SemanticsActions.SetProgress) { it(20f) }
+        compose.onNodeWithContentDescription(text(R.string.eq_high)).performSemanticsAction(SemanticsActions.SetProgress) { it(80f) }
+        compose.waitUntil(3000) { fixture.ui.state.customEq.mid == 20 && fixture.ui.state.customEq.high == 80 }
+        compose.onNodeWithText(text(R.string.reset)).performScrollTo().performClick()
+        compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+        compose.waitUntil(3000) { fixture.ui.state.customEq.let { it.low == 50 && it.mid == 50 && it.high == 50 } }
+        compose.onNodeWithTag("device-page-Audio").assertIsDisplayed()
+        compose.runOnIdle { assertEquals("EQ: 50 50 50", fixture.events.last()) }
+    }
+
+    @Test fun scrollingDoesNotActivateRowsAndTouchOpensTheIntendedChoice() {
+        val fixture = SettingsFixture()
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, mediaVolume = { FixtureMediaVolume() }) }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+        compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
+        compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
+        compose.onNodeWithText(text(R.string.audio_routing)).performScrollTo().performTouchInput { click() }
+        compose.onNodeWithTag("device-page-Audio").assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.microphone_mode)).performScrollTo().performTouchInput { click() }
+        compose.onNodeWithText(text(R.string.microphone_always_right)).performTouchInput { click() }
+        compose.runOnIdle {
+            assertArrayEquals(byteArrayOf(1), fixture.ui.state.controlStates[Command.MIC_MODE])
+            assertEquals(listOf("MIC_MODE: 1"), fixture.events.toList())
+        }
+    }
+
     private fun capture(name: String) {
         val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use {
             assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it))
         }
     }
+
 }

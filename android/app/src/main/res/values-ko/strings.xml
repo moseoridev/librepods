@@ -276,4 +276,6 @@
     <string name="i_agree">동의합니다</string>
 
 
+    <string name="overlay_settings">오버레이 설정</string>
+    <string name="recorder">녹음기</string>
 </resources>
