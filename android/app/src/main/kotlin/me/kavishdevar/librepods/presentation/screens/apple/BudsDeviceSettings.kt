@@ -102,7 +102,7 @@ internal fun BudsDeviceSettings(
                 onNavigateBack = back,
                 scrollState = scroll,
             ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset()),
+                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset()).testTag("device-page-${page.name}"),
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     val go: (DevicePage) -> Unit = { page = it }
                     when (page) {
@@ -305,9 +305,9 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
 private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
     if (ui.has(BaseCapability.STEM_CONFIG)) SettingsList(title = stringResource(R.string.press_and_hold_airpods)) {
         SettingsListItem(name = stringResource(R.string.left), onClick = { go(DevicePage.Left) }, description = stringResource(
-            if (ui.settings.leftLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode_controls))
+            if (ui.settings.leftLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode))
         SettingsListItem(name = stringResource(R.string.right), onClick = { go(DevicePage.Right) }, description = stringResource(
-            if (ui.settings.rightLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode_controls))
+            if (ui.settings.rightLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode))
     }
     val flipped = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]?.getOrNull(1)?.toInt() == 2
     SettingsList(title = stringResource(R.string.call_controls)) {
@@ -327,17 +327,18 @@ private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
 private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boolean) {
     val action = if (left) ui.settings.leftLongPressAction else ui.settings.rightLongPressAction
     SettingsList {
-        SettingsListItem(name = stringResource(R.string.listening_mode_controls), selected = action == StemAction.CYCLE_listening_mode_MODES,
+        SettingsListItem(name = stringResource(R.string.listening_mode), selected = action == StemAction.CYCLE_listening_mode_MODES,
             onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.CYCLE_listening_mode_MODES) })
         SettingsListItem(name = stringResource(R.string.digital_assistant), selected = action == StemAction.DIGITAL_ASSISTANT,
             onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.DIGITAL_ASSISTANT) })
     }
     if (action == StemAction.CYCLE_listening_mode_MODES) {
         val configured = ui.value(Command.LISTENING_MODE_CONFIGS)
-        SettingsCard {
+        SettingsList(title = stringResource(R.string.listening_mode),
+            description = stringResource(R.string.press_and_hold_listening_mode_description)) {
             listOf(1 to 1, 3 to 4, 4 to 8, 2 to 2).forEach { (mode, bit) ->
                 if ((mode != 4 || ui.has(BaseCapability.ADAPTIVE_AUDIO)) && (mode != 1 || ui.value(Command.ALLOW_OFF_OPTION) == 1)) {
-                    SettingsMultiChoiceRow(modeLabel(mode), configured?.and(bit) != 0 && configured != null,
+                    item { _, _ -> SettingsMultiChoiceRow(modeLabel(mode), configured?.and(bit) != 0 && configured != null,
                         onCheckedChange = { checked ->
                             // Preserve all other bits; independent screenshot choices have no Samsung modal rule.
                             configured?.let { vm.setControlCommand(Command.LISTENING_MODE_CONFIGS,
@@ -348,7 +349,7 @@ private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boo
                             2 -> R.string.listening_mode_noise_cancellation_description
                             3 -> R.string.listening_mode_transparency_description
                             else -> R.string.listening_mode_adaptive_description
-                        }), leadingContent = { Icon(painterResource(modeIcon(mode)), null, Modifier.size(32.dp)) })
+                        }), leadingContent = { Icon(painterResource(modeIcon(mode)), null, Modifier.size(32.dp)) }) }
                 }
             }
         }
@@ -383,10 +384,10 @@ private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
 @Composable
 private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     CommandChoices(ui, vm, Command.DOUBLE_CLICK_INTERVAL,
-        listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed)
+        listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed, R.string.press_speed_description)
     CommandChoices(ui, vm, Command.CLICK_HOLD_INTERVAL,
-        listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration)
-    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod)
+        listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration, R.string.press_and_hold_duration_description)
+    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description)
     CommandSlider(stringResource(R.string.tone_volume), ui.value(Command.CHIME_VOLUME),
         enabled = (ui.connectionState == ConnectionState.CONNECTED)) { vm.setControlCommand(Command.CHIME_VOLUME, it) }
     if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
@@ -405,7 +406,6 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
 
 @Composable
 private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    DeviceBatteries(ui)
     CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
 }
 
@@ -421,8 +421,8 @@ private fun CommandToggle(ui: AppleUiState, vm: DeviceSettingsActions, command: 
 }
 
 @Composable
-private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, options: List<Pair<Int, Int>>, title: Int? = null) {
-    SettingsList(title = title?.let { stringResource(it) }) {
+private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, options: List<Pair<Int, Int>>, title: Int? = null, description: Int? = null) {
+    SettingsList(title = title?.let { stringResource(it) }, description = description?.let { stringResource(it) }) {
         options.forEach { (value, label) ->
             SettingsListItem(name = stringResource(label), selected = ui.value(command) == value,
                 enabled = (ui.connectionState == ConnectionState.CONNECTED) && ui.value(command) != null,
@@ -466,8 +466,13 @@ private fun EqualizerPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         vm.setCustomEq(values[0], values[1], values[2])
         pending = null
     }
-    SettingsToggle(label = stringResource(R.string.custom), checked = eq.isEnabled(),
-        enabled = (ui.connectionState == ConnectionState.CONNECTED), onCheckedChange = vm::setCustomEqEnabled)
+    val connected = ui.connectionState == ConnectionState.CONNECTED
+    SettingsList {
+        SettingsListItem(name = stringResource(R.string.recommended), selected = !eq.isEnabled(),
+            enabled = connected, onClick = { vm.setCustomEqEnabled(false) })
+        SettingsListItem(name = stringResource(R.string.custom), selected = eq.isEnabled(),
+            enabled = connected, onClick = { vm.setCustomEqEnabled(true) })
+    }
     SettingsCard {
         val labels = listOf(stringResource(R.string.eq_low), stringResource(R.string.eq_mid), stringResource(R.string.eq_high))
         SettingsEqualizer(labels.mapIndexed { i, label -> SettingsEqualizerBand(label, levels[i], label) },
@@ -475,7 +480,7 @@ private fun EqualizerPage(ui: AppleUiState, vm: DeviceSettingsActions) {
             enabled = eq.isEnabled() && (ui.connectionState == ConnectionState.CONNECTED), valueRange = 0..100,
             valueLabel = { it.toString() })
     }
-    SettingsButton(onClick = { levels = listOf(50, 50, 50); pending = levels }, enabled = eq.isEnabled(), style = SettingsButtonStyle.Tonal) {
+    SettingsButton(onClick = { levels = listOf(50, 50, 50); pending = levels }, enabled = eq.isEnabled() && connected, style = SettingsButtonStyle.Tonal) {
         Text(stringResource(R.string.reset))
     }
 }
