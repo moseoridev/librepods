@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -29,6 +30,9 @@ class SettingsFixtureActivity : ComponentActivity() {
         val page = DevicePage.entries.firstOrNull { it.name.equals(input.getStringExtra("page"), true) } ?: DevicePage.Home
         val model = AirPodsModel.entries.firstOrNull { it.name.equals(input.getStringExtra("model"), true) }
         val dark = input.getStringExtra("theme") != "light"
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark },
+            navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark })
         val width = input.getIntExtra("width_dp", 0).takeIf { it in 320..840 }
         val fontScale = input.getFloatExtra("font_scale", 1f).coerceIn(1f, 2f)
         val fixture = if (model == null) SettingsFixture(scenario) else SettingsFixture(scenario, model)

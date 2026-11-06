@@ -7,7 +7,6 @@ import android.view.WindowManager
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -141,7 +140,8 @@ class DeviceSettingsScreenTest {
             compose.runOnIdle { start = source; iteration++ }
             compose.onNodeWithText(text(label)).performScrollTo().performClick()
             compose.onNodeWithTag("device-page-${destination.name}").assertIsDisplayed()
-            compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+            if (destination == DevicePage.Name) compose.onNodeWithText(text(R.string.cancel)).performClick()
+            else compose.onNodeWithContentDescription(text(R.string.back)).performClick()
             compose.onNodeWithTag("device-page-${source.name}").assertIsDisplayed()
         }
     }
@@ -190,17 +190,20 @@ class DeviceSettingsScreenTest {
             return visible
         }
         val editor = onView(isAssignableFrom(EditText::class.java))
+        // The native entry dialog owns a separate window and its IME insets.
+        editor.check { view, error -> host = view ?: throw error }
         editor.perform(clickEditor(), replaceText("   "))
         compose.onNodeWithText(text(R.string.widget_save)).assertIsNotEnabled()
         val name = "검증용 AirPods " + "긴 이름 ".repeat(12).trim()
         editor.perform(replaceText("  $name  "))
         compose.waitUntil(5000) { keyboardVisible() }
         capture("interaction-name-keyboard")
-        compose.onNodeWithText(text(R.string.widget_save)).performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithText(text(R.string.widget_save)).assertIsEnabled().performClick()
         compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(name, fixture.ui.metadata.name)
             assertEquals(listOf("rename: $name"), fixture.events.toList())
+            host = compose.activity.window.decorView
         }
         compose.waitUntil(5000) { !keyboardVisible() }
     }
@@ -219,12 +222,13 @@ class DeviceSettingsScreenTest {
             }
             return keyboard
         }
-        onView(isAssignableFrom(EditText::class.java)).perform(clickEditor(), replaceText("저장하지 않은 이름"))
+        onView(isAssignableFrom(EditText::class.java)).check { view, error -> host = view ?: throw error }
+            .perform(clickEditor(), replaceText("저장하지 않은 이름"))
         compose.waitUntil(5000) { refreshKeyboard() }
         pressBack()
         compose.waitUntil(5000) { !refreshKeyboard() }
         compose.onNodeWithTag("device-page-Name").assertIsDisplayed()
-        compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+        compose.onNodeWithText(text(R.string.cancel)).performClick()
         compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
         compose.runOnIdle { assertEquals("AirPods UI Fixture", fixture.ui.metadata.name); assertTrue(fixture.events.isEmpty()) }
     }
@@ -260,6 +264,7 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithContentDescription(text(R.string.eq_mid)).performSemanticsAction(SemanticsActions.SetProgress) { it(20f) }
         compose.onNodeWithContentDescription(text(R.string.eq_high)).performSemanticsAction(SemanticsActions.SetProgress) { it(80f) }
         compose.waitUntil(3000) { fixture.ui.state.customEq.mid == 20 && fixture.ui.state.customEq.high == 80 }
+        capture("interaction-eq-custom")
         compose.onNodeWithText(text(R.string.reset)).performScrollTo().performClick()
         compose.onNodeWithContentDescription(text(R.string.back)).performClick()
         compose.waitUntil(3000) { fixture.ui.state.customEq.let { it.low == 50 && it.mid == 50 && it.high == 50 } }
@@ -283,10 +288,39 @@ class DeviceSettingsScreenTest {
         }
     }
 
+    @Test fun groupedEarDetectionUpdatesDeviceCommandAndLocalPreference() {
+        val fixture = SettingsFixture()
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Audio, mediaVolume = { FixtureMediaVolume() }) }
+        compose.onNodeWithText(text(R.string.ear_detection)).performScrollTo().assertIsOn().performClick().assertIsOff()
+        compose.runOnIdle {
+            assertArrayEquals(byteArrayOf(2), fixture.ui.state.controlStates[Command.EAR_DETECTION_CONFIG])
+            assertFalse(fixture.ui.settings.earDetectionEnabled)
+            assertEquals(listOf("EAR_DETECTION_CONFIG: 2"), fixture.events.toList())
+            fixture.disconnect()
+            fixture.events.clear()
+        }
+        compose.onNodeWithText(text(R.string.ear_detection)).assertIsNotEnabled()
+        compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
+    }
+
+    @Test fun headMasterShowsCurrentStateAndKeepsCallGestureMapping() {
+        val fixture = SettingsFixture()
+        val initial = fixture.ui.settings.headGesturesEnabled
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Head, mediaVolume = { FixtureMediaVolume() }) }
+        capture("interaction-head-${if (initial) "on" else "off"}")
+        compose.onNodeWithText(text(if (initial) R.string.settings_in_use else R.string.settings_not_in_use)).performClick()
+        compose.onNodeWithText(text(if (initial) R.string.settings_not_in_use else R.string.settings_in_use)).assertIsDisplayed()
+        capture("interaction-head-${if (initial) "off" else "on"}")
+        compose.runOnIdle { assertEquals(!initial, fixture.ui.settings.headGesturesEnabled); assertTrue(fixture.events.isEmpty()) }
+        compose.onNodeWithText(text(R.string.nod_head)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.shake_head)).assertIsDisplayed()
+    }
+
     private fun capture(name: String) {
         val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use {
-            assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it))
+            compose.waitForIdle()
+            assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it))
         }
     }
 

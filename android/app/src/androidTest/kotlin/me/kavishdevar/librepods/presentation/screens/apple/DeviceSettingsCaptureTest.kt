@@ -4,11 +4,12 @@ import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.core.view.WindowCompat
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -29,6 +30,8 @@ class DeviceSettingsCaptureTest {
         var page by mutableStateOf(DevicePage.Home)
         var config by mutableStateOf(Configuration(320, false, 1f))
         val fixture = SettingsFixture("long_name")
+        val requestedPage = InstrumentationRegistry.getArguments().getString("capturePage")
+        val pages = requestedPage?.let { listOf(DevicePage.valueOf(it)) } ?: DevicePage.entries
         compose.setContent {
             key(page, config) {
                 FixtureViewport(config.width, config.font) {
@@ -39,11 +42,39 @@ class DeviceSettingsCaptureTest {
         }
         for (width in listOf(320, 360, 412, 600)) for (dark in listOf(false, true)) for (font in listOf(1f, 1.5f)) {
             val next = Configuration(width, dark, font)
-            for (target in DevicePage.entries) {
+            compose.runOnUiThread {
+                WindowCompat.getInsetsController(compose.activity.window, compose.activity.window.decorView).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
+            for (target in pages) {
+                val previousPage = page
                 compose.runOnIdle { page = target; config = next }
                 compose.onNodeWithTag("device-page-${target.name}").assertIsDisplayed()
+                if (target == DevicePage.Name || previousPage == DevicePage.Name) {
+                    // Compose idle excludes platform Dialog window enter/exit animations.
+                    // Keep system animations unchanged and capture after that transition.
+                    compose.waitForIdle()
+                    android.os.SystemClock.sleep(400)
+                }
                 capture("matrix-${target.name}-${next.label}-top")
-                compose.onAllNodes(hasScrollAction()).onFirst().performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, 10000f) }
+                if (target != DevicePage.Name) {
+                    val scroll = compose.onAllNodes(hasScrollAction()).onFirst()
+                    var frame = 0
+                    while (true) {
+                        val node = scroll.fetchSemanticsNode()
+                        val axis = node.config[SemanticsProperties.VerticalScrollAxisRange]
+                        val before = compose.runOnIdle { axis.value() }
+                        if (compose.runOnIdle { axis.maxValue() - before } < 1f) break
+                        // Overlap viewports so long-page middle content is not skipped.
+                        scroll.performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, node.boundsInRoot.height * .7f) }
+                        val after = compose.runOnIdle { axis.value() }
+                        check(after > before) { "Capture scroll made no progress: $target ${next.label}" }
+                        check(++frame <= 30) { "Unbounded capture scroll: $target ${next.label}" }
+                        capture("matrix-${target.name}-${next.label}-scroll$frame")
+                    }
+                }
                 capture("matrix-${target.name}-${next.label}-bottom")
 
             }
@@ -55,7 +86,8 @@ class DeviceSettingsCaptureTest {
     private fun capture(name: String) {
         val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use {
-            assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it))
+            compose.waitForIdle()
+            assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it))
         }
     }
 

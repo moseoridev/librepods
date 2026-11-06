@@ -22,6 +22,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -111,14 +113,15 @@ internal fun BudsDeviceSettings(
         key(page) {
             val scroll = rememberScrollState()
             SettingsScaffold(
-                title = if (page == DevicePage.Home) ui.metadata.name else stringResource(page.title),
+                title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.name else stringResource(page.title),
                 backLabel = stringResource(R.string.back),
                 showBackButton = page != DevicePage.Home || navigateBack != null,
                 onNavigateBack = back,
                 navigationIcon = { BudsBackIcon() },
                 scrollState = scroll,
             ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset()).testTag("device-page-${page.name}"),
+                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
+                    .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}"),
                     verticalArrangement = Arrangement.spacedBy(SettingsStyle.GroupSpacing)) {
                     val go: (DevicePage) -> Unit = { page = it }
                     when (page) {
@@ -143,11 +146,21 @@ internal fun BudsDeviceSettings(
                                 SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
                         }
                         DevicePage.Name -> {
+                            DeviceHome(ui, go, actions::disconnect, mediaVolume) { actions.setControlCommand(Command.LISTENING_MODE, it) }
                             val draft = rememberTextFieldState(ui.metadata.name)
-                            SettingsInputField(draft)
-                            SettingsButton(onClick = { keyboard?.hide(); actions.renameDevice(draft.text.toString().trim()); page = DevicePage.Home },
-                                enabled = draft.text.isNotBlank(), style = SettingsButtonStyle.Filled) {
-                                Text(stringResource(R.string.widget_save))
+                            val focus = remember { FocusRequester() }
+                            SettingsDialog(visible = true, title = stringResource(R.string.name), onDismissRequest = back,
+                                modifier = Modifier.testTag("device-page-Name"),
+                                presentation = SettingsDialogPresentation.TextEntry,
+                                actions = listOf(SettingsDialogAction(stringResource(R.string.cancel), back),
+                                    SettingsDialogAction(stringResource(R.string.widget_save), {
+                                        keyboard?.hide()
+                                        actions.renameDevice(draft.text.toString().trim())
+                                        page = DevicePage.Home
+                                    }, enabled = draft.text.isNotBlank()))) {
+                                SettingsInputField(draft, focusRequester = focus)
+                                val window = LocalWindowInfo.current
+                                LaunchedEffect(window.isWindowFocused) { if (window.isWindowFocused) focus.requestFocus() }
                             }
                         }
                         DevicePage.Extras -> {
@@ -311,6 +324,7 @@ private fun modeLabel(mode: Int): String = stringResource(when (mode) {
     1 -> R.string.off; 2 -> R.string.noise_cancellation; 4 -> R.string.adaptive; else -> R.string.transparency
 })
 private fun modeIcon(mode: Int): Int = when (mode) {
+    1 -> R.drawable.widget_noise_off
     3 -> R.drawable.ic_transparency; 4 -> R.drawable.ic_adaptive; else -> R.drawable.ic_noise_cancellation
 }
 
@@ -322,13 +336,19 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
         R.string.conversation_awareness, R.string.conversation_awareness_description, premium = true)
     if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 9)
         SettingsList { SettingsListItem(name = stringResource(R.string.equalizer), onClick = { go(DevicePage.Equalizer) }) }
-    CommandToggle(ui, vm, Command.EAR_DETECTION_CONFIG, R.string.ear_detection, onChange = { enabled ->
-        vm.setControlCommand(Command.EAR_DETECTION_CONFIG, enabled)
-        vm.updateSettings { it.copy(earDetectionEnabled = enabled) }
-    })
-    SettingsList { SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = { go(DevicePage.Routing) },
-        description = ui.value(Command.SMART_ROUTING_MODE)?.let { stringResource(if (it == 1) R.string.on else R.string.off) }) }
+    SettingsList {
+        SettingsToggle(label = stringResource(R.string.ear_detection), checked = ui.value(Command.EAR_DETECTION_CONFIG) == 1,
+            enabled = ui.connectionState == ConnectionState.CONNECTED && ui.value(Command.EAR_DETECTION_CONFIG) != null,
+            onCheckedChange = { enabled ->
+                vm.setControlCommand(Command.EAR_DETECTION_CONFIG, enabled)
+                vm.updateSettings { it.copy(earDetectionEnabled = enabled) }
+            })
+        SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = { go(DevicePage.Routing) },
+            descriptionIsState = true,
+            description = ui.value(Command.SMART_ROUTING_MODE)?.let { stringResource(if (it == 1) R.string.on else R.string.off) })
+    }
     SettingsList { SettingsListItem(name = stringResource(R.string.microphone_mode), onClick = { go(DevicePage.Microphone) },
+        descriptionIsState = true,
         description = ui.value(Command.MIC_MODE)?.let { stringResource(when(it) { 2 -> R.string.microphone_always_left; 1 -> R.string.microphone_always_right; else -> R.string.microphone_automatic }) }) }
     if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) CommandSlider(stringResource(R.string.customize_adaptive_audio),
         ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED && ui.isPremium) {
@@ -340,21 +360,24 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
 @Composable
 private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
     if (ui.has(BaseCapability.STEM_CONFIG)) SettingsList(title = stringResource(R.string.press_and_hold_airpods)) {
-        SettingsListItem(name = stringResource(R.string.left), onClick = { go(DevicePage.Left) }, description = stringResource(
+        SettingsListItem(name = stringResource(R.string.left), onClick = { go(DevicePage.Left) }, descriptionIsState = true, description = stringResource(
             if (ui.settings.leftLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode))
-        SettingsListItem(name = stringResource(R.string.right), onClick = { go(DevicePage.Right) }, description = stringResource(
+        SettingsListItem(name = stringResource(R.string.right), onClick = { go(DevicePage.Right) }, descriptionIsState = true, description = stringResource(
             if (ui.settings.rightLongPressAction == StemAction.DIGITAL_ASSISTANT) R.string.digital_assistant else R.string.listening_mode))
     }
     val flipped = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]?.getOrNull(1)?.toInt() == 2
     SettingsList(title = stringResource(R.string.call_controls)) {
-        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.press_once))
+        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.press_once), descriptionIsState = true)
         SettingsListItem(name = stringResource(R.string.mute_unmute), onClick = { go(DevicePage.Mute) },
+            descriptionIsState = true,
             description = stringResource(if (flipped) R.string.press_twice else R.string.press_once))
         SettingsListItem(name = stringResource(R.string.hang_up), onClick = { go(DevicePage.EndCall) },
+            descriptionIsState = true,
             description = stringResource(if (flipped) R.string.press_once else R.string.press_twice))
     }
     if (ui.has(BaseCapability.HEAD_GESTURES)) SettingsList {
         SettingsListItem(name = stringResource(R.string.head_gestures), onClick = { go(DevicePage.Head) },
+            descriptionIsState = true,
             description = stringResource(if (ui.settings.headGesturesEnabled) R.string.on else R.string.off))
     }
 }
@@ -363,9 +386,9 @@ private fun ControlsPage(ui: AppleUiState, go: (DevicePage) -> Unit) {
 private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boolean) {
     val action = if (left) ui.settings.leftLongPressAction else ui.settings.rightLongPressAction
     SettingsList {
-        SettingsListItem(name = stringResource(R.string.listening_mode), selected = action == StemAction.CYCLE_listening_mode_MODES,
+        SettingsChoiceRow(name = stringResource(R.string.listening_mode), selected = action == StemAction.CYCLE_listening_mode_MODES,
             onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.CYCLE_listening_mode_MODES) })
-        SettingsListItem(name = stringResource(R.string.digital_assistant), selected = action == StemAction.DIGITAL_ASSISTANT,
+        SettingsChoiceRow(name = stringResource(R.string.digital_assistant), selected = action == StemAction.DIGITAL_ASSISTANT,
             onClick = { vm.setLongPressAction(if (left) "left" else "right", StemAction.DIGITAL_ASSISTANT) })
     }
     if (action == StemAction.CYCLE_listening_mode_MODES) {
@@ -399,7 +422,7 @@ private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean)
     SettingsList {
         listOf(false, true).forEach { double ->
             val desiredFlipped = if (mute) double else !double
-            SettingsListItem(name = stringResource(if (double) R.string.press_twice else R.string.press_once),
+            SettingsChoiceRow(name = stringResource(if (double) R.string.press_twice else R.string.press_once),
                 selected = flipped == desiredFlipped, enabled = bytes != null && (ui.connectionState == ConnectionState.CONNECTED),
                 onClick = { vm.setControlCommand(Command.CALL_MANAGEMENT_CONFIG,
                     byteArrayOf(0, if (desiredFlipped) 2 else 3)) })
@@ -409,11 +432,12 @@ private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean)
 
 @Composable
 private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    SettingsToggle(label = stringResource(R.string.head_gestures), checked = ui.settings.headGesturesEnabled, header = true,
+    SettingsToggle(label = stringResource(if (ui.settings.headGesturesEnabled) R.string.settings_in_use else R.string.settings_not_in_use),
+        checked = ui.settings.headGesturesEnabled, header = true,
         onCheckedChange = vm::setHeadGesturesEnabled)
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
-        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head))
-        SettingsListItem(name = stringResource(R.string.decline_call_label), description = stringResource(R.string.shake_head))
+        SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head), descriptionIsState = true)
+        SettingsListItem(name = stringResource(R.string.decline_call_label), description = stringResource(R.string.shake_head), descriptionIsState = true)
     }
 }
 
@@ -423,14 +447,22 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed, R.string.press_speed_description)
     CommandChoices(ui, vm, Command.CLICK_HOLD_INTERVAL,
         listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration, R.string.press_and_hold_duration_description)
-    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description)
+    if (ui.has(BaseCapability.LISTENING_MODE)) Column {
+        SettingsSectionLabel(stringResource(R.string.listening_mode))
+        CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description)
+    }
     CommandSlider(stringResource(R.string.tone_volume), ui.value(Command.CHIME_VOLUME),
-        enabled = (ui.connectionState == ConnectionState.CONNECTED)) { vm.setControlCommand(Command.CHIME_VOLUME, it) }
+        enabled = (ui.connectionState == ConnectionState.CONNECTED), description = stringResource(R.string.tone_volume_description)) {
+        vm.setControlCommand(Command.CHIME_VOLUME, it)
+    }
     if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
-        CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_control, R.string.volume_control_description, premium = true)
+        Column {
+            SettingsSectionLabel(stringResource(R.string.volume_control))
+            CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_swipe, R.string.volume_control_description, premium = true)
+        }
         // Keep the existing firmware-facing mapping until the conflicting 0/1-based documentation is resolved.
         CommandChoices(ui, vm, Command.VOLUME_SWIPE_INTERVAL,
-            listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest), R.string.volume_swipe_speed)
+            listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest), R.string.volume_swipe_speed, R.string.volume_swipe_speed_description)
     }
     if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ALLOW_OFF_OPTION,
         R.string.off_listening_mode, R.string.off_listening_mode_description)
@@ -442,6 +474,7 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
 
 @Composable
 private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
+    SettingsDescription(stringResource(R.string.airpods_battery_lifespan))
     CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
 }
 
@@ -460,7 +493,7 @@ private fun CommandToggle(ui: AppleUiState, vm: DeviceSettingsActions, command: 
 private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, options: List<Pair<Int, Int>>, title: Int? = null, description: Int? = null) {
     SettingsList(title = title?.let { stringResource(it) }, description = description?.let { stringResource(it) }) {
         options.forEach { (value, label) ->
-            SettingsListItem(name = stringResource(label), selected = ui.value(command) == value,
+            SettingsChoiceRow(name = stringResource(label), selected = ui.value(command) == value,
                 enabled = (ui.connectionState == ConnectionState.CONNECTED) && ui.value(command) != null,
                 onClick = { vm.setControlCommand(command, value) })
         }
@@ -468,7 +501,7 @@ private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command:
 }
 
 @Composable
-private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, send: (Int) -> Unit) {
+private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, description: String? = null, send: (Int) -> Unit) {
     var value by remember { mutableIntStateOf(remote ?: 0) }
     var pending by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(remote) { if (pending == null) value = remote ?: 0 }
@@ -480,12 +513,22 @@ private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, send: (
         sendLatest(next)
         pending = null
     }
-    SettingsCard {
-        SettingsSeekBarRow(label, value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
-            startLabel = "", endLabel = remote?.let { "$value%" } ?: "—",
-            enabled = enabled && remote != null,
-            activeTrackColor = androidx.compose.ui.graphics.Color.Unspecified)
+    Column {
+        SettingsCard {
+            SettingsSeekBarRow(label, value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
+                startLabel = "", endLabel = remote?.let { "$value%" } ?: "—",
+                enabled = enabled && remote != null,
+                activeTrackColor = androidx.compose.ui.graphics.Color.Unspecified)
+        }
+        description?.let { SettingsDescription(it, Modifier.padding(top = SettingsStyle.FooterTop)) }
     }
+}
+
+/** Source footer typography/insets, also used for introductory page explanations. */
+@Composable
+private fun SettingsDescription(text: String, modifier: Modifier = Modifier) {
+    Text(text, modifier.padding(horizontal = SettingsStyle.RowInset), style = SettingsStyle.RowSummary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -501,10 +544,10 @@ private fun EqualizerPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         pending = null
     }
     val connected = ui.connectionState == ConnectionState.CONNECTED
-    SettingsList {
-        SettingsListItem(name = stringResource(R.string.recommended), selected = !eq.isEnabled(),
+    SettingsList(description = stringResource(R.string.airpods_equalizer_description)) {
+        SettingsChoiceRow(name = stringResource(R.string.recommended), selected = !eq.isEnabled(),
             enabled = connected, onClick = { vm.setCustomEqEnabled(false) })
-        SettingsListItem(name = stringResource(R.string.custom), selected = eq.isEnabled(),
+        SettingsChoiceRow(name = stringResource(R.string.custom), selected = eq.isEnabled(),
             enabled = connected, onClick = { vm.setCustomEqEnabled(true) })
     }
     SettingsCard {

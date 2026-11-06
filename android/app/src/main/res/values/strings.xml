@@ -51,6 +51,11 @@
     <string name="island_moved_to_other_device_reversed_text">Reconnect from notification</string>
     <string name="head_tracking">Head Tracking</string>
     <string name="head_gestures_details">Nod to answer calls, and shake your head to decline.</string>
+    <string name="settings_in_use">On</string>
+    <string name="settings_not_in_use">Off</string>
+    <string name="volume_swipe">Volume Swipe</string>
+    <string name="airpods_equalizer_description">Use Recommended for the default sound profile, or choose Custom to adjust the low, mid and high frequencies.</string>
+    <string name="airpods_battery_lifespan">Rechargeable batteries age with use. Your AirPods batteries may eventually need servicing or recycling.</string>
     <string name="general_settings_header">General</string>
     <string name="qs_click_behavior_title">Quick Settings Tile Action</string>
     <string name="qs_click_behavior_dialog_desc">Show noise control dialog on tap.</string>

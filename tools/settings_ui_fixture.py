@@ -19,9 +19,12 @@ def main():
     parser.add_argument("--font-scale", type=float, default=1.0, help="Composition-only font scale, 1..2")
     parser.add_argument("--run-tests", action="store_true", help="Update built debug/test APKs with -r, run UI tests, retain apps/data")
     parser.add_argument("--capture-matrix", action="store_true", help="Generate visual comparison evidence separately from behavior tests")
+    parser.add_argument("--capture-page", choices=["Home", "Audio", "Controls", "Accessibility", "Battery", "Microphone", "Equalizer", "Routing", "Left", "Right", "Mute", "EndCall", "Head", "Version", "Name", "Extras"], help="Limit the capture matrix to one changed page")
     parser.add_argument("--test-method", help="Run one DeviceSettingsScreenTest method while resolving a failure")
     parser.add_argument("--output", type=Path, help="Host directory for synthetic test captures")
     args = parser.parse_args()
+    if args.capture_page and not args.capture_matrix:
+        parser.error("--capture-page requires --capture-matrix")
     if args.capture_matrix and (not args.run_tests or args.test_method):
         parser.error("--capture-matrix requires --run-tests and cannot be combined with --test-method")
     if args.test_method and (not args.run_tests or not args.test_method.isascii() or not args.test_method.isidentifier()):
@@ -47,7 +50,8 @@ def main():
         test_class = "me.kavishdevar.librepods.presentation.screens.apple." + ("DeviceSettingsCaptureTest" if args.capture_matrix else "DeviceSettingsScreenTest")
         if args.test_method:
             test_class += "#" + args.test_method
-        result = subprocess.run(base + ["shell", "am", "instrument", "-w", "-r", "-e", "class", test_class,
+        capture_args = ["-e", "capturePage", args.capture_page] if args.capture_page else []
+        result = subprocess.run(base + ["shell", "am", "instrument", "-w", "-r", "-e", "class", test_class] + capture_args + [
             "me.kavishdevar.librepods.test/androidx.test.runner.AndroidJUnitRunner"],
             check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=600)
         print(result.stdout)
