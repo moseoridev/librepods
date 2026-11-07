@@ -3,113 +3,38 @@ package me.kavishdevar.librepods.presentation.screens.apple
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
+import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.ui.components.SettingsImageBackdrop
 
-/** Own smooth approximation of the native translucent glow, with its source placement. */
+/**
+ * The source Home backdrop with its source placement.
+ *
+ * The drawable is the manager's own raster: `bg_gradient_light_oneui9` (`res/Rw.png`) and
+ * `bg_gradient_dark_oneui9` (`res/CO.png`), 500x500 RGBA, byte-identical between manager
+ * 9.0.10.1704 and 9.0.10.1724. It is not a gradient — the field carries 5,048 distinct RGB
+ * values in light and 2,297 in dark, a dithered soft edge and an off-centre green highlight,
+ * so no parametric gradient reproduces it. The files are byte-identical to the extracted
+ * originals (light `cf3de46f…`, dark `cd5be54a…`) and sit in `drawable-nodpi` so density
+ * scaling does not resample them.
+ */
 @Composable
 internal fun BudsHomeBackdrop(dark: Boolean) {
-    SettingsImageBackdrop(remember(dark) { HomeGlowPainter(dark) })
-}
-
-private class HomeGlowPainter(private val dark: Boolean) : Painter() {
-    override val intrinsicSize = Size(500f, 500f)
-    private var measured = Size.Unspecified
-    private var glow: Brush? = null
-    override fun DrawScope.onDraw() {
-        if (measured != size) {
-            measured = size
-            val radius = size.minDimension *
-                if (dark) DARK_GLOW_RADIUS_FRACTION else LIGHT_GLOW_RADIUS_FRACTION
-            val stops: Array<Pair<Float, Color>> =
-                if (dark) DARK_GLOW_STOPS else LIGHT_GLOW_STOPS
-            glow = Brush.radialGradient(
-                *stops,
-                center = Offset(size.width * GLOW_CENTER_X_FRACTION,
-                    size.height * GLOW_CENTER_Y_FRACTION),
-                radius = radius)
-        }
-        drawRect(glow!!)
-    }
-
-    private companion object {
-        // The native backdrop is a 500x500 RGBA raster (res/Rw.png light, res/CO.png dark),
-        // not a gradient. Its glow is not centred in the bitmap: the alpha-weighted centroid
-        // of both assets sits at (249.76,241.06), i.e. just below the horizontal axis. Sampling
-        // stops about that point is what makes the visible band match.
-        const val GLOW_CENTER_X_FRACTION = 249.76f / 500f
-        const val GLOW_CENTER_Y_FRACTION = 241.06f / 500f
-
-        // Radius at which the measured alpha reaches zero: 209px light, 207px dark.
-        const val LIGHT_GLOW_RADIUS_FRACTION = 209f / 500f
-        const val DARK_GLOW_RADIUS_FRACTION = 207f / 500f
-
-        // Straight-alpha stops every 5% of the measured radius, averaged over each annulus.
-        // Measured peak alpha is 104 light / 62 dark. The assets keep a low-amplitude random
-        // grain (+-5/255) that is not synthesised here; only the smooth radial field is
-        // reproduced.
-        val LIGHT_GLOW_STOPS: Array<Pair<Float, Color>> = arrayOf(
-            0.00f to Color(0x7CC1F3).copy(alpha = 0.4039f),
-            0.05f to Color(0x7DC2F3).copy(alpha = 0.3963f),
-            0.10f to Color(0x81C5F3).copy(alpha = 0.3788f),
-            0.15f to Color(0x84C7F3).copy(alpha = 0.3599f),
-            0.20f to Color(0x88C9F3).copy(alpha = 0.3392f),
-            0.25f to Color(0x8CCBF3).copy(alpha = 0.3213f),
-            0.30f to Color(0x90CEF3).copy(alpha = 0.3010f),
-            0.35f to Color(0x94D0F3).copy(alpha = 0.2812f),
-            0.40f to Color(0x99D3F4).copy(alpha = 0.2575f),
-            0.45f to Color(0x9DD5F5).copy(alpha = 0.2349f),
-            0.50f to Color(0xA1D7F7).copy(alpha = 0.2121f),
-            0.55f to Color(0xA6D9F8).copy(alpha = 0.1869f),
-            0.60f to Color(0xABDBF9).copy(alpha = 0.1640f),
-            0.65f to Color(0xB0DDFA).copy(alpha = 0.1391f),
-            0.70f to Color(0xB4E0FB).copy(alpha = 0.1168f),
-            0.75f to Color(0xBAE2FC).copy(alpha = 0.0927f),
-            0.80f to Color(0xBEE4FD).copy(alpha = 0.0718f),
-            0.85f to Color(0xC2E7FE).copy(alpha = 0.0501f),
-            0.90f to Color(0xC5E8FE).copy(alpha = 0.0318f),
-            0.95f to Color(0xC5E6FE).copy(alpha = 0.0128f),
-            1.00f to Color(0xC5E6FE).copy(alpha = 0f),
-        )
-
-        val DARK_GLOW_STOPS: Array<Pair<Float, Color>> = arrayOf(
-            0.00f to Color(0x7DC4F2).copy(alpha = 0.2392f),
-            0.05f to Color(0x7DC2F3).copy(alpha = 0.2378f),
-            0.10f to Color(0x81C5F3).copy(alpha = 0.2272f),
-            0.15f to Color(0x84C7F3).copy(alpha = 0.2157f),
-            0.20f to Color(0x87C9F3).copy(alpha = 0.2044f),
-            0.25f to Color(0x8BCCF3).copy(alpha = 0.1926f),
-            0.30f to Color(0x90CEF3).copy(alpha = 0.1816f),
-            0.35f to Color(0x93D0F3).copy(alpha = 0.1698f),
-            0.40f to Color(0x98D2F4).copy(alpha = 0.1556f),
-            0.45f to Color(0x9CD4F5).copy(alpha = 0.1422f),
-            0.50f to Color(0xA1D7F6).copy(alpha = 0.1272f),
-            0.55f to Color(0xA6D9F8).copy(alpha = 0.1134f),
-            0.60f to Color(0xAADBF9).copy(alpha = 0.0997f),
-            0.65f to Color(0xAFDDFA).copy(alpha = 0.0848f),
-            0.70f to Color(0xB4DFFB).copy(alpha = 0.0713f),
-            0.75f to Color(0xB8E1FC).copy(alpha = 0.0581f),
-            0.80f to Color(0xBEE4FD).copy(alpha = 0.0442f),
-            0.85f to Color(0xC0E4FD).copy(alpha = 0.0322f),
-            0.90f to Color(0xC6E6FD).copy(alpha = 0.0212f),
-            0.95f to Color(0xC6E6FD).copy(alpha = 0.0095f),
-            1.00f to Color(0xC6E6FD).copy(alpha = 0f),
-        )
-    }
+    // Source draws the 500dp bitmap with ContentScale.Fit; sending the 500px raster through
+    // the same Image path keeps the fit mapping fractional instead of resampling to exact 1:1.
+    SettingsImageBackdrop(painterResource(
+        if (dark) R.drawable.home_backdrop_dark else R.drawable.home_backdrop_light))
 }
 
 internal enum class BudsMenuArtwork { Sound, Touch, Accessibility, QuietSound }
