@@ -48,6 +48,12 @@ class DeviceSettingsCaptureTest {
                     isAppearanceLightNavigationBars = !dark
                 }
             }
+            // The system redraws its bar icons on a later traversal than this call. Capture
+            // immediately after a dark→light switch and the first frame can still show the
+            // previous icon contrast, which is a capture artifact, not product rendering.
+            compose.waitForIdle()
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            android.os.SystemClock.sleep(250)
             for (target in pages) {
                 val previousPage = page
                 compose.runOnIdle { page = target; config = next }
