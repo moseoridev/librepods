@@ -119,6 +119,7 @@ internal fun BudsDeviceSettings(
                 onNavigateBack = back,
                 navigationIcon = { BudsBackIcon() },
                 scrollState = scroll,
+                background = if (page == DevicePage.Home || page == DevicePage.Name) ({ BudsHomeBackdrop(darkTheme) }) else null,
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
                     .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}"),
@@ -225,19 +226,17 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
             // A requested or persisted control value is not an acknowledgement from this session.
             item { _, _ -> SettingsModeStrip(modes, ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt(),
                 onSelect = { mode -> if (ui.connectionState == ConnectionState.CONNECTED) selectMode(mode) },
-                label = { modeLabel(it) }, artwork = { mode, _ ->
-                    Icon(painterResource(modeIcon(mode)), null, Modifier.size(24.dp))
-                }) }
+                label = { modeLabel(it) }, artwork = { mode, selected -> BudsModeArtwork(mode, selected) }) }
         }
     }
     mediaVolume()
     SettingsList {
         SettingsListItem(name = stringResource(R.string.audio_routing), onClick = { go(DevicePage.Audio) }, homeMenu = true,
-            leadingContent = { Icon(LocalIcons.current.SpeakerMax, null, Modifier.size(28.dp)) })
+            leadingContent = { BudsMenuIcon(BudsMenuArtwork.Sound) })
         SettingsListItem(name = stringResource(R.string.controls_gestures), onClick = { go(DevicePage.Controls) }, homeMenu = true,
-            leadingContent = { Icon(LocalIcons.current.Headphones, null, Modifier.size(28.dp)) })
+            leadingContent = { BudsMenuIcon(BudsMenuArtwork.Touch) })
         SettingsListItem(name = stringResource(R.string.accessibility), onClick = { go(DevicePage.Accessibility) }, homeMenu = true,
-            leadingContent = { Icon(LocalIcons.current.Settings, null, Modifier.size(28.dp)) })
+            leadingContent = { BudsMenuIcon(BudsMenuArtwork.Accessibility) })
     }
     SettingsList { SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }) }
     SettingsList(title = stringResource(R.string.about)) {
@@ -323,10 +322,6 @@ private fun DeviceBatteries(ui: AppleUiState) {
 private fun modeLabel(mode: Int): String = stringResource(when (mode) {
     1 -> R.string.off; 2 -> R.string.noise_cancellation; 4 -> R.string.adaptive; else -> R.string.transparency
 })
-private fun modeIcon(mode: Int): Int = when (mode) {
-    1 -> R.drawable.widget_noise_off
-    3 -> R.drawable.ic_transparency; 4 -> R.drawable.ic_adaptive; else -> R.drawable.ic_noise_cancellation
-}
 
 @Composable
 private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePage) -> Unit) {
@@ -408,7 +403,7 @@ private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boo
                             2 -> R.string.listening_mode_noise_cancellation_description
                             3 -> R.string.listening_mode_transparency_description
                             else -> R.string.listening_mode_adaptive_description
-                        }), leadingContent = { Icon(painterResource(modeIcon(mode)), null, Modifier.size(32.dp)) }) }
+                        }), leadingContent = { BudsModeArtwork(mode, compact = true) }) }
                 }
             }
         }
@@ -593,12 +588,12 @@ internal fun MediaVolumeControl(volume: Int, maximum: Int, enabled: Boolean, onV
                 Text(label, style = SettingsStyle.RowTitle)
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(LocalIcons.current.SpeakerMin, null)
+                BudsMenuIcon(BudsMenuArtwork.QuietSound)
                 SettingsSeekBar(volume.toFloat(), { onValueChange(it.roundToInt()) },
                     0f..maximum.coerceAtLeast(1).toFloat(), Modifier.weight(1f).padding(horizontal = 12.dp)
                         .semantics { contentDescription = label }, enabled = enabled && maximum > 0,
                     steps = (maximum - 1).coerceAtLeast(0))
-                Icon(LocalIcons.current.SpeakerMax, null)
+                BudsMenuIcon(BudsMenuArtwork.Sound)
             }
         }
     }
