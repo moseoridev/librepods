@@ -57,7 +57,13 @@ fun <T> SettingsModeStrip(
         val density = LocalDensity.current
         // The source constrains each side separately. Its negative anchor values use
         // Math.round, so a half-pixel inset resolves toward the start at 600 dpi.
-        val sideInsetPx = -with(density) { (-stripInset.toPx()).roundToInt() }
+        //
+        // The inset is measured from the screen edge, not from the already-rounded
+        // page inset the caller padded with. Rounding `stripInset` alone and adding it
+        // to the rounded page inset rounds twice: at 420 dpi 10dp + 20dp is 78.75px,
+        // but 26 + 52 places the strip one pixel left and two pixels wide.
+        val sideInsetPx = -with(density) { (-(pageInset + stripInset).toPx()).roundToInt() } -
+            with(density) { pageInset.roundToPx() }
         val availableWidthPx = constraints.maxWidth - sideInsetPx * 2
         val widthPx = with(density) {
             (stripWidth?.roundToPx() ?: minOf(availableWidthPx, 392.dp.roundToPx())).coerceAtLeast(0)
