@@ -1,6 +1,5 @@
 package me.kavishdevar.librepods.database.app
 
-import android.bluetooth.le.ScanSettings
 import androidx.annotation.FloatRange
 import androidx.compose.ui.graphics.Color
 import androidx.room3.ColumnInfo
@@ -64,12 +63,6 @@ data class AppSettingsEntity(
 
     @ColumnInfo(defaultValue = "0")
     val debugMode: Boolean = false,
-
-    @ColumnInfo(defaultValue = "1")
-    val bleScanMode: Int = ScanSettings.SCAN_MODE_BALANCED,
-
-    @ColumnInfo(defaultValue = "250")
-    val bleReportDelay: Long = 250L,
 
     @ColumnInfo(defaultValue = "X'BFFF'")
     val accessibilitySettings: AccessibilitySettings = AccessibilitySettings(),
