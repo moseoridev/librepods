@@ -634,11 +634,7 @@ class AACPManager(private val device: AppleDevice) {
     fun sendRename(name: String): Boolean {
         val packet = RenamePacket.create(name)
 
-        device.updateMetadata {
-            it.copy(
-                name = name
-            )
-        }
+        device.updateMetadata { it.withName(name) }
 
         return sendPacket(packet)
     }

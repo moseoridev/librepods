@@ -35,4 +35,8 @@ data class AppleMetadata(
      */
     override val displayName: String
         get() = name.ifBlank { AirPodsSpecs.getSpec(model).displayName }
+
+    /** Never lets a blank name replace the current one. */
+    fun withName(newName: String): AppleMetadata =
+        if (newName.isBlank()) this else copy(name = newName)
 }

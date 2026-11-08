@@ -161,8 +161,12 @@ class AppleDevice(
 
     init {
         updateMetadata {
+            // Some bonded devices report neither an alias nor a name; keep a label so
+            // later surfaces that reject blank text never see one.
             it.copy(
-                name = bluetoothDevice.alias ?: bluetoothDevice.name ?: "Unknown"
+                name = listOfNotNull(bluetoothDevice.alias, bluetoothDevice.name)
+                    .firstOrNull { name -> name.isNotBlank() }
+                    ?: AirPodsSpecs.getSpec(it.model).displayName
             )
         }
 
@@ -410,9 +414,13 @@ class AppleDevice(
     }
 
     fun renameDevice(newName: String) {
-        aacp.sendRename(newName)
+        // An empty rename would drop the only label this device has and leaves the
+        // firmware name unset; keep the previous name instead.
+        val name = newName.trim()
+        if (name.isBlank()) return
+        aacp.sendRename(name)
         _metadata.update {
-            it.copy(name = newName)
+            it.copy(name = name)
         }
     }
 

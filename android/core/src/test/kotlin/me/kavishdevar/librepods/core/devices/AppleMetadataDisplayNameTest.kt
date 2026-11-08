@@ -14,4 +14,11 @@ class AppleMetadataDisplayNameTest {
     @Test fun userVisibleNameWinsWhenPresent() {
         assertEquals("MoseoriPods", AppleMetadata(name = "MoseoriPods", model = AirPodsModel.AIRPODS_PRO_3).displayName)
     }
+
+    @Test fun aBlankRenameNeverClearsTheStoredName() {
+        val metadata = AppleMetadata(name = "MoseoriPods", model = AirPodsModel.AIRPODS_PRO_3)
+        assertEquals("MoseoriPods", metadata.withName("").name)
+        assertEquals("MoseoriPods", metadata.withName("   ").name)
+        assertEquals("Renamed", metadata.withName("Renamed").name)
+    }
 }
