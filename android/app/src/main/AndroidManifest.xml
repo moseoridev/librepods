@@ -9,9 +9,6 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND" />
     <uses-permission android:name="android.permission.REQUEST_OBSERVE_COMPANION_DEVICE_PRESENCE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
-        tools:ignore="ForegroundServicesPolicy" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -119,10 +116,15 @@
             android:label="@string/test">
         </activity>
 
-        <activity android:name=".presentation.widgets.WidgetSettingsActivity" android:exported="false" />
-        <activity
-            android:name=".presentation.activities.NoiseControlWidgetConfigurationActivity"
-            android:exported="false" />
+        <!-- The launcher starts this activity through android:configure, so it must be
+             exported and advertise the APPWIDGET_CONFIGURE action. -->
+        <activity android:name=".presentation.widgets.WidgetSettingsActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.DayNight">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".services.LibrePodsService"
