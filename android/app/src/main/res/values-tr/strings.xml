@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_description">AirPods\'unuzu Apple\'ın ekosisteminden kurtarın</string>
-    <string name="app_widget_description">Ana ekranınızdan doğrudan AirPods pil durumunuzu görün!</string>
     <string name="accessibility">Erişilebilirlik</string>
     <string name="tone_volume">Ton Seviyesi</string>
     <string name="tone_volume_description">AirPods tarafından çalınan ses efektlerinin ton seviyesini ayarlayın.</string>
@@ -39,7 +38,6 @@
     <string name="conversation_awareness_pause_music_description">Konuşmaya başladığınızda müzik duraklatılacaktır.</string>
     <string name="appwidget_text">ÖRNEK</string>
     <string name="add_widget">Widget ekle</string>
-    <string name="listening_mode_widget_description">Gürültü Kontrol Modunu doğrudan Ana Ekranınızdan kontrol edin.</string>
     <string name="island_connected_text">Bağlı</string>
     <string name="island_connected_remote_text">Linux\'a bağlı</string>
     <string name="island_taking_over_text">Bağlı</string>

@@ -1,7 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name" translatable="false">LibrePods</string>
     <string name="app_description">Liberate your AirPods from Apple\'s ecosystem.</string>
-    <string name="app_widget_description">See your AirPods battery status right from your home screen!</string>
     <string name="accessibility">Accessibility</string>
     <string name="tone_volume">Tone Volume</string>
     <string name="tone_volume_description">Adjust the tone volume of sound effects played by AirPods.</string>
@@ -42,7 +41,6 @@
     <string name="conversation_awareness_pause_music_description">When you start speaking, music will be paused.</string>
     <string name="appwidget_text">EXAMPLE</string>
     <string name="add_widget">Add widget</string>
-    <string name="listening_mode_widget_description">Control Noise Control Mode directly from your Home Screen.</string>
     <string name="island_connected_text">Connected</string>
     <string name="island_connected_remote_text">Connected to Linux</string>
     <string name="island_taking_over_text">Connected</string>
@@ -314,18 +312,9 @@
     <string name="contact_github_supporting_text">Create an issue on the GitHub repository. Use this only when you are requesting features, or you are sure that you\'ve found a bug. Try asking the community before opening an issue.</string>
     <string name="error_opening_discord_invite">Error opening Discord invite</string>
     <string name="error_opening_github_link">Error opening GitHub link</string>
-    <string name="scanMode">Scan mode</string>
     <string name="ble_settings">BLE Settings</string>
     <string name="do_not_change">Do not change these settings unless you know what you are doing!</string>
-    <string name="low_power">Low Power</string>
-    <string name="ble_scan_mode_low_power_description">Consumes the least power</string>
-    <string name="balanced">Balanced</string>
-    <string name="ble_scan_mode_balanced_description">Provides a good trade-off between scan frequency and power consumption</string>
-    <string name="low_latency">Low Latency</string>
-    <string name="ble_scan_mode_low_latency_description">Fastest scan frequency</string>
     <string name="enable_debug_mode">Enable debug mode</string>
-    <string name="ble_report_delay_description">Any value greater than 0 enables batching.</string>
-    <string name="ble_report_delay">Report delay (in ms)</string>
     <string name="interval">Interval</string>
     <string name="heart_rate_interval_description">Interval between heart rate measurements</string>
     <string name="no_heart_rate_data">No heart rate data</string>
@@ -354,7 +343,6 @@
     <string name="waiting_ellipsis">Waiting…</string>
     <string name="service_running">Service Running</string>
     <string name="foreground_notification_description">Useless notification, disable it by clicking on it.</string>
-    <string name="foreground_service_status">Foreground Service Status</string>
     <string name="high_heart_rate_notification_text">Your heart rate is above the set threshold. (currently: %d bpm)</string>
     <string name="high_heart_rate">High heart rate</string>
     <string name="hrm_alert_warning">This alert does not currently account for exercise or physical activity. It is for informational purposes only and is not intended as medical advice.</string>

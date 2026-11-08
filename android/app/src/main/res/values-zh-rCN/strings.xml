@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_description">让你的 AirPods 摆脱苹果的生态系统。</string>
-    <string name="app_widget_description">在主屏幕上即可查看 AirPods 的电池状态！</string>
     <string name="accessibility">辅助功能</string>
     <string name="tone_volume">提示声音量</string>
     <string name="tone_volume_description">调整 AirPods 播放声音效果的提示声音量。</string>
@@ -39,7 +38,6 @@
     <string name="conversation_awareness_pause_music_description">当你开始讲话时，音乐会自动暂停。</string>
     <string name="appwidget_text">示例</string>
     <string name="add_widget">添加小组件</string>
-    <string name="listening_mode_widget_description">直接在主屏幕上控制聆听模式。</string>
     <string name="island_connected_text">已连接</string>
     <string name="island_connected_remote_text">已连接到 Linux</string>
     <string name="island_taking_over_text">已连接</string>
@@ -297,18 +295,9 @@
     <string name="contact_github_supporting_text">在 GitHub 仓库中创建 issue。仅在你要提交功能建议、或已确认发现 bug 时使用。开 issue 之前请先向社区求助。</string>
     <string name="error_opening_discord_invite">无法打开 Discord 邀请链接</string>
     <string name="error_opening_github_link">无法打开 GitHub 链接</string>
-    <string name="scanMode">扫描模式</string>
     <string name="ble_settings">BLE 设置</string>
     <string name="do_not_change">除非你清楚自己在做什么，否则不要修改这些设置！</string>
-    <string name="low_power">低功耗</string>
-    <string name="ble_scan_mode_low_power_description">耗电最少</string>
-    <string name="balanced">均衡</string>
-    <string name="ble_scan_mode_balanced_description">在扫描频率与功耗之间取得较好的平衡</string>
-    <string name="low_latency">低延迟</string>
-    <string name="ble_scan_mode_low_latency_description">扫描频率最高</string>
     <string name="enable_debug_mode">启用调试模式</string>
-    <string name="ble_report_delay_description">大于 0 的值将启用批量上报。</string>
-    <string name="ble_report_delay">上报延迟（毫秒）</string>
     <string name="interval">间隔</string>
     <string name="heart_rate_interval_description">两次心率测量之间的间隔</string>
     <string name="no_heart_rate_data">暂无心率数据</string>
@@ -337,7 +326,6 @@
     <string name="waiting_ellipsis">正在等待…</string>
     <string name="service_running">服务运行中</string>
     <string name="foreground_notification_description">没什么用的通知，点它即可关闭。</string>
-    <string name="foreground_service_status">前台服务状态</string>
     <string name="high_heart_rate_notification_text">你的心率已超过设定阈值。（当前：%d bpm）</string>
     <string name="high_heart_rate">心率过高</string>
     <string name="hrm_alert_warning">此提醒目前不会考虑运动或体力活动的影响，仅供参考，不构成医疗建议。</string>

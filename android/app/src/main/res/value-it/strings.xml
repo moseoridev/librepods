@@ -1,7 +1,6 @@
    <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
         <string name="app_name" translatable="false">LibrePods</string>
         <string name="app_description">Libera i tuoi AirPods dall'ecosistema Apple.</string>
-        <string name="app_widget_description">Visualizza lo stato della batteria dei tuoi AirPods direttamente dalla schermata principale!</string>
         <string name="accessibility">Accessibilità</string>
         <string name="tone_volume">Volume Tono</string>
         <string name="tone_volume_description">Regola il volume del tono degli effetti sonori riprodotti dagli AirPods.</string>
@@ -40,7 +39,6 @@
         <string name="conversation_awareness_pause_music_description">Quando inizi a parlare, la musica verrà messa in pausa.</string>
         <string name="appwidget_text">ESEMPIO</string>
         <string name="add_widget">Aggiungi widget</string>
-        <string name="listening_mode_widget_description">Controlla la Modalità di Controllo del Rumore direttamente dalla tua Schermata Principale.</string>
         <string name="island_connected_text">Connesso</string>
         <string name="island_connected_remote_text">Connesso a Linux</string>
         <string name="island_taking_over_text">Connesso</string>

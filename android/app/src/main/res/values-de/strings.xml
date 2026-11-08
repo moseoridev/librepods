@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_description">Befreie deine AirPods aus Apples Ökosystem.</string>
-    <string name="app_widget_description">Sieh den Akkustand deiner AirPods direkt vom Homescreen!</string>
     <string name="accessibility">Bedienungshilfen</string>
     <string name="tone_volume">Tonlautstärke</string>
     <string name="tone_volume_description">Lautstärke der Toneffekte anpassen, die deine AirPods abspielen.</string>
@@ -39,7 +38,6 @@
     <string name="conversation_awareness_pause_music_description">Sobald du anfängst zu sprechen, wird die Musik pausiert.</string>
     <string name="appwidget_text">BEISPIEL</string>
     <string name="add_widget">Widget hinzufügen</string>
-    <string name="listening_mode_widget_description">Steuere den Hörmodus direkt vom Homescreen.</string>
     <string name="island_connected_text">Verbunden</string>
     <string name="island_connected_remote_text">Mit Linux verbunden</string>
     <string name="island_taking_over_text">Verbunden</string>

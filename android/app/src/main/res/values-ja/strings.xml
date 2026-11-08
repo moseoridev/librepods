@@ -1,7 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name" translatable="false">LibrePods</string>
     <string name="app_description">AirPodsをAppleのエコシステムから解放します。</string>
-    <string name="app_widget_description">ホーム画面から直接AirPodsのバッテリー状況を確認できます！</string>
     <string name="accessibility">アクセシビリティ</string>
     <string name="tone_volume">トーン音量</string>
     <string name="tone_volume_description">AirPodsで再生されるサウンドエフェクトの音量を調整します。</string>
@@ -40,7 +39,6 @@
     <string name="conversation_awareness_pause_music_description">話し始めると音楽を一時停止します。</string>
     <string name="appwidget_text">サンプル</string>
     <string name="add_widget">ウィジェットを追加</string>
-    <string name="listening_mode_widget_description">ホーム画面から直接リスニングモードを操作します。</string>
     <string name="island_connected_text">接続済み</string>
     <string name="island_connected_remote_text">Linuxに接続済み</string>
     <string name="island_taking_over_text">接続済み</string>

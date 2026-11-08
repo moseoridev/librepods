@@ -1,7 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name" translatable="false">LibrePods</string>
     <string name="app_description">讓你的 AirPods 擺脫 Apple 生態系統的束縛。</string>
-    <string name="app_widget_description">直接從主畫面查看 AirPods 電池狀態！</string>
     <string name="accessibility">輔助使用</string>
     <string name="tone_volume">提示音音量</string>
     <string name="tone_volume_description">調整 AirPods 播放音效的提示音音量。</string>
@@ -40,7 +39,6 @@
     <string name="conversation_awareness_pause_music_description">當你開始說話時，音樂將會暫停。</string>
     <string name="appwidget_text">範例</string>
     <string name="add_widget">新增小工具</string>
-    <string name="listening_mode_widget_description">直接從主畫面控制聽覺模式。</string>
     <string name="island_connected_text">已連線</string>
     <string name="island_connected_remote_text">已連線至 Linux</string>
     <string name="island_taking_over_text">已連線</string>

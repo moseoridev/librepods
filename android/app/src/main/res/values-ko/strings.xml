@@ -1,6 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_description">Apple 생태계 밖에서도 AirPods의 기능을 자유롭게 사용하세요.</string>
-    <string name="app_widget_description">홈 화면에서 AirPods 배터리 상태를 바로 확인하세요!</string>
     <string name="accessibility">손쉬운 사용</string>
     <string name="tone_volume">효과음 음량</string>
     <string name="tone_volume_description">AirPods에서 재생되는 효과음의 음량을 조절합니다.</string>
@@ -39,7 +38,6 @@
     <string name="conversation_awareness_pause_music_description">말을 시작하면 음악을 일시 정지합니다.</string>
     <string name="appwidget_text">예시</string>
     <string name="add_widget">위젯 추가</string>
-    <string name="listening_mode_widget_description">홈 화면에서 소음 제어 모드를 바로 조절합니다.</string>
     <string name="island_connected_text">연결됨</string>
     <string name="island_connected_remote_text">Linux에 연결됨</string>
     <string name="island_taking_over_text">연결됨</string>
