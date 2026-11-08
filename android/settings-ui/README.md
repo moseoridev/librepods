@@ -2,7 +2,7 @@
 
 LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니다. 모듈 이름과 공개 API는 기능에 따라 `Settings*`로 명명합니다. 원본 출처와 대조 범위는 [컴포넌트 출처 문서](../../docs/android-settings-components.md)에 기록합니다.
 
-**현재 앱에는 연결하지 않았습니다.** `:app`의 화면, 테마, 상태, 명령, 리소스와 의존성은 그대로입니다. 이 모듈을 추가하는 것만으로 제품의 디자인이 바뀌지는 않습니다.
+**`:app`의 기기 설정 화면이 이 모듈을 사용합니다.** `:app`은 `implementation(project(":settings-ui"))`로 의존하고, `BudsDeviceSettings`가 이 모듈의 컴포넌트와 `SettingsTheme`을 사용합니다. 이 모듈만 추가해서는 제품 디자인이 바뀌지 않으며, 화면 구성과 상태·명령은 여전히 `:app`이 소유합니다.
 
 ## 구성과 범위
 
