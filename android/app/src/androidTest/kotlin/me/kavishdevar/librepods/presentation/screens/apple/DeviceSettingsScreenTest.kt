@@ -316,6 +316,39 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithText(text(R.string.shake_head)).assertIsDisplayed()
     }
 
+    @Test fun premiumGatesMatchUpstreamOnHeadAccessibilityAndHome() {
+        val fixture = SettingsFixture()
+        var premium by mutableStateOf(true)
+        var page by mutableStateOf(DevicePage.Home)
+        compose.setContent {
+            key(premium, page) {
+                BudsDeviceSettings(fixture.ui.copy(isPremium = premium, settings = fixture.ui.settings.copy(headGesturesEnabled = false)),
+                    fixture, initialPage = page, mediaVolume = { FixtureMediaVolume() })
+            }
+        }
+        // Paying users get no purchase prompt.
+        compose.onNodeWithText(text(R.string.unlock_advanced_features)).assertDoesNotExist()
+
+        compose.runOnIdle { premium = false; page = DevicePage.Home }
+        compose.onNodeWithText(text(R.string.unlock_advanced_features)).performScrollTo().assertIsDisplayed()
+
+        // Head gestures stay disabled until purchased, as upstream gated them.
+        compose.runOnIdle { page = DevicePage.Head }
+        compose.onNodeWithText(text(R.string.settings_not_in_use)).performScrollTo().assertIsNotEnabled()
+
+        // The single-bud ANC toggle and tone volume were premium-only upstream.
+        compose.runOnIdle { page = DevicePage.Accessibility }
+        compose.onNodeWithText(text(R.string.noise_cancellation_single_airpod)).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription(text(R.string.tone_volume)).performScrollTo().assertIsNotEnabled()
+
+        // Transparency tuning is a LibrePods option and follows the same gate.
+        compose.runOnIdle { page = DevicePage.Extras }
+        compose.onNodeWithText(text(R.string.customize_transparency_mode)).performScrollTo().assertIsNotEnabled()
+
+        compose.runOnIdle { premium = true }
+        compose.onNodeWithText(text(R.string.customize_transparency_mode)).performScrollTo().assertIsEnabled()
+    }
+
     private fun capture(name: String) {
         val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use {

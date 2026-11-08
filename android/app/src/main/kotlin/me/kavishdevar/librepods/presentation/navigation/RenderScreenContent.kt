@@ -1,7 +1,6 @@
 package me.kavishdevar.librepods.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -130,24 +129,13 @@ fun RenderScreenContent(
                 factory = factory
             )
 
-            val left = stringResource(R.string.left)
-            val right = stringResource(R.string.right)
-
             AppleSettingsRoute(
                 viewModel = appleViewModel,
                 navigateBack = navigateBack,
-                navigateToRename = { navigate(Screen.Rename(screen.macAddress)) },
                 navigateToHearingProtection = { navigate(Screen.HearingProtection(screen.macAddress)) },
                 navigateToHearingAid = { navigate(Screen.HearingAid(screen.macAddress)) },
-                navigateToLeftLongPress = { navigate(Screen.LongPress(screen.macAddress, left)) },
-                navigateToRightLongPress = { navigate(Screen.LongPress(screen.macAddress, right)) },
                 navigateToPurchase = ::navigateToPurchase,
-                navigateToEqualizer = { navigate(Screen.Equalizer(screen.macAddress)) },
-                navigateToHeadTracking = { navigate(Screen.HeadTracking(screen.macAddress)) },
-                navigateToAccessibility = { navigate(Screen.Accessibility(screen.macAddress)) },
-                navigateToVersion = { navigate(Screen.VersionInfo(screen.macAddress)) },
-                navigateToCallControlScreen = { navigate(Screen.CallControl(screen.macAddress, it)) },
-                navigateToMicrophoneSettings = { navigate(Screen.MicrophoneSettings(screen.macAddress)) },
+                navigateToTransparencyCustomization = { navigate(Screen.TransparencyCustomization(screen.macAddress)) },
                 navigateToRecordingScreen = { navigate(Screen.Recording(screen.macAddress)) },
                 navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) },
                 navigateToDebugScreen = { navigate(Screen.Debug(screen.macAddress)) },
