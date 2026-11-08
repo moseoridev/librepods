@@ -20,7 +20,10 @@ fun SettingsList(
 ) {
     val scope = SettingsListScope()
     scope.content()
-    Column(modifier) {
+    // A title already opens with the label's 16dp top padding, so inside a
+    // SettingsGroupColumn this group must not also take the ordinary 20dp group gap.
+    // Parent data is inert under any other parent.
+    Column(modifier.then(if (title != null) Modifier.ownLeadingSpace() else Modifier)) {
         title?.let { SettingsSectionLabel(it) }
         Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, SettingsStyle.GroupShape)
             .clip(SettingsStyle.GroupShape)) {

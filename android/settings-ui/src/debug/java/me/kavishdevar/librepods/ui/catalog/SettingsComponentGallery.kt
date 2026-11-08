@@ -32,8 +32,8 @@ fun SettingsComponentGallery() {
     val scroll = rememberScrollState()
     SettingsScaffold(title = "Components", backLabel = "Back", expandableHeader = true) {
         SettingsScrollReporter(scroll.canScrollForward)
-        Column(Modifier.verticalScroll(scroll).padding(horizontal = SettingsStyle.pageInset()).padding(bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(SettingsStyle.GroupSpacing)) {
+        SettingsGroupColumn(Modifier.verticalScroll(scroll).padding(horizontal = SettingsStyle.pageInset())
+            .padding(bottom = 40.dp)) {
             SettingsToggle(label = "Master control", checked = enabled, onCheckedChange = { enabled = it }, header = true)
             SettingsList(title = "Rows", description = "The caller owns state and commands.") {
                 SettingsListItem(name = "Read-only value", description = "Connected", descriptionIsState = true)

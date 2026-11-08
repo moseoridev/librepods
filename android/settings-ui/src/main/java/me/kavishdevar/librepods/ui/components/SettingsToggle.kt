@@ -51,7 +51,8 @@ fun SettingsToggle(
 ) {
     if (header) {
         val interactionSource = remember { MutableInteractionSource() }
-        Column {
+        // Same rule as SettingsList: an inline title opens with the label's own lead.
+        Column(Modifier.then(if (title != null) Modifier.ownLeadingSpace() else Modifier)) {
             title?.let { SettingsSectionLabel(it) }
             // wm.k1.y → u1.q: a 52dp centered master row. Allow caller text
             // to grow beyond that minimum instead of clipping enlarged labels.

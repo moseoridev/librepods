@@ -121,9 +121,10 @@ internal fun BudsDeviceSettings(
                 scrollState = scroll,
                 background = if (page == DevicePage.Home || page == DevicePage.Name) ({ BudsHomeBackdrop(darkTheme) }) else null,
             ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
-                    .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}"),
-                    verticalArrangement = Arrangement.spacedBy(SettingsStyle.GroupSpacing)) {
+                // Groups do not share one gap: a titled group and a section label bring
+                // their own 16dp lead, and the battery row brings its own 14dp trail.
+                SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
+                    .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}")) {
                     val go: (DevicePage) -> Unit = { page = it }
                     when (page) {
                         DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume) { actions.setControlCommand(Command.LISTENING_MODE, it) }
@@ -297,7 +298,9 @@ private fun DeviceBatteries(ui: AppleUiState) {
                 }
             })
     }
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+    // The source battery row carries 14dp of its own bottom padding and the first group
+    // starts right after it, so this block supplies the whole gap below the meters.
+    Column(Modifier.fillMaxWidth().ownTrailingSpace(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(6.dp))
         // AirPods art has different proportions from the Buds hero. Bound it to
         // the source's 92dp hero region, sharing the battery row's group weights.
@@ -442,7 +445,7 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         listOf(0 to R.string.default_option, 1 to R.string.slower, 2 to R.string.slowest), R.string.press_speed, R.string.press_speed_description)
     CommandChoices(ui, vm, Command.CLICK_HOLD_INTERVAL,
         listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration, R.string.press_and_hold_duration_description)
-    if (ui.has(BaseCapability.LISTENING_MODE)) Column {
+    if (ui.has(BaseCapability.LISTENING_MODE)) Column(Modifier.ownLeadingSpace()) {
         SettingsSectionLabel(stringResource(R.string.listening_mode))
         CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description)
     }
@@ -451,7 +454,7 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         vm.setControlCommand(Command.CHIME_VOLUME, it)
     }
     if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
-        Column {
+        Column(Modifier.ownLeadingSpace()) {
             SettingsSectionLabel(stringResource(R.string.volume_control))
             CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_swipe, R.string.volume_control_description, premium = true)
         }
