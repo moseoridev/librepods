@@ -5,9 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
-import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -16,6 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.ui.NavDisplay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -55,7 +63,7 @@ import me.kavishdevar.librepods.ui.theme.SettingsTheme
 import kotlin.math.roundToInt
 
 /** Presentation routes only. Transport, persistence and capabilities remain owned by rewrite. */
-internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) {
+internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) : NavKey {
     Home(0), Audio(R.string.audio_routing, Home), Controls(R.string.controls_gestures, Home),
     Accessibility(R.string.accessibility, Home), Battery(R.string.battery, Home),
     Microphone(R.string.microphone_mode, Audio), Equalizer(R.string.equalizer, Audio),
@@ -64,6 +72,22 @@ internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) {
     Head(R.string.head_gestures, Controls), Version(R.string.version, Home), Name(R.string.name, Home),
     Extras(R.string.librepods_options, Home)
 }
+
+/** NavDisplay observes the stack through the snapshot system, so it must be a NavBackStack. */
+private val DevicePageBackStackSaver = listSaver<NavBackStack<DevicePage>, Int>(
+    save = { it.map(DevicePage::ordinal) },
+    restore = { values -> NavBackStack(*values.map { DevicePage.entries[it] }.toTypedArray()) }
+)
+
+private fun DevicePageBackStack(initial: DevicePage): NavBackStack<DevicePage> =
+    NavBackStack(
+        *buildList {
+            // A page opened directly (tests, deep state restore) still has a Home to return to.
+            var parent = initial.parent
+            while (parent != null) { add(0, parent); parent = parent.parent }
+            add(initial)
+        }.toTypedArray()
+    )
 
 @Composable
 fun BudsDeviceSettingsRoute(
@@ -106,97 +130,150 @@ internal fun BudsDeviceSettings(
     darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
     mediaVolume: @Composable () -> Unit,
 ) {
-    var page by rememberSaveable(actions) { mutableStateOf(initialPage) }
+    // Nested pages are real navigation destinations so the platform's predictive back gesture
+    // (Navigation3 -> navigationevent) drives them, instead of a local BackHandler animation.
+    val pages = rememberSaveable(actions, initialPage, saver = DevicePageBackStackSaver) {
+        DevicePageBackStack(initialPage)
+    }
+    // A single-entry stack leaves the screen, matching the platform's root behaviour.
+    val popPage: () -> Unit = { if (pages.size > 1) pages.removeAt(pages.lastIndex) else navigateBack?.invoke() }
+    // NavDisplay keeps an entry's content for as long as the entry stays on the stack, so the
+    // content must read the latest state instead of capturing the value it was first given.
+    val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
     val back = {
-        if (page == DevicePage.Name) keyboard?.hide()
-        if (page != DevicePage.Home) page = page.parent ?: DevicePage.Home else navigateBack?.invoke()
+        if (pages.lastOrNull() == DevicePage.Name) keyboard?.hide()
+        popPage()
         Unit
     }
-    BackHandler(page != DevicePage.Home, onBack = back)
     SettingsTheme(darkTheme = darkTheme) {
-        key(page) {
-            val scroll = rememberScrollState()
-            SettingsScaffold(
-                title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.displayName else stringResource(page.title),
-                backLabel = stringResource(R.string.back),
-                showBackButton = page != DevicePage.Home || navigateBack != null,
-                onNavigateBack = back,
-                navigationIcon = { BudsBackIcon() },
-                scrollState = scroll,
-                background = if (page == DevicePage.Home || page == DevicePage.Name) ({ BudsHomeBackdrop(darkTheme) }) else null,
-            ) {
-                // Groups do not share one gap: a titled group and a section label bring
-                // their own 16dp lead, and the battery row brings its own 14dp trail.
-                SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
-                    .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}")) {
-                    val go: (DevicePage) -> Unit = { page = it }
-                    when (page) {
-                        DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
-                        DevicePage.Audio -> AudioPage(ui, actions, go)
-                        DevicePage.Controls -> ControlsPage(ui, go)
-                        DevicePage.Accessibility -> AccessibilityPage(ui, actions)
-                        DevicePage.Battery -> BatteryPage(ui, actions)
-                        DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
-                            listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right))
-                        DevicePage.Equalizer -> EqualizerPage(ui, actions)
-                        DevicePage.Routing -> CommandChoices(ui, actions, Command.SMART_ROUTING_MODE,
-                            listOf(1 to R.string.on, 2 to R.string.off))
-                        DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
-                        DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, actions, page == DevicePage.Mute)
-                        DevicePage.Head -> HeadPage(ui, actions)
-                        DevicePage.Version -> SettingsList {
-                            SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3))
-                            SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
-                            SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
-                            if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
-                                SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
-                        }
-                        DevicePage.Name -> {
-                            DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
-                            val draft = rememberTextFieldState(ui.metadata.name)
-                            val focus = remember { FocusRequester() }
-                            SettingsDialog(visible = true, title = stringResource(R.string.name), onDismissRequest = back,
-                                modifier = Modifier.testTag("device-page-Name"),
-                                presentation = SettingsDialogPresentation.TextEntry,
-                                actions = listOf(SettingsDialogAction(stringResource(R.string.cancel), back),
-                                    SettingsDialogAction(stringResource(R.string.widget_save), {
-                                        keyboard?.hide()
-                                        actions.renameDevice(draft.text.toString().trim())
-                                        page = DevicePage.Home
-                                    }, enabled = draft.text.isNotBlank()))) {
-                                SettingsInputField(draft, focusRequester = focus)
-                                val window = LocalWindowInfo.current
-                                LaunchedEffect(window.isWindowFocused) { if (window.isWindowFocused) focus.requestFocus() }
-                            }
-                        }
-                        DevicePage.Extras -> {
-                            val cap = AirPodsSpecs.getSpec(ui.metadata.model).baseCapabilities
-                            SettingsList {
-                                SettingsListItem(name = stringResource(R.string.overlay_settings), onClick = navigateToOverlays)
-                                SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = navigateToProximity)
-                                if (BaseCapability.PPE in cap) SettingsListItem(name = stringResource(R.string.hearing_protection), onClick = navigateToHearingProtection)
-                                if (BaseCapability.HEARING_AID in cap && ui.vendorIdHook) SettingsListItem(name = stringResource(R.string.hearing_aid), onClick = navigateToHearingAid)
-                                if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 8)
-                                    SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
-                                if (BaseCapability.HRM in cap) SettingsListItem(name = stringResource(R.string.heart_rate), onClick = navigateToHeartRate)
-                                // Upstream applied transparency tuning through the same ATT handle as
-                                // hearing aid, so it was hidden while the buds acted as hearing aids.
-                                val hearingAidEnabled = ui.state.controlStates[Command.HEARING_AID]?.let {
-                                    it.getOrNull(0)?.toInt() == 1 && it.getOrNull(1)?.toInt() == 1
-                                } == true
-                                if (!hearingAidEnabled && ui.vendorIdHook) SettingsListItem(
-                                    name = stringResource(R.string.customize_transparency_mode),
-                                    onClick = navigateToTransparencyCustomization, enabled = ui.isPremium)
-                                if (LocalDebugMode.current) SettingsListItem(name = "Debug", onClick = navigateToDebug)
-                            }
-                            SettingsToggle(label = stringResource(R.string.disconnect_when_not_wearing), checked = ui.settings.disconnectWhenNotWearing,
-                                onCheckedChange = { enabled -> actions.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
-                        }
+        NavDisplay(
+            backStack = pages,
+            onBack = back,
+            entryProvider = { page ->
+                NavEntry(page) {
+                    DevicePageContent(uiState, actions, page, pages, back, mediaVolume, navigateBack,
+                        navigateToHearingProtection, navigateToHearingAid, navigateToPurchase,
+                        navigateToTransparencyCustomization, navigateToRecording, navigateToHeartRate,
+                        navigateToDebug, navigateToOverlays, navigateToProximity, darkTheme)
+                }
+            },
+            transitionSpec = { slideInPage() },
+            popTransitionSpec = { slideInPage() },
+            // The predictive preview comes from NavDisplay's default spec, which follows the
+            // platform gesture; overriding it would turn the preview into a plain slide.
+        )
+    }
+}
+
+/** NavDisplay's own slide, matching the root graph so both levels move identically. */
+private fun <S> AnimatedContentTransitionScope<S>.slideInPage(): ContentTransform =
+    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(300)) togetherWith
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(300))
+
+@Composable
+private fun DevicePageContent(
+    uiState: State<AppleUiState>,
+    actions: DeviceSettingsActions,
+    page: DevicePage,
+    pages: NavBackStack<DevicePage>,
+    back: () -> Unit,
+    mediaVolume: @Composable () -> Unit,
+    navigateBack: (() -> Unit)?,
+    navigateToHearingProtection: () -> Unit,
+    navigateToHearingAid: () -> Unit,
+    navigateToPurchase: () -> Unit,
+    navigateToTransparencyCustomization: () -> Unit,
+    navigateToRecording: () -> Unit,
+    navigateToHeartRate: () -> Unit,
+    navigateToDebug: () -> Unit,
+    navigateToOverlays: () -> Unit,
+    navigateToProximity: () -> Unit,
+    darkTheme: Boolean,
+) {
+    val ui = uiState.value
+    val keyboard = LocalSoftwareKeyboardController.current
+    val scroll = rememberScrollState()
+    SettingsScaffold(
+        title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.displayName else stringResource(page.title),
+        backLabel = stringResource(R.string.back),
+        showBackButton = pages.size > 1 || navigateBack != null,
+        onNavigateBack = back,
+        navigationIcon = { BudsBackIcon() },
+        scrollState = scroll,
+        background = if (page == DevicePage.Home || page == DevicePage.Name) ({ BudsHomeBackdrop(darkTheme) }) else null,
+    ) {
+        // Groups do not share one gap: a titled group and a section label bring
+        // their own 16dp lead, and the battery row brings its own 14dp trail.
+        SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
+            .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}")) {
+            // Repeated taps must not stack the same destination twice.
+            val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
+            when (page) {
+                DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
+                DevicePage.Audio -> AudioPage(ui, actions, go)
+                DevicePage.Controls -> ControlsPage(ui, go)
+                DevicePage.Accessibility -> AccessibilityPage(ui, actions)
+                DevicePage.Battery -> BatteryPage(ui, actions)
+                DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
+                    listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right))
+                DevicePage.Equalizer -> EqualizerPage(ui, actions)
+                DevicePage.Routing -> CommandChoices(ui, actions, Command.SMART_ROUTING_MODE,
+                    listOf(1 to R.string.on, 2 to R.string.off))
+                DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
+                DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, actions, page == DevicePage.Mute)
+                DevicePage.Head -> HeadPage(ui, actions)
+                DevicePage.Version -> SettingsList {
+                    SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3))
+                    SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
+                    SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
+                    if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
+                        SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
+                }
+                DevicePage.Name -> {
+                    DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
+                    val draft = rememberTextFieldState(ui.metadata.name)
+                    val focus = remember { FocusRequester() }
+                    SettingsDialog(visible = true, title = stringResource(R.string.name), onDismissRequest = back,
+                        modifier = Modifier.testTag("device-page-Name"),
+                        presentation = SettingsDialogPresentation.TextEntry,
+                        actions = listOf(SettingsDialogAction(stringResource(R.string.cancel), back),
+                            SettingsDialogAction(stringResource(R.string.widget_save), {
+                                keyboard?.hide()
+                                actions.renameDevice(draft.text.toString().trim())
+                                pages.clear()
+                                pages.add(DevicePage.Home)
+                            }, enabled = draft.text.isNotBlank()))) {
+                        SettingsInputField(draft, focusRequester = focus)
+                        val window = LocalWindowInfo.current
+                        LaunchedEffect(window.isWindowFocused) { if (window.isWindowFocused) focus.requestFocus() }
                     }
-                    Spacer(Modifier.height(16.dp))
+                }
+                DevicePage.Extras -> {
+                    val cap = AirPodsSpecs.getSpec(ui.metadata.model).baseCapabilities
+                    SettingsList {
+                        SettingsListItem(name = stringResource(R.string.overlay_settings), onClick = navigateToOverlays)
+                        SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = navigateToProximity)
+                        if (BaseCapability.PPE in cap) SettingsListItem(name = stringResource(R.string.hearing_protection), onClick = navigateToHearingProtection)
+                        if (BaseCapability.HEARING_AID in cap && ui.vendorIdHook) SettingsListItem(name = stringResource(R.string.hearing_aid), onClick = navigateToHearingAid)
+                        if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 8)
+                            SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
+                        if (BaseCapability.HRM in cap) SettingsListItem(name = stringResource(R.string.heart_rate), onClick = navigateToHeartRate)
+                        // Upstream applied transparency tuning through the same ATT handle as
+                        // hearing aid, so it was hidden while the buds acted as hearing aids.
+                        val hearingAidEnabled = ui.state.controlStates[Command.HEARING_AID]?.let {
+                            it.getOrNull(0)?.toInt() == 1 && it.getOrNull(1)?.toInt() == 1
+                        } == true
+                        if (!hearingAidEnabled && ui.vendorIdHook) SettingsListItem(
+                            name = stringResource(R.string.customize_transparency_mode),
+                            onClick = navigateToTransparencyCustomization, enabled = ui.isPremium)
+                        if (LocalDebugMode.current) SettingsListItem(name = "Debug", onClick = navigateToDebug)
+                    }
+                    SettingsToggle(label = stringResource(R.string.disconnect_when_not_wearing), checked = ui.settings.disconnectWhenNotWearing,
+                        onCheckedChange = { enabled -> actions.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
                 }
             }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -225,6 +302,14 @@ private fun BudsBackIcon() {
 private fun AppleUiState.value(command: Command): Int? = state.controlStates[command]?.firstOrNull()?.toInt()?.and(255)
 private fun AppleUiState.has(capability: BaseCapability) = capability in AirPodsSpecs.getSpec(metadata.model).baseCapabilities
 
+/**
+ * Control command 0x34 has no query request and some bonds never report it, so fall back to
+ * the value the user last stored. Without this both the Off mode and its toggle disappear.
+ */
+private fun AppleUiState.allowOffListeningMode(): Boolean =
+    state.controlStates[Command.ALLOW_OFF_OPTION]?.firstOrNull()?.toInt()?.and(255)?.let { it == 1 }
+        ?: settings.allowOffListeningMode
+
 @Composable
 private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, mediaVolume: @Composable () -> Unit,
     selectMode: (Int) -> Unit, navigateToPurchase: () -> Unit) {
@@ -233,7 +318,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: (
     if (ui.has(BaseCapability.LISTENING_MODE)) {
         SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
-                if (ui.value(Command.ALLOW_OFF_OPTION) == 1) add(1)
+                if (ui.allowOffListeningMode()) add(1)
                 add(3)
                 if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) add(4)
                 add(2)
@@ -412,7 +497,7 @@ private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boo
         SettingsList(title = stringResource(R.string.listening_mode),
             description = stringResource(R.string.press_and_hold_listening_mode_description)) {
             listOf(1 to 1, 3 to 4, 4 to 8, 2 to 2).forEach { (mode, bit) ->
-                if ((mode != 4 || ui.has(BaseCapability.ADAPTIVE_AUDIO)) && (mode != 1 || ui.value(Command.ALLOW_OFF_OPTION) == 1)) {
+                if ((mode != 4 || ui.has(BaseCapability.ADAPTIVE_AUDIO)) && (mode != 1 || ui.allowOffListeningMode())) {
                     item { _, _ -> SettingsMultiChoiceRow(modeLabel(mode), configured?.and(bit) != 0 && configured != null,
                         onCheckedChange = { checked ->
                             // Preserve all other bits; independent screenshot choices have no Samsung modal rule.
@@ -483,8 +568,16 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         CommandChoices(ui, vm, Command.VOLUME_SWIPE_INTERVAL,
             listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest), R.string.volume_swipe_speed, R.string.volume_swipe_speed_description)
     }
-    if (ui.has(BaseCapability.LISTENING_MODE)) CommandToggle(ui, vm, Command.ALLOW_OFF_OPTION,
-        R.string.off_listening_mode, R.string.off_listening_mode_description)
+    if (ui.has(BaseCapability.LISTENING_MODE)) SettingsToggle(label = stringResource(R.string.off_listening_mode),
+        description = stringResource(R.string.off_listening_mode_description),
+        checked = ui.allowOffListeningMode(),
+        // The command is the source of truth while connected, but it is also the only way to
+        // keep the choice: the firmware never reports 0x34 back, so persist what was requested.
+        enabled = ui.connectionState == ConnectionState.CONNECTED,
+        onCheckedChange = { checked ->
+            vm.setControlCommand(Command.ALLOW_OFF_OPTION, checked)
+            vm.updateSettings { it.copy(allowOffListeningMode = checked) }
+        })
     if (ui.has(BaseCapability.LOUD_SOUND_REDUCTION) && ui.vendorIdHook)
         SettingsToggle(label = stringResource(R.string.loud_sound_reduction), checked = ui.state.loudSoundReductionEnabled,
             enabled = ui.isPremium && (ui.connectionState == ConnectionState.CONNECTED),

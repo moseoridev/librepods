@@ -32,6 +32,13 @@ data class AppleSettings(
     val showIslandPopup: Boolean = true, // show_island_popup
     val showBottomSheetPopup: Boolean = true, // show_bottom_sheet_popup
 
+    /**
+     * Whether the Off listening mode is offered. Bonds do not always report control command
+     * 0x34, and the firmware never answers a query for it, so the last value the user set is
+     * the only usable fallback. Matches the Off default the pre-rewrite app shipped.
+     */
+    val allowOffListeningMode: Boolean = true, // off_listening_mode
+
     val alwaysConnectWhenAccessoryDisconnected: Boolean = true,
 
     val connectOnPhoneWhenAccessoryDisconnected: Boolean = true,
