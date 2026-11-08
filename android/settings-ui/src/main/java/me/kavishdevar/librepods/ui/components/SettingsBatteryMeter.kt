@@ -89,7 +89,19 @@ fun SettingsBatteryMeter(level: Int?, name: String, value: String, description: 
                     }
                 }
             }
-            Box(Modifier.align(Alignment.BottomCenter).offset(y = (-4).dp).size(30.dp, 18.dp)) { artwork() }
+            // p0.d2 places the 30×18dp artwork above a 4dp Spacer inside a
+            // bottom-aligned Column. Offsetting by -4dp instead rounds the
+            // opposite way: Math.round(-4dp) at 420dpi is round(-10.5) = -10
+            // while the source's positive 4dp Spacer is round(10.5) = 11. The
+            // artwork then sits one pixel lower than the source. The inner Box
+            // keeps the artwork's 30×18dp slot for callers that paint to the
+            // size they are given rather than declaring one.
+            Box(Modifier.align(Alignment.BottomCenter)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(30.dp, 18.dp)) { artwork() }
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
         }
         // Current rl.r.d separates the 37dp ring slot and label by 3dp.
         Spacer(Modifier.height(3.dp))
