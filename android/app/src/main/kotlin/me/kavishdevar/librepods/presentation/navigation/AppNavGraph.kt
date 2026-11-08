@@ -1,27 +1,40 @@
 package me.kavishdevar.librepods.presentation.navigation
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.channels.Channel
 import me.kavishdevar.librepods.LibrePodsApplication
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.devices.AppleDevice
 import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.devices.Device
+
+private const val TRANSITION_DURATION_MS = 300
+
+/**
+ * Standard AndroidX slide transition: the new page enters from the trailing
+ * edge and the old one leaves towards the leading edge, reversing on back.
+ * `slideIntoContainer`/`slideOutOfContainer` resolve the direction from the
+ * navigation itself, so the hardware back button, an on-screen back button and
+ * the predictive back gesture all share one transition.
+ */
+private fun <S> AnimatedContentTransitionScope<S>.slide(): ContentTransform =
+    slideIntoContainer(
+        AnimatedContentTransitionScope.SlideDirection.Start,
+        tween(TRANSITION_DURATION_MS)
+    ) togetherWith slideOutOfContainer(
+        AnimatedContentTransitionScope.SlideDirection.Start,
+        tween(TRANSITION_DURATION_MS)
+    )
 
 @Composable
 fun AppNavGraph(
@@ -31,8 +44,6 @@ fun AppNavGraph(
     updatesShown: () -> Unit = {},
     onboardingComplete: () -> Unit = {},
 ) {
-    val backRequests = remember { Channel<CompletableDeferred<Unit>>(Channel.BUFFERED) }
-
     val devices by devicesState
     val context = LocalContext.current
 
@@ -60,9 +71,7 @@ fun AppNavGraph(
                         backStack.size > 1 &&
                         backStack.lastOrNull() is DeviceScreen
                     ) {
-                        val completed = CompletableDeferred<Unit>()
-                        backRequests.send(completed)
-                        completed.await()
+                        backStack.removeAt(backStack.lastIndex)
                     }
                 }
 
@@ -71,53 +80,29 @@ fun AppNavGraph(
         }
     }
 
-    val appSettings by appDataRepository.settings.collectAsState()
-
-    val sceneStrategy = remember(appSettings.swipeAnywhereForBack) {
-        SwipeBackSceneStrategy<Screen>(
-            enabled = appSettings.swipeAnywhereForBack,
-            backRequests = backRequests,
-            onDismiss = {
-                if (backStack.size > 1) {
-                    backStack.removeAt(backStack.lastIndex)
-                }
+    NavDisplay(
+        backStack = backStack,
+        onBack = {
+            if (backStack.size > 1) {
+                backStack.removeAt(backStack.lastIndex)
             }
-        )
-    }
-
-    SharedTransitionLayout {
-        CompositionLocalProvider(
-            LocalSharedTransitionScope provides this,
-        ) {
-            NavDisplay(
-                sharedTransitionScope = this,
-                backStack = backStack,
-                sceneStrategies = listOf(sceneStrategy),
-                onBack = {
-                    if (backStack.size > 1) {
-                        backStack.removeAt(backStack.lastIndex)
-                    }
-                },
-                entryProvider = { screen ->
-                    NavEntry(screen) {
-                        RenderScreenContent(
-                            screen = screen,
-                            backStack = backStack,
-                            backRequests = backRequests,
-                            devices = devices,
-                            appDataRepository = appDataRepository,
-                            recordingRepository = recordingRepository,
-                            heartRateRepository = heartRateRepository,
-                            showReleaseNotes = showReleaseNotes,
-                            updatesShown = updatesShown,
-                            onboardingComplete = onboardingComplete
-                        )
-                    }
-                },
-                transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
-            )
-        }
-    }
+        },
+        entryProvider = { screen ->
+            NavEntry(screen) {
+                RenderScreenContent(
+                    screen = screen,
+                    backStack = backStack,
+                    devices = devices,
+                    appDataRepository = appDataRepository,
+                    recordingRepository = recordingRepository,
+                    heartRateRepository = heartRateRepository,
+                    showReleaseNotes = showReleaseNotes,
+                    updatesShown = updatesShown,
+                    onboardingComplete = onboardingComplete
+                )
+            }
+        },
+        transitionSpec = { slide() },
+        popTransitionSpec = { slide() },
+    )
 }

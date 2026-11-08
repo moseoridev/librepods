@@ -71,9 +71,6 @@ data class AppSettingsEntity(
     @ColumnInfo(defaultValue = "250")
     val bleReportDelay: Long = 250L,
 
-    @ColumnInfo(defaultValue = "1")
-    val swipeAnywhereForBack: Boolean = true,
-
     @ColumnInfo(defaultValue = "X'BFFF'")
     val accessibilitySettings: AccessibilitySettings = AccessibilitySettings(),
 

@@ -342,7 +342,6 @@
     <string name="permission_description_phone">Respond to phone calls with head gestures.</string>
     <string name="permission_overlay">Display over other apps</string>
     <string name="permission_description_overlay">Show popups when AirPods are nearby or audio switches to them.</string>
-    <string name="swipe_anywhere_to_go_back">Swipe anywhere to go back</string>
     <string name="use_highest_refresh_rate">Use highest refresh rate available</string>
     <string name="debug_mode_description">Shows extra information and settings.</string>
     <string name="interaction">Interaction</string>

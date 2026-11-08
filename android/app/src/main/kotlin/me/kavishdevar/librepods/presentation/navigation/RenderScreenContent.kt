@@ -7,8 +7,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation3.runtime.NavBackStack
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.channels.Channel
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
@@ -80,7 +78,6 @@ private fun createAppleViewModelFactory(
 fun RenderScreenContent(
     screen: Screen,
     backStack: NavBackStack<Screen>,
-    backRequests: Channel<CompletableDeferred<Unit>>,
     devices: Map<MacAddress, Device<*, *, *>>,
     appDataRepository: AppDataRepository,
     recordingRepository: RecordingRepository,
@@ -93,10 +90,7 @@ fun RenderScreenContent(
     fun navigateToPurchase() = navigate(Screen.Purchase)
 
     val navigateBack: (() -> Unit)? = if (backStack.size > 1) {
-        {
-            val completed = CompletableDeferred<Unit>()
-            backRequests.trySend(completed)
-        }
+        { backStack.removeAt(backStack.lastIndex) }
     } else null
 
     when (screen) {

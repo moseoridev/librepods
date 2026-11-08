@@ -183,16 +183,6 @@ fun AppSettingsScreen(
 
                 StyledList(title = stringResource(R.string.interaction)) {
                     styledToggle(
-                        label = stringResource(R.string.swipe_anywhere_to_go_back),
-                        checked = state.settings.swipeAnywhereForBack,
-                        onCheckedChange = { checked ->
-                            viewModel.updateSettings {
-                                it.copy(swipeAnywhereForBack = checked)
-                            }
-                        },
-                    )
-
-                    styledToggle(
                         label = stringResource(R.string.use_highest_refresh_rate),
                         checked = state.settings.useHighestRefreshRate,
                         onCheckedChange = { checked ->
