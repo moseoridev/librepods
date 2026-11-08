@@ -354,4 +354,8 @@ interface DeviceSettings
 interface DeviceMetadata {
     val name: String
     val iconName: String
+
+    /** A label safe to show on surfaces that reject blank text. */
+    val displayName: String
+        get() = name
 }

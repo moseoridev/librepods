@@ -500,7 +500,12 @@ class AACPManager(private val device: AppleDevice) {
                         aacpPackets = it.aacpPackets.takeLast(63) + informationPacket
                     )
                 }
-                device.updateMetadata { informationPacket.metadata }
+                device.updateMetadata { current ->
+                    // The packet can carry an empty name field; dropping the Bluetooth
+                    // alias in that case would leave the device without any label.
+                    val metadata = informationPacket.metadata
+                    if (metadata.name.isBlank()) metadata.copy(name = current.name) else metadata
+                }
             }
 
             MessageOpcode.CUSTOM_EQ -> {

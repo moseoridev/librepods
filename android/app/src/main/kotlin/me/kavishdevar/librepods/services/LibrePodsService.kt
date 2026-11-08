@@ -272,7 +272,7 @@ class LibrePodsService: Service() {
         islandOwner = null
         proximityCardWindow.forceClose()
         bottomOwner = OverlayOwner(device, device.connectionNumber.value)
-        proximityCardWindow.show(device.metadata.value.name, state.battery,
+        proximityCardWindow.show(device.metadata.value.displayName, state.battery,
             AirPodsSpecs.getSpec(device.metadata.value.model), { device.connect() }, true)
     }
 
@@ -507,7 +507,7 @@ class LibrePodsService: Service() {
                 val notificationManager = getSystemService(NotificationManager::class.java)
                 val channel = NotificationChannel(
                     "device_${device.macAddress}",
-                    "Device ${device.metadata.value.name}",
+                    "Device ${device.metadata.value.displayName}",
                     NotificationManager.IMPORTANCE_LOW
                 )
                 notificationManager.createNotificationChannel(channel)
@@ -982,7 +982,7 @@ class LibrePodsService: Service() {
                     val notificationManager = getSystemService(NotificationManager::class.java)
                     val channel =
                         notificationManager.getNotificationChannel("device_${device.macAddress}")
-                    channel?.let { it.name = "Device ${metadata.name}"; notificationManager.createNotificationChannel(it) }
+                    channel?.let { it.name = "Device ${metadata.displayName}"; notificationManager.createNotificationChannel(it) }
                     updateWidgets()
                     updateDeviceNotification(device)
                 }
@@ -1073,7 +1073,7 @@ class LibrePodsService: Service() {
 
                     islandOwner = owner
                     islandWindow.show(
-                        name = metadata.name,
+                        name = metadata.displayName,
                         batteryLevel = batteryPercentage,
                         type = type,
                         reversed = reversed,
@@ -1137,7 +1137,7 @@ class LibrePodsService: Service() {
         val batteries = device.state.value.battery.filter { it.level in 0..100 &&
             it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
             .sortedBy { it.component.ordinal }.joinToString(" ") { "${it.component.name[0]}: ${if (it.status == BatteryStatus.CHARGING) "⚡" else ""}${it.level}%" }
-        val content = ConnectionNotificationContent(device.metadata.value.name, batteries,
+        val content = ConnectionNotificationContent(device.metadata.value.displayName, batteries,
             state == ConnectionState.CONNECTED, modes, resources.configuration.locales.toLanguageTags(), address in reversedDevices)
         if (connectionNotifications[address] == content && manager.activeNotifications.any { it.tag == address.value && it.id == 2 }) return
         val channelId = "device_$address"

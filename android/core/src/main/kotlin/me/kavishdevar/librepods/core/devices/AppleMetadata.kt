@@ -27,4 +27,12 @@ data class AppleMetadata(
 ): DeviceMetadata {
     override val iconName: String
         get() = AirPodsSpecs.getSpec(model).genericIconName
+
+    /**
+     * Non-blank label for surfaces that require one. A persisted device name can be
+     * blank before the information packet arrives, and Android rejects notification
+     * channels with an empty name, so never hand [name] out on its own.
+     */
+    override val displayName: String
+        get() = name.ifBlank { AirPodsSpecs.getSpec(model).displayName }
 }

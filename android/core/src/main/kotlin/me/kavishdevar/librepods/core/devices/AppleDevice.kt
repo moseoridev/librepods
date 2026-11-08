@@ -84,7 +84,12 @@ class AppleDevice(
             controlStates = state.controlStates + current.controlStates
         ) }
         _settings.value = settings
-        _metadata.update { current -> if (current.model == AirPodsModel.UNKNOWN) metadata else current }
+        _metadata.update { current ->
+            if (current.model != AirPodsModel.UNKNOWN) current
+            // A persisted entry written before the information packet arrived carries an
+            // empty name; keep the Bluetooth alias this instance already resolved.
+            else if (metadata.name.isBlank()) metadata.copy(name = current.name) else metadata
+        }
         initialized.complete(Unit)
     }
 

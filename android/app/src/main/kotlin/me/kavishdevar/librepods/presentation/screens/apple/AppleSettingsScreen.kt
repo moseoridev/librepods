@@ -170,7 +170,7 @@ fun AppleSettingsScreen(
     val debugMode = LocalDebugMode.current
 
     StyledScaffold(
-        title = uiState.metadata.name,
+        title = uiState.metadata.displayName,
         navigateBack = navigateBack
     ) { topPadding, bottomPadding ->
         if (debugMode) {

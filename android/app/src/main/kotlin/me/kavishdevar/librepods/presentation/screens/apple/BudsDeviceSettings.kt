@@ -118,7 +118,7 @@ internal fun BudsDeviceSettings(
         key(page) {
             val scroll = rememberScrollState()
             SettingsScaffold(
-                title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.name else stringResource(page.title),
+                title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.displayName else stringResource(page.title),
                 backLabel = stringResource(R.string.back),
                 showBackButton = page != DevicePage.Home || navigateBack != null,
                 onNavigateBack = back,
@@ -229,7 +229,7 @@ private fun AppleUiState.has(capability: BaseCapability) = capability in AirPods
 private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, mediaVolume: @Composable () -> Unit,
     selectMode: (Int) -> Unit, navigateToPurchase: () -> Unit) {
     DeviceBatteries(ui)
-    SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.name, onClick = { go(DevicePage.Name) }) }
+    SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.displayName, onClick = { go(DevicePage.Name) }) }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
         SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
