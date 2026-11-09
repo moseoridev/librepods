@@ -139,9 +139,17 @@ class DeviceSettingsScreenTest {
         for ((source, label, destination) in routes) {
             compose.runOnIdle { start = source; iteration++ }
             compose.onNodeWithText(text(label)).performScrollTo().performClick()
-            compose.onNodeWithTag("device-page-${destination.name}").assertIsDisplayed()
-            if (destination == DevicePage.Name) compose.onNodeWithText(text(R.string.cancel)).performClick()
-            else compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+            if (destination == DevicePage.Name) {
+                // The editor is a dialog over Home: Home stays exactly where it was, no second
+                // copy slides in behind it, and cancelling restores the same Home surface.
+                compose.onNodeWithTag("device-page-Name").assertIsDisplayed()
+                compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
+                compose.onNodeWithText(text(R.string.cancel)).performClick()
+                compose.onNodeWithTag("device-page-Name").assertDoesNotExist()
+            } else {
+                compose.onNodeWithTag("device-page-${destination.name}").assertIsDisplayed()
+                compose.onNodeWithContentDescription(text(R.string.back)).performClick()
+            }
             compose.onNodeWithTag("device-page-${source.name}").assertIsDisplayed()
         }
     }

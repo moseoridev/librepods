@@ -62,7 +62,10 @@ import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.SettingsTheme
 import kotlin.math.roundToInt
 
-/** Presentation routes only. Transport, persistence and capabilities remain owned by rewrite. */
+/**
+ * Presentation routes only. Transport, persistence and capabilities remain owned by rewrite.
+ * [Name] is not a route: the rename editor is the platform text-entry dialog over [Home].
+ */
 internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) : NavKey {
     Home(0), Audio(R.string.audio_routing, Home), Controls(R.string.controls_gestures, Home),
     Accessibility(R.string.accessibility, Home), Battery(R.string.battery, Home),
@@ -76,16 +79,22 @@ internal enum class DevicePage(val title: Int, val parent: DevicePage? = null) :
 /** NavDisplay observes the stack through the snapshot system, so it must be a NavBackStack. */
 private val DevicePageBackStackSaver = listSaver<NavBackStack<DevicePage>, Int>(
     save = { it.map(DevicePage::ordinal) },
-    restore = { values -> NavBackStack(*values.map { DevicePage.entries[it] }.toTypedArray()) }
+    // A stack saved before the name editor became a dialog can still hold [DevicePage.Name].
+    restore = { values ->
+        NavBackStack(*values.map { DevicePage.entries[it] }
+            .map { if (it == DevicePage.Name) DevicePage.Home else it }.toTypedArray())
+    }
 )
 
 private fun DevicePageBackStack(initial: DevicePage): NavBackStack<DevicePage> =
     NavBackStack(
         *buildList {
+            // The name editor is a dialog over Home rather than a page, so it starts at Home.
+            val page = if (initial == DevicePage.Name) DevicePage.Home else initial
             // A page opened directly (tests, deep state restore) still has a Home to return to.
-            var parent = initial.parent
+            var parent = page.parent
             while (parent != null) { add(0, parent); parent = parent.parent }
-            add(initial)
+            add(page)
         }.toTypedArray()
     )
 
@@ -142,11 +151,11 @@ internal fun BudsDeviceSettings(
     val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
     val predictiveShiftPx = rememberPredictiveBackShiftPx()
-    val back = {
-        if (pages.lastOrNull() == DevicePage.Name) keyboard?.hide()
-        popPage()
-        Unit
-    }
+    // The name editor is the platform text-entry dialog over Home, not a page of its own:
+    // a separate destination slides a second copy of Home in behind the dialog, which reads as
+    // the whole background refreshing.
+    var renaming by rememberSaveable(actions) { mutableStateOf(initialPage == DevicePage.Name) }
+    val back: () -> Unit = { popPage(); Unit }
     SettingsTheme(darkTheme = darkTheme) {
         NavDisplay(
             backStack = pages,
@@ -156,7 +165,8 @@ internal fun BudsDeviceSettings(
                     DevicePageContent(uiState, actions, page, pages, back, mediaVolume, navigateBack,
                         navigateToHearingProtection, navigateToHearingAid, navigateToPurchase,
                         navigateToTransparencyCustomization, navigateToRecording, navigateToHeartRate,
-                        navigateToDebug, navigateToOverlays, navigateToProximity, darkTheme)
+                        navigateToDebug, navigateToOverlays, navigateToProximity, darkTheme,
+                        onRename = { renaming = true })
                 }
             },
             transitionSpec = { forwardPageTransition() },
@@ -167,6 +177,30 @@ internal fun BudsDeviceSettings(
                 predictivePopPageTransition(swipeEdge, predictiveShiftPx)
             },
         )
+        if (renaming && pages.lastOrNull() == DevicePage.Home) {
+            NameEditorDialog(
+                name = ui.metadata.name,
+                onDismiss = { keyboard?.hide(); renaming = false },
+                onSave = { renamed -> keyboard?.hide(); actions.renameDevice(renamed); renaming = false },
+            )
+        }
+    }
+}
+
+/** The native text-entry editor, layered over the unchanged Home page. */
+@Composable
+private fun NameEditorDialog(name: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    val draft = rememberTextFieldState(name)
+    val focus = remember { FocusRequester() }
+    SettingsDialog(visible = true, title = stringResource(R.string.name), onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("device-page-Name"),
+        presentation = SettingsDialogPresentation.TextEntry,
+        actions = listOf(SettingsDialogAction(stringResource(R.string.cancel), onDismiss),
+            SettingsDialogAction(stringResource(R.string.widget_save), { onSave(draft.text.toString().trim()) },
+                enabled = draft.text.isNotBlank()))) {
+        SettingsInputField(draft, focusRequester = focus)
+        val window = LocalWindowInfo.current
+        LaunchedEffect(window.isWindowFocused) { if (window.isWindowFocused) focus.requestFocus() }
     }
 }
 
@@ -189,27 +223,28 @@ private fun DevicePageContent(
     navigateToOverlays: () -> Unit,
     navigateToProximity: () -> Unit,
     darkTheme: Boolean,
+    onRename: () -> Unit,
 ) {
     val ui = uiState.value
-    val keyboard = LocalSoftwareKeyboardController.current
     val scroll = rememberScrollState()
     SettingsScaffold(
-        title = if (page == DevicePage.Home || page == DevicePage.Name) ui.metadata.displayName else stringResource(page.title),
+        title = if (page == DevicePage.Home) ui.metadata.displayName else stringResource(page.title),
         backLabel = stringResource(R.string.back),
         showBackButton = pages.size > 1 || navigateBack != null,
         onNavigateBack = back,
         navigationIcon = { BudsBackIcon() },
         scrollState = scroll,
-        background = if (page == DevicePage.Home || page == DevicePage.Name) ({ BudsHomeBackdrop(darkTheme) }) else null,
+        background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
     ) {
         // Groups do not share one gap: a titled group and a section label bring
         // their own 16dp lead, and the battery row brings its own 14dp trail.
         SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
-            .testTag("device-page-${if (page == DevicePage.Name) DevicePage.Home.name else page.name}")) {
+            .testTag("device-page-${page.name}")) {
             // Repeated taps must not stack the same destination twice.
             val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
             when (page) {
-                DevicePage.Home -> DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
+                DevicePage.Home -> DeviceHome(ui, go, onRename,
+                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
                 DevicePage.Audio -> AudioPage(ui, actions, go)
                 DevicePage.Controls -> ControlsPage(ui, go)
                 DevicePage.Accessibility -> AccessibilityPage(ui, actions)
@@ -229,25 +264,7 @@ private fun DevicePageContent(
                     if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
                         SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
                 }
-                DevicePage.Name -> {
-                    DeviceHome(ui, go, actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
-                    val draft = rememberTextFieldState(ui.metadata.name)
-                    val focus = remember { FocusRequester() }
-                    SettingsDialog(visible = true, title = stringResource(R.string.name), onDismissRequest = back,
-                        modifier = Modifier.testTag("device-page-Name"),
-                        presentation = SettingsDialogPresentation.TextEntry,
-                        actions = listOf(SettingsDialogAction(stringResource(R.string.cancel), back),
-                            SettingsDialogAction(stringResource(R.string.widget_save), {
-                                keyboard?.hide()
-                                actions.renameDevice(draft.text.toString().trim())
-                                pages.clear()
-                                pages.add(DevicePage.Home)
-                            }, enabled = draft.text.isNotBlank()))) {
-                        SettingsInputField(draft, focusRequester = focus)
-                        val window = LocalWindowInfo.current
-                        LaunchedEffect(window.isWindowFocused) { if (window.isWindowFocused) focus.requestFocus() }
-                    }
-                }
+                DevicePage.Name -> Unit
                 DevicePage.Extras -> {
                     val cap = AirPodsSpecs.getSpec(ui.metadata.model).baseCapabilities
                     SettingsList {
@@ -310,10 +327,10 @@ private fun AppleUiState.allowOffListeningMode(): Boolean =
         ?: settings.allowOffListeningMode
 
 @Composable
-private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, disconnect: () -> Unit, mediaVolume: @Composable () -> Unit,
-    selectMode: (Int) -> Unit, navigateToPurchase: () -> Unit) {
+private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, disconnect: () -> Unit,
+    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit, navigateToPurchase: () -> Unit) {
     DeviceBatteries(ui)
-    SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.displayName, onClick = { go(DevicePage.Name) }) }
+    SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.displayName, onClick = onRename) }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
         SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
