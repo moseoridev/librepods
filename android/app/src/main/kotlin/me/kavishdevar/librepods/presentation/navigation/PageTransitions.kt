@@ -2,9 +2,24 @@ package me.kavishdevar.librepods.presentation.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEvent
+import kotlin.math.roundToInt
 
 internal const val PAGE_TRANSITION_DURATION_MS = 300
 
@@ -28,25 +43,73 @@ internal fun <S> AnimatedContentTransitionScope<S>.popPageTransition(): ContentT
         tween(PAGE_TRANSITION_DURATION_MS)
     )
 
+// Predictive back preview, following the Android predictive back design guidance:
+// the current page scales 100% -> 90% and shifts away from the edge the gesture started on, the
+// destination scales 110% -> 100%, and the two cross over in a fade through at 35% progress.
+// https://developer.android.com/design/ui/mobile/guides/patterns/predictive-back
+private const val PREDICTIVE_DURATION_MS = 600
+private const val EXIT_SCALE = 0.9f
+private const val ENTER_SCALE = 1.1f
+private const val FADE_THROUGH_FRACTION = 0.35f
+
+/** Matches the interpolator SystemUI uses, so the screen moves quickly at the start of the drag. */
+private val BackGestureEasing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f)
+
 /**
- * Predictive back preview. The pages travel in the direction the finger is dragging instead of
- * scaling in place, so the preview reads as the back navigation it is committing to: the current
- * page leaves towards the swipe edge and the previous page follows behind it.
- *
- * Navigation3's default here is `fadeIn + scaleOut(0.7f)`, which shrinks the whole screen around
- * its centre and does not follow the gesture at all.
+ * The guidance shifts the surface by `(width / 20) - 8dp`: centred, a 90% page leaves 5% on each
+ * side, and this moves it until only an 8dp margin is left at the edge the gesture began on.
+ */
+@Composable
+internal fun rememberPredictiveBackShiftPx(): Float {
+    val density = LocalDensity.current
+    val containerWidthPx = LocalWindowInfo.current.containerSize.width
+    return remember(density, containerWidthPx) {
+        val marginPx = with(density) { 8.dp.toPx() }
+        (containerWidthPx / 20f - marginPx).coerceAtLeast(0f)
+    }
+}
+
+/**
+ * @param shiftPx how far the leaving page moves, from [rememberPredictiveBackShiftPx].
  */
 internal fun <S> AnimatedContentTransitionScope<S>.predictivePopPageTransition(
     swipeEdge: Int,
+    shiftPx: Float,
 ): ContentTransform {
-    // A right-edge drag pulls the pages leftwards, a left-edge drag pushes them rightwards.
-    // Layout-direction aware: `Start`/`End` mirror under RTL by themselves.
-    val towards =
-        if (swipeEdge == NavigationEvent.EDGE_RIGHT) {
-            AnimatedContentTransitionScope.SlideDirection.Start
-        } else {
-            AnimatedContentTransitionScope.SlideDirection.End
-        }
-    return slideIntoContainer(towards, tween(PAGE_TRANSITION_DURATION_MS)) togetherWith
-        slideOutOfContainer(towards, tween(PAGE_TRANSITION_DURATION_MS))
+    // Away from the edge the gesture started on, mirroring AOSP's cross-activity animation.
+    // The distance is a nudge of roughly 11dp, not a full-width slide: a slide of the whole page
+    // in the drag direction reads as forward navigation, whatever the finger is doing.
+    val direction = if (swipeEdge == NavigationEvent.EDGE_RIGHT) -1f else 1f
+    val offsetPx = (shiftPx * direction).roundToInt()
+
+    return scaleIn(
+        animationSpec = tween(PREDICTIVE_DURATION_MS, easing = BackGestureEasing),
+        initialScale = ENTER_SCALE,
+    ) + fadeIn(fadeThroughEnter()) togetherWith
+        scaleOut(
+            animationSpec = tween(PREDICTIVE_DURATION_MS, easing = BackGestureEasing),
+            targetScale = EXIT_SCALE,
+        ) + fadeOut(fadeThroughExit()) +
+        slideOutHorizontally(
+            animationSpec = tween(PREDICTIVE_DURATION_MS, easing = BackGestureEasing),
+            targetOffsetX = { offsetPx },
+        )
+}
+
+private const val FADE_THROUGH_KEYFRAME_MS = (PREDICTIVE_DURATION_MS * FADE_THROUGH_FRACTION).toInt()
+
+/** The leaving page stays fully opaque until the cross over, then fades out. */
+private fun fadeThroughExit(): FiniteAnimationSpec<Float> = keyframes {
+    durationMillis = PREDICTIVE_DURATION_MS
+    1f at 0
+    0f at FADE_THROUGH_KEYFRAME_MS
+    0f at PREDICTIVE_DURATION_MS
+}
+
+/** The destination is invisible until the cross over, then fades in. */
+private fun fadeThroughEnter(): FiniteAnimationSpec<Float> = keyframes {
+    durationMillis = PREDICTIVE_DURATION_MS
+    0f at 0
+    0f at FADE_THROUGH_KEYFRAME_MS
+    1f at PREDICTIVE_DURATION_MS
 }

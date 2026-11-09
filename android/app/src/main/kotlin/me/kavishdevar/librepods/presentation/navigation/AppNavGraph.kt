@@ -24,6 +24,7 @@ fun AppNavGraph(
 ) {
     val devices by devicesState
     val context = LocalContext.current
+    val predictiveShiftPx = rememberPredictiveBackShiftPx()
 
     val appDataRepository by lazy { (context.applicationContext as LibrePodsApplication).appDataRepository }
     val recordingRepository by lazy { (context.applicationContext as LibrePodsApplication).recordingRepository }
@@ -82,6 +83,8 @@ fun AppNavGraph(
         },
         transitionSpec = { forwardPageTransition() },
         popTransitionSpec = { popPageTransition() },
-        predictivePopTransitionSpec = { swipeEdge -> predictivePopPageTransition(swipeEdge) },
+        predictivePopTransitionSpec = { swipeEdge ->
+            predictivePopPageTransition(swipeEdge, predictiveShiftPx)
+        },
     )
 }

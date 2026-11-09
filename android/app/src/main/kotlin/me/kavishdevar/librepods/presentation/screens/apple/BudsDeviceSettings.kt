@@ -53,6 +53,7 @@ import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
 import me.kavishdevar.librepods.presentation.navigation.predictivePopPageTransition
+import me.kavishdevar.librepods.presentation.navigation.rememberPredictiveBackShiftPx
 import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
@@ -140,6 +141,7 @@ internal fun BudsDeviceSettings(
     // content must read the latest state instead of capturing the value it was first given.
     val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
+    val predictiveShiftPx = rememberPredictiveBackShiftPx()
     val back = {
         if (pages.lastOrNull() == DevicePage.Name) keyboard?.hide()
         popPage()
@@ -160,8 +162,10 @@ internal fun BudsDeviceSettings(
             transitionSpec = { forwardPageTransition() },
             popTransitionSpec = { popPageTransition() },
             // Without this, NavDisplay falls back to its own fadeIn + scaleOut(0.7f) preview,
-            // which shrinks the whole screen instead of following the gesture.
-            predictivePopTransitionSpec = { swipeEdge -> predictivePopPageTransition(swipeEdge) },
+            // which shrinks the whole screen much further than the design guidance.
+            predictivePopTransitionSpec = { swipeEdge ->
+                predictivePopPageTransition(swipeEdge, predictiveShiftPx)
+            },
         )
     }
 }
