@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
@@ -57,7 +56,8 @@ private val BackGestureEasing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f)
 
 /**
  * The guidance shifts the surface by `(width / 20) - 8dp`: centred, a 90% page leaves 5% on each
- * side, and this moves it until only an 8dp margin is left at the edge the gesture began on.
+ * side, and this moves it away from the gesture edge until only an 8dp margin is left on the
+ * opposite side, matching the AOSP cross-activity preview.
  */
 @Composable
 internal fun rememberPredictiveBackShiftPx(): Float {
