@@ -101,6 +101,15 @@ python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --page Version
 
 Use `--help` for pages, models and scenarios, including `pending` (requests never become acknowledgements), `disconnected` and `long_name`. Width and font overrides affect only this composition, including its layout configuration; they do not change the device's density/font settings. They simulate logical viewports, not different physical devices or OEM font renderers. The host application's ordinary Application initialization still runs; this entry does not instantiate the real connection route.
 
+`BudsManagerFixtureActivity` is a second, separate debug entry: the installed Manager's Home rebuilt from settings-ui, for comparing that library against a native capture. It reads `theme` (`dark`/`light`) and `font_scale` (%f) from the intent and resolves every string, drawable, colour and Lottie mode asset from the installed `com.samsung.accessory.budsunitemgr` package at runtime, so it requires that package to be present and packages none of its content. It is not the product UI and is not a Bluetooth state; it draws one fixed Home.
+
+```sh
+adb -s DEVICE_SERIAL shell am start -n me.kavishdevar.librepods/.presentation.screens.apple.BudsManagerFixtureActivity \
+  --es theme dark --ef font_scale 1.0
+```
+
+When comparing it with a Manager capture, hold the two capture sessions to the same conditions. `screencap` tags a frame with the profile of what it composited, so two frames from different sessions can arrive in different colour spaces and a raw diff then reports the colour transform as layout; compare within one session, or normalise both through their embedded ICC profile. The Manager also follows `settings get global font_size` (the One UI font-size level) on top of `font_scale`; capture both sides at the same level. Both points were each worth hundreds of thousands of false differing pixels before they were corrected.
+
 `DeviceSettingsScreenTest` is the behavioral regression suite. Its14 checks cover battery alignment and zero/missing/headset states; request/acknowledgement separation; actual menu navigation and return paths; coupled call choices; independent long-press bits; disconnected EQ reset; committed Korean/blank/long name editing with the real IME visible, save/dismiss/cancel; media/tone command separation; horizontal/vertical touch, EQ reset and pending values on navigation; scroll-versus-tap behavior; grouped ear-detection command/local-preference updates; and the Head master state/mapping. Name editing uses the source TextEntry dialog, including its separate window/IME insets. These checks use synthetic state/actions, not a fake Bluetooth engine. The system media-volume API is replaced by in-memory caller state.
 
 Build `:app:assembleFossDebug :app:assembleFossDebugAndroidTest` with the options above, then run:

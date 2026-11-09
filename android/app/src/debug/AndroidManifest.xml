@@ -5,5 +5,10 @@
             android:exported="true" android:launchMode="singleTask"
             android:taskAffinity="${applicationId}.settingsfixture"
             android:label="LibrePods UI Fixture" />
+        <!-- Comparison surface for native Manager captures; debug builds only. -->
+        <activity android:name=".presentation.screens.apple.BudsManagerFixtureActivity"
+            android:exported="true" android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.budsmanagerfixture"
+            android:label="Buds Manager Fixture" />
     </application>
 </manifest>
