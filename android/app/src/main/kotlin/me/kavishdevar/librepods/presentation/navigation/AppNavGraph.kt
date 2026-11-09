@@ -1,9 +1,5 @@
 package me.kavishdevar.librepods.presentation.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -17,24 +13,6 @@ import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.devices.AppleDevice
 import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.devices.Device
-
-private const val TRANSITION_DURATION_MS = 300
-
-/**
- * Standard AndroidX slide transition: the new page enters from the trailing
- * edge and the old one leaves towards the leading edge, reversing on back.
- * `slideIntoContainer`/`slideOutOfContainer` resolve the direction from the
- * navigation itself, so the hardware back button, an on-screen back button and
- * the predictive back gesture all share one transition.
- */
-private fun <S> AnimatedContentTransitionScope<S>.slide(): ContentTransform =
-    slideIntoContainer(
-        AnimatedContentTransitionScope.SlideDirection.Start,
-        tween(TRANSITION_DURATION_MS)
-    ) togetherWith slideOutOfContainer(
-        AnimatedContentTransitionScope.SlideDirection.Start,
-        tween(TRANSITION_DURATION_MS)
-    )
 
 @Composable
 fun AppNavGraph(
@@ -102,7 +80,8 @@ fun AppNavGraph(
                 )
             }
         },
-        transitionSpec = { slide() },
-        popTransitionSpec = { slide() },
+        transitionSpec = { forwardPageTransition() },
+        popTransitionSpec = { popPageTransition() },
+        predictivePopTransitionSpec = { swipeEdge -> predictivePopPageTransition(swipeEdge) },
     )
 }

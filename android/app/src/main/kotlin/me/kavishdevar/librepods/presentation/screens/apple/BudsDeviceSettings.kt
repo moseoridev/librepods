@@ -5,10 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.saveable.listSaver
@@ -54,6 +50,9 @@ import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.data.StemAction
 import me.kavishdevar.librepods.core.devices.*
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
+import me.kavishdevar.librepods.presentation.navigation.popPageTransition
+import me.kavishdevar.librepods.presentation.navigation.predictivePopPageTransition
 import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
@@ -158,18 +157,14 @@ internal fun BudsDeviceSettings(
                         navigateToDebug, navigateToOverlays, navigateToProximity, darkTheme)
                 }
             },
-            transitionSpec = { slideInPage() },
-            popTransitionSpec = { slideInPage() },
-            // The predictive preview comes from NavDisplay's default spec, which follows the
-            // platform gesture; overriding it would turn the preview into a plain slide.
+            transitionSpec = { forwardPageTransition() },
+            popTransitionSpec = { popPageTransition() },
+            // Without this, NavDisplay falls back to its own fadeIn + scaleOut(0.7f) preview,
+            // which shrinks the whole screen instead of following the gesture.
+            predictivePopTransitionSpec = { swipeEdge -> predictivePopPageTransition(swipeEdge) },
         )
     }
 }
-
-/** NavDisplay's own slide, matching the root graph so both levels move identically. */
-private fun <S> AnimatedContentTransitionScope<S>.slideInPage(): ContentTransform =
-    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(300)) togetherWith
-        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(300))
 
 @Composable
 private fun DevicePageContent(
