@@ -29,6 +29,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -108,7 +109,12 @@ fun SettingsScaffold(
     val scope = rememberCoroutineScope()
     val header = remember(headerKey, range) { SettingsHeaderState(range, scope) }
     DisposableEffect(header) { onDispose { header.stop() } }
-    val scrolled = scrollState != null && scrollState.value > 0
+    // Derived, not read directly: `ScrollState.value` changes on every scroll frame, and reading it
+    // in composition would recompose this scaffold -- and so the whole screen body -- per frame.
+    // A derived state only invalidates its readers when the boolean itself flips.
+    val scrolled by remember(scrollState) {
+        derivedStateOf { scrollState != null && scrollState.value > 0 }
+    }
     var floatingNavigationVisible by remember(scrollState) { mutableStateOf(scrolled) }
     LaunchedEffect(scrollState) {
         val state = scrollState ?: return@LaunchedEffect
@@ -259,7 +265,10 @@ fun SettingsScaffold(
                 val sourceScroll = scrollState
                 Box(Modifier.fillMaxSize()) {
                     if (background != null) {
-                        val backdropOffset = with(LocalDensity.current) { -(sourceScroll?.value ?: 0).toDp() }
+                        // The backdrop follows the scroll, but the scroll value must not be a
+                        // composition input: reading it here would recompose the backdrop and the
+                        // page content on every frame of a drag. The lambda reads it in layout.
+                        val backdropOffset = { -(sourceScroll?.value ?: 0) }
                         // Native wm.q2 creates its header inside Scaffold content, so the backdrop
                         // receives system padding only; the foreground separately reserves the header.
                         val backdropPadding = PaddingValues(
@@ -268,7 +277,7 @@ fun SettingsScaffold(
                             end = padding.calculateEndPadding(layoutDirection),
                             bottom = padding.calculateBottomPadding(),
                         )
-                        Box(Modifier.fillMaxSize().padding(backdropPadding).offset(y = backdropOffset)) { background() }
+                        Box(Modifier.fillMaxSize().padding(backdropPadding).offset { IntOffset(0, backdropOffset()) }) { background() }
                     }
                     Box(Modifier.then(if (visible) Modifier.settingsContentFade(
                         sourceScroll?.canScrollForward ?: scrollHolder.canScrollForward) else Modifier)
