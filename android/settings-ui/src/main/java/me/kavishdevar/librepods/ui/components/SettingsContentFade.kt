@@ -41,6 +41,11 @@ import me.kavishdevar.librepods.ui.theme.contentFade
  */
 @Composable
 internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier {
+    // Both bands fade towards `indicator_background_color`, which the source passes as the top and
+    // bottom colour of the same call (`wm.b2` -> `pw.e.d(..., t(indicator_background_color), ...)`).
+    // It is one step darker than the page colour (#F1F1F3 vs #F3F3F5, #010101 vs #010102); the
+    // reference Home shows that step in both bands, and only where the band has cover, which is
+    // what an overlay painted in the wrong colour looks like.
     val background = MaterialTheme.colorScheme.contentFade
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -64,12 +69,17 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
     }
     val bottomHeight = with(density) { bottomProfile.height.toPx() }
     val fadeBottom = bottomFade && layerHeight > 0
+    val bandTop = layerHeight - bottomHeight
     val topBrush = remember(background, topHeight) {
-        bandBrush(background, topHeight, TopFadeMinAlpha, .38f, .54f, bottom = false)
+        bandBrush(background, topHeight, TopFadeMinAlpha, .38f, .54f, bottom = false, bandTop = 0f)
     }
-    val bottomBrush = remember(background, bottomProfile, bottomHeight) {
+    // A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of the rectangle
+    // being filled, so the bottom band has to be told where it starts. Without that, its rows
+    // arrive as ~1000px past its own height, the curve reads them as past the inner edge, and the
+    // whole band paints as a flat 80% cover over the content instead of a fade.
+    val bottomBrush = remember(background, bottomProfile, bottomHeight, bandTop) {
         bandBrush(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
-            bottomProfile.secondX, bottom = true)
+            bottomProfile.secondX, bottom = true, bandTop = bandTop)
     }
     // The edges are painted as overlay bands rather than as render effects over the whole viewport.
     // A render effect forces the entire layer -- and, layered twice, the entire layer again --
@@ -93,10 +103,12 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
  * created, so hold it in `remember` rather than building one per frame.
  */
 private fun bandBrush(background: Color, height: Float, edgeAlpha: Float, firstX: Float,
-    secondX: Float, bottom: Boolean): Brush = object : ShaderBrush() {
+    secondX: Float, bottom: Boolean, bandTop: Float): Brush = object : ShaderBrush() {
     override fun createShader(size: Size): Shader = RuntimeShader(EdgeMath + BandMain).apply {
         setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
         setFloatUniform("fadeHeight", height)
+        // A RuntimeShader sees canvas coordinates, so the band's origin is an input of its own.
+        setFloatUniform("bandTop", bandTop)
         setFloatUniform("lowAlpha", edgeAlpha)
         // Preserve the native shader's runtime inputs and float grouping at color
         // boundaries, including its zero/one Bézier coordinates and dither strength.
@@ -117,6 +129,7 @@ private enum class BottomFadeProfile(val height: Dp, val edgeAlpha: Float, val f
 private const val EdgeMath = """
     uniform float4 background;
     uniform float fadeHeight;
+    uniform float bandTop;
     uniform float lowAlpha;
     uniform float innerAlpha;
     uniform float4 curvePoints;
@@ -170,7 +183,8 @@ private const val EdgeMath = """
  */
 private const val BandMain = """
     half4 main(float2 position) {
-        float distance = fromBottom == 1 ? fadeHeight - position.y : position.y;
+        float y = position.y - bandTop;
+        float distance = fromBottom == 1 ? fadeHeight - y : y;
         float alpha = fadeAlpha(distance, fadeHeight, lowAlpha, curvePoints);
         if (ditherStrength > 0.0) alpha += noise(position);
         float cover = 1.0 - clamp(alpha, 0.0, 1.0);
