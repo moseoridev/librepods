@@ -17,10 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -31,10 +29,9 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import me.kavishdevar.librepods.ui.theme.contentFade
 
 /** Foreground effects across the viewport before the scaffold applies its content padding.
@@ -72,78 +69,57 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
             if (taskbar) BottomFadeProfile.Taskbar else BottomFadeProfile.ThreeButton
         } else BottomFadeProfile.NoOverlap
     }
-    val bottomHeight = with(density) { bottomProfile.height.toPx() }
+    // The band is a whole number of pixels tall, and the shader is told the same whole number. A
+    // profile height that lands mid-pixel (40dp at 450dpi is 112.5px) otherwise makes the layer's
+    // height and the fade's length disagree by that fraction, which shifts the whole ramp: the
+    // 720x1280 capture then read one to two steps brighter than the Manager on every banded pixel,
+    // 3,434 above threshold against 848 before. At 480, 420 and 560dpi the height is already
+    // integral, and there the same rework measured 0 to 90 above threshold.
+    val bottomHeight = with(density) { bottomProfile.height.toPx() }.roundToInt()
     val fadeBottom = bottomFade && layerHeight > 0
     val topLayer = remember(background, topHeight) {
         EdgeLayer(background, topHeight, TopFadeMinAlpha, .38f, .54f)
     }
-    val bandTop = layerHeight - bottomHeight
-    // A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of the rectangle
-    // being filled, so the bottom band has to be told where it starts. Without that, its rows
-    // arrive as ~1000px past its own height, the curve reads them as past the inner edge, and the
-    // whole band paints as a flat 80% cover over the content instead of a fade.
-    val bottomBrush = remember(background, bottomProfile, bottomHeight, bandTop) {
-        bandBrush(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
-            bottomProfile.secondX, bandTop = bandTop)
+    val bandTop = (layerHeight - bottomHeight).toFloat()
+    // Both bands run the source's shader over a recording of the content they cover, so each is
+    // quantised once. A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of
+    // the rectangle being filled, so the recorded band is told where it sits on the canvas
+    // ([EdgeLayer.draw]'s `offset`, which the shader uses for the dither sample) and which edge it
+    // is (`fromBottom`).
+    //
+    // The bottom band also needs the page painted into the recording. Its rows are mostly empty
+    // page, and the page is drawn by the scaffold *behind* this content, so an un-filled recording
+    // holds alpha 0 there; the effect then returns `background.rgb * cover`, which for the dark
+    // theme's #010101 is 1/255 * cover and rounds to 0 or 1 in the premultiplied buffer, recovering
+    // a black or double-bright pixel instead of the page. Filling the page first makes the effect
+    // read the pixel the source's layer holds, so its output is the mixed colour and stays ≥ 1.
+    val page = MaterialTheme.colorScheme.background
+    val bottomLayer = remember(background, page, bottomProfile, bottomHeight, bandTop) {
+        EdgeLayer(background, bottomHeight.toFloat(), bottomProfile.edgeAlpha, bottomProfile.firstX,
+            bottomProfile.secondX, offset = bandTop, fromBottom = true, page = page)
     }
-    // The two bands are rendered by different means, because their surroundings differ.
-    //
-    // The top band sits over page and glyphs alone, so it can be done the way the source does it:
-    // record the rows it covers into a layer as tall as the band, run the source's shader over that
-    // layer and draw the result once. That reproduces the source's single quantisation, and measured
-    // against the Manager it takes the band from 5,614 unequal pixels to 157 and from 12 to 0 over
-    // three steps.
-    //
-    // The bottom band cannot use that path. Its rows are not all app pixels: the last ones sit under
-    // the system navigation bar, which no layer recorded here contains, so the effect sees nothing
-    // to fade and those rows come out darker than the Manager's (321 pixels over three steps against
-    // 29 for a plain overlay). Painting a translucent band over the composited content leaves the
-    // system's pixels in place and matches there.
     return onSizeChanged { layerHeight = it.height }
         .onGloballyPositioned { layerBottom = it.boundsInWindow().bottom }
         .then(if (layerHeight == 0) Modifier else Modifier.drawWithContent {
             drawContent()
-            topLayer.draw(this, size.width.toInt(), topHeight.toInt(), 0)
+            topLayer.draw(this, size.width.toInt(), topHeight.toInt(), 0f)
             if (fadeBottom) {
-                drawRect(bottomBrush,
-                    topLeft = Offset(0f, size.height - bottomHeight),
-                    size = Size(size.width, bottomHeight))
+                // The band runs from its whole-pixel start to the bottom of the content, and both
+                // that length and the node's origin are whole pixels now, so the content replayed
+                // into the node lands on the pixels it was drawn at.
+                bottomLayer.draw(this, size.width.toInt(), size.height.toInt() - bandTop.toInt(),
+                    bandTop)
             }
         })
-}
-
-/**
- * Paints one fade band as a translucent overlay. A [ShaderBrush] is shaded in the coordinates of
- * the rectangle it fills, so the distance from the edge comes from the band's height, not from its
- * place on screen. The source blends the page *towards* the background by `1 - alpha`: at the edge
- * the page is 88% covered. Painting the background on top therefore uses `1 - alpha`, not `alpha`.
- *
- * A runtime shader's output is *premultiplied*, so the RGB must be scaled by the cover it returns.
- * Returning the straight colour instead makes the compositor divide it back by the alpha, and a
- * near-white background then saturates to white at the edge -- which dark backgrounds hide because
- * 0x01 / 0.88 still rounds to 0x01.
- */
-private fun bandBrush(background: Color, height: Float, edgeAlpha: Float, firstX: Float,
-    secondX: Float, bandTop: Float): Brush = object : ShaderBrush() {
-    override fun createShader(size: Size): Shader = RuntimeShader(EdgeMath + BandMain).apply {
-        setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
-        setFloatUniform("fadeHeight", height)
-        setFloatUniform("bandTop", bandTop)
-        setFloatUniform("lowAlpha", edgeAlpha)
-        // Preserve the native shader's runtime inputs and float grouping at color
-        // boundaries, including its zero/one Bézier coordinates and dither strength.
-        setFloatUniform("innerAlpha", 1f)
-        setFloatUniform("curvePoints", firstX, 0f, secondX, 1f)
-        setFloatUniform("ditherStrength", 3f)
-    }
 }
 
 /**
  * The top band, rendered the way the source does it: the content is recorded into a render node and
  * a runtime shader effect reads that node's pixels, so the fade is applied in one pass and the
  * result is stored once. The node is only as tall as the band, so the offscreen buffer is the
- * band's area rather than the viewport's. The band starts at the top of the viewport, so the node's
- * own coordinates are the canvas coordinates the source's dither is sampled at.
+ * band's area rather than the viewport's. [offset] is where the band starts on the canvas, which
+ * the dither needs because the effect samples in the node's own coordinates while the source's
+ * full-size layer sampled in canvas coordinates.
  */
 private class EdgeLayer(
     background: Color,
@@ -151,8 +127,14 @@ private class EdgeLayer(
     edgeAlpha: Float,
     firstX: Float,
     secondX: Float,
+    private val offset: Float = 0f,
+    private val fromBottom: Boolean = false,
+    private val page: Color? = null,
 ) {
-    private val shader = RuntimeShader(EdgeMath + TopEdgeMain).apply {
+    // Allocated once: the band is on the scroll path, and a paint per frame would be the only
+    // per-frame allocation left in this modifier.
+    private val pagePaint = page?.let { Paint().apply { color = it } }
+    private val shader = RuntimeShader(EdgeMath + EdgeMain).apply {
         setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
         setFloatUniform("fadeHeight", height)
         setFloatUniform("lowAlpha", edgeAlpha)
@@ -161,6 +143,8 @@ private class EdgeLayer(
         setFloatUniform("innerAlpha", 1f)
         setFloatUniform("curvePoints", firstX, 0f, secondX, 1f)
         setFloatUniform("ditherStrength", 3f)
+        setFloatUniform("ditherOffset", 0f, offset)
+        setIntUniform("fromBottom", if (fromBottom) 1 else 0)
         setIntUniform("customXfer", if (Build.VERSION.SDK_INT >= 36) 1 else 0)
     }
     private val node = RenderNode("fade").apply {
@@ -169,7 +153,7 @@ private class EdgeLayer(
     private var recordedWidth = 0
     private var recordedHeight = 0
 
-    fun draw(scope: ContentDrawScope, width: Int, bandHeight: Int, offset: Int) {
+    fun draw(scope: ContentDrawScope, width: Int, bandHeight: Int, bandTop: Float) {
         if (bandHeight <= 0) return
         if (width != recordedWidth || bandHeight != recordedHeight) {
             recordedWidth = width
@@ -184,8 +168,15 @@ private class EdgeLayer(
         scope.drawIntoCanvas {
             it.save()
             it.clipRect(0f, 0f, width.toFloat(), bandHeight.toFloat())
+            // A band whose rows are mostly empty page must see that page: it is drawn by the
+            // scaffold behind this content, so the recording is transparent there and the effect's
+            // premultiplied output would collapse to black. Fill it first, inside the recording
+            // canvas -- drawing through the scope would use the scope's own canvas.
+            pagePaint?.let { paint ->
+                it.drawRect(0f, 0f, width.toFloat(), bandHeight.toFloat(), paint)
+            }
             // The band shows the content rows it covers, so replay the content under its top edge.
-            it.translate(0f, -offset.toFloat())
+            it.translate(0f, -bandTop)
             scope.drawContent()
             it.restore()
         }
@@ -193,7 +184,7 @@ private class EdgeLayer(
         node.endRecording()
         scope.drawIntoCanvas {
             it.nativeCanvas.save()
-            it.nativeCanvas.translate(0f, offset.toFloat())
+            it.nativeCanvas.translate(0f, bandTop)
             it.nativeCanvas.drawRenderNode(node)
             it.nativeCanvas.restore()
         }
@@ -211,11 +202,12 @@ private const val EdgeMath = """
     uniform shader content;
     uniform float4 background;
     uniform float fadeHeight;
-    uniform float bandTop;
     uniform float lowAlpha;
     uniform float innerAlpha;
     uniform float4 curvePoints;
     uniform float ditherStrength;
+    uniform float2 ditherOffset;
+    uniform int fromBottom;
     uniform int customXfer;
     float curve(float t, float x1, float y1, float x2, float y2) {
         if (t <= 0.0) return 0.0;
@@ -250,35 +242,31 @@ private const val EdgeMath = """
 """
 
 /**
- * The two edge entry points, following the source's own: read the content, leave it alone outside
- * the band, otherwise mix it towards the background by `1 - alpha` and return that. With
- * `customXfer == 1` the output is the final unpremultiplied colour, which the compositor stores
- * once; older platforms expect the premultiplied form, as the source does. The dither is sampled at
- * the node's own position plus [originY], so the pattern lands on the same pixels the source's
- * full-size layer would have used.
+ * The shared entry point for both edges, following the source's own: read the content, leave it
+ * alone outside the band, otherwise mix it towards the background by `1 - alpha` and return that.
+ * With `customXfer == 1` the output is the final unpremultiplied colour, which the compositor
+ * stores once; older platforms expect the premultiplied form, as the source does.
+ *
+ * The dither is sampled at the node's own position plus [ditherOffset], so the pattern lands on the
+ * same pixels the source's full-size layer would have used. `fromBottom` mirrors the distance, so
+ * the bottom band fades towards its inner edge as the top one does.
  */
-private const val TopEdgeMain = """
+private const val EdgeMain = """
     half4 main(float2 coord) {
         half4 contentColor = content.eval(coord);
-        if (coord.y >= fadeHeight) return contentColor;
-        float alpha = fadeAlpha(coord.y / fadeHeight, lowAlpha, curvePoints);
-        if (ditherStrength > 0.0) alpha += noise(coord);
+        // `coord` is in the node's own coordinates, so the band's local distance is just its y.
+        float distance = fromBottom == 1 ? fadeHeight - coord.y : coord.y;
+        if (distance >= fadeHeight) return contentColor;
+        if (distance < 0.0) distance = 0.0;
+        float alpha = fadeAlpha(distance / fadeHeight, lowAlpha, curvePoints);
+        if (ditherStrength > 0.0) alpha += noise(coord + ditherOffset);
         alpha = clamp(alpha, 0.0, 1.0);
         half4 faded = mix(contentColor, background, 1.0 - alpha);
         if (customXfer == 0) return half4(faded.rgb * faded.a, faded.a);
         return half4(faded.rgb, faded.a);
     }
 """
-private const val BandMain = """
-    half4 main(float2 position) {
-        float y = position.y - bandTop;
-        float distance = fadeHeight - y;
-        float alpha = fadeAlpha(distance / fadeHeight, lowAlpha, curvePoints);
-        if (ditherStrength > 0.0) alpha += noise(position);
-        float cover = 1.0 - clamp(alpha, 0.0, 1.0);
-        return half4(background.rgb * cover, cover);
-    }
-"""
+
 
 /**
  * Whether the current screen's content has more below the fold, published by the scaffold.
