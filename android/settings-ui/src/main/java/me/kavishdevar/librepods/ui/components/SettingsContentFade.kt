@@ -19,6 +19,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.draw.drawWithContent
@@ -86,11 +87,17 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
     return onSizeChanged { layerHeight = it.height }
         .onGloballyPositioned { layerBottom = it.boundsInWindow().bottom }
         .then(if (layerHeight == 0) Modifier else Modifier.drawWithContent {
-            drawContent()
             val width = size.width.toInt()
-            topLayer.draw(this, width, topHeight.toInt(), 0)
+            val topEdge = topHeight.toInt()
+            val bottomEdge = if (fadeBottom) size.height.toInt() - bottomHeight.toInt() else size.height.toInt()
+            // The bands replay the content themselves, so the rows they cover are drawn once, into
+            // their layers. Drawing them here as well would composite them twice: an opaque pixel
+            // replaces, but a partially covered one -- the anti-aliased edge of text -- blends.
+            val content = this
+            clipRect(0f, topEdge.toFloat(), size.width, bottomEdge.toFloat()) { content.drawContent() }
+            topLayer.draw(this, width, topEdge, 0)
             if (fadeBottom) {
-                bottomLayer.draw(this, width, bottomHeight.toInt(), size.height.toInt() - bottomHeight.toInt())
+                bottomLayer.draw(this, width, bottomHeight.toInt(), bottomEdge)
             }
         })
 }
