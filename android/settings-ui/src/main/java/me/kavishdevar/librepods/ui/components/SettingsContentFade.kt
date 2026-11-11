@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import kotlin.math.ceil
 import me.kavishdevar.librepods.ui.theme.contentFade
 
 /** Foreground effects across the viewport before the scaffold applies its content padding.
@@ -69,18 +69,15 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
             if (taskbar) BottomFadeProfile.Taskbar else BottomFadeProfile.ThreeButton
         } else BottomFadeProfile.NoOverlap
     }
-    // The band is a whole number of pixels tall, and the shader is told the same whole number. A
-    // profile height that lands mid-pixel (40dp at 450dpi is 112.5px) otherwise makes the layer's
-    // height and the fade's length disagree by that fraction, which shifts the whole ramp: the
-    // 720x1280 capture then read one to two steps brighter than the Manager on every banded pixel,
-    // 3,434 above threshold against 848 before. At 480, 420 and 560dpi the height is already
-    // integral, and there the same rework measured 0 to 90 above threshold.
-    val bottomHeight = with(density) { bottomProfile.height.toPx() }.roundToInt()
+    // Keep the source's float shader length (40dp is 112.5px at 450dpi). Only the
+    // recording bounds are integral: its origin must not shift the content by half a pixel.
+    val bottomHeight = with(density) { bottomProfile.height.toPx() }
+    val bottomRecordingHeight = ceil(bottomHeight).toInt()
     val fadeBottom = bottomFade && layerHeight > 0
     val topLayer = remember(background, topHeight) {
         EdgeLayer(background, topHeight, TopFadeMinAlpha, .38f, .54f)
     }
-    val bandTop = (layerHeight - bottomHeight).toFloat()
+    val bandTop = (layerHeight - bottomRecordingHeight).toFloat()
     // Both bands run the source's shader over a recording of the content they cover, so each is
     // quantised once. A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of
     // the rectangle being filled, so the recorded band is told where it sits on the canvas
@@ -95,14 +92,14 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
     // read the pixel the source's layer holds, so its output is the mixed colour and stays ≥ 1.
     val page = MaterialTheme.colorScheme.background
     val bottomLayer = remember(background, page, bottomProfile, bottomHeight, bandTop) {
-        EdgeLayer(background, bottomHeight.toFloat(), bottomProfile.edgeAlpha, bottomProfile.firstX,
+        EdgeLayer(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
             bottomProfile.secondX, offset = bandTop, fromBottom = true, page = page)
     }
     return onSizeChanged { layerHeight = it.height }
         .onGloballyPositioned { layerBottom = it.boundsInWindow().bottom }
         .then(if (layerHeight == 0) Modifier else Modifier.drawWithContent {
             drawContent()
-            topLayer.draw(this, size.width.toInt(), topHeight.toInt(), 0f)
+            topLayer.draw(this, size.width.toInt(), ceil(topHeight).toInt(), 0f)
             if (fadeBottom) {
                 // The band runs from its whole-pixel start to the bottom of the content, and both
                 // that length and the node's origin are whole pixels now, so the content replayed
@@ -137,6 +134,7 @@ private class EdgeLayer(
     private val shader = RuntimeShader(EdgeMath + EdgeMain).apply {
         setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
         setFloatUniform("fadeHeight", height)
+        setFloatUniform("recordingHeight", ceil(height))
         setFloatUniform("lowAlpha", edgeAlpha)
         // Preserve the native shader's runtime inputs and float grouping at color
         // boundaries, including its zero/one Bézier coordinates and dither strength.
@@ -202,6 +200,7 @@ private const val EdgeMath = """
     uniform shader content;
     uniform float4 background;
     uniform float fadeHeight;
+    uniform float recordingHeight;
     uniform float lowAlpha;
     uniform float innerAlpha;
     uniform float4 curvePoints;
@@ -254,8 +253,9 @@ private const val EdgeMath = """
 private const val EdgeMain = """
     half4 main(float2 coord) {
         half4 contentColor = content.eval(coord);
-        // `coord` is in the node's own coordinates, so the band's local distance is just its y.
-        float distance = fromBottom == 1 ? fadeHeight - coord.y : coord.y;
+        // The node origin stays integral. Bottom distance uses its recording extent, while
+        // fadeHeight retains the source's fractional curve length.
+        float distance = fromBottom == 1 ? recordingHeight - coord.y : coord.y;
         if (distance >= fadeHeight) return contentColor;
         if (distance < 0.0) distance = 0.0;
         float alpha = fadeAlpha(distance / fadeHeight, lowAlpha, curvePoints);
