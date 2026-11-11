@@ -84,12 +84,11 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
     // ([EdgeLayer.draw]'s `offset`, which the shader uses for the dither sample) and which edge it
     // is (`fromBottom`).
     //
-    // The bottom band also needs the page painted into the recording. Its rows are mostly empty
-    // page, and the page is drawn by the scaffold *behind* this content, so an un-filled recording
-    // holds alpha 0 there; the effect then returns `background.rgb * cover`, which for the dark
-    // theme's #010101 is 1/255 * cover and rounds to 0 or 1 in the premultiplied buffer, recovering
-    // a black or double-bright pixel instead of the page. Filling the page first makes the effect
-    // read the pixel the source's layer holds, so its output is the mixed colour and stays ≥ 1.
+    // The bottom recording is deliberately opaque. The initial drawContent() has already drawn
+    // unfaded content beneath it; an unfilled recording would source-over the faded glyph onto
+    // that same unfaded glyph. Native input is transparent and its effect composites over the
+    // page instead. r76's no-fill experiment fixes flat pixels but double-composites content
+    // (480-dark above3 312 -> 1010), so retain this masking workaround until replay is redesigned.
     val page = MaterialTheme.colorScheme.background
     val bottomLayer = remember(background, page, bottomProfile, bottomHeight, bandTop) {
         EdgeLayer(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
@@ -166,10 +165,8 @@ private class EdgeLayer(
         scope.drawIntoCanvas {
             it.save()
             it.clipRect(0f, 0f, width.toFloat(), bandHeight.toFloat())
-            // A band whose rows are mostly empty page must see that page: it is drawn by the
-            // scaffold behind this content, so the recording is transparent there and the effect's
-            // premultiplied output would collapse to black. Fill it first, inside the recording
-            // canvas -- drawing through the scope would use the scope's own canvas.
+            // Mask the original unfaded content underneath this replay. This differs from
+            // native's transparent input, but avoids compositing the content twice (r76).
             pagePaint?.let { paint ->
                 it.drawRect(0f, 0f, width.toFloat(), bandHeight.toFloat(), paint)
             }
