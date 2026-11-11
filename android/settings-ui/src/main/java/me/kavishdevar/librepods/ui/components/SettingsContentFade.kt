@@ -18,9 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.layout.onSizeChanged
@@ -78,26 +78,24 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
         EdgeLayer(background, topHeight, TopFadeMinAlpha, .38f, .54f)
     }
     val bandTop = (layerHeight - bottomRecordingHeight).toFloat()
-    // Both bands run the source's shader over a recording of the content they cover, so each is
-    // quantised once. A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of
+    // Both bands run the source's shader over a recording of the content they cover.
+    // A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of
     // the rectangle being filled, so the recorded band is told where it sits on the canvas
     // ([EdgeLayer.draw]'s `offset`, which the shader uses for the dither sample) and which edge it
     // is (`fromBottom`).
     //
-    // The bottom recording is deliberately opaque. The initial drawContent() has already drawn
-    // unfaded content beneath it; an unfilled recording would source-over the faded glyph onto
-    // that same unfaded glyph. Native input is transparent and its effect composites over the
-    // page instead. r76's no-fill experiment fixes flat pixels but double-composites content
-    // (480-dark above3 312 -> 1010), so retain this masking workaround until replay is redesigned.
-    val page = MaterialTheme.colorScheme.background
-    val bottomLayer = remember(background, page, bottomProfile, bottomHeight, bandTop) {
+    // Native records transparent content and composites the faded result over the scaffold page.
+    // Exclude the bottom rows from the plain pass below so those glyphs are drawn only once.
+    val bottomLayer = remember(background, bottomProfile, bottomHeight, bandTop) {
         EdgeLayer(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
-            bottomProfile.secondX, offset = bandTop, fromBottom = true, page = page)
+            bottomProfile.secondX, offset = bandTop, fromBottom = true)
     }
     return onSizeChanged { layerHeight = it.height }
         .onGloballyPositioned { layerBottom = it.boundsInWindow().bottom }
         .then(if (layerHeight == 0) Modifier else Modifier.drawWithContent {
-            drawContent()
+            if (fadeBottom) {
+                clipRect(bottom = bandTop) { this@drawWithContent.drawContent() }
+            } else drawContent()
             topLayer.draw(this, size.width.toInt(), ceil(topHeight).toInt(), 0f)
             if (fadeBottom) {
                 // The band runs from its whole-pixel start to the bottom of the content, and both
@@ -125,11 +123,7 @@ private class EdgeLayer(
     secondX: Float,
     private val offset: Float = 0f,
     private val fromBottom: Boolean = false,
-    private val page: Color? = null,
 ) {
-    // Allocated once: the band is on the scroll path, and a paint per frame would be the only
-    // per-frame allocation left in this modifier.
-    private val pagePaint = page?.let { Paint().apply { color = it } }
     private val shader = RuntimeShader(EdgeMath + EdgeMain).apply {
         setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
         setFloatUniform("fadeHeight", height)
@@ -165,11 +159,6 @@ private class EdgeLayer(
         scope.drawIntoCanvas {
             it.save()
             it.clipRect(0f, 0f, width.toFloat(), bandHeight.toFloat())
-            // Mask the original unfaded content underneath this replay. This differs from
-            // native's transparent input, but avoids compositing the content twice (r76).
-            pagePaint?.let { paint ->
-                it.drawRect(0f, 0f, width.toFloat(), bandHeight.toFloat(), paint)
-            }
             // The band shows the content rows it covers, so replay the content under its top edge.
             it.translate(0f, -bandTop)
             scope.drawContent()
