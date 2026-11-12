@@ -50,6 +50,8 @@ import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.data.StemAction
 import me.kavishdevar.librepods.core.devices.*
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.presentation.navigation.pageTransitionBackground
+import me.kavishdevar.librepods.presentation.navigation.rememberPageParallaxPx
 import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
 import me.kavishdevar.librepods.presentation.navigation.predictivePopPageTransition
@@ -150,6 +152,7 @@ internal fun BudsDeviceSettings(
     // content must read the latest state instead of capturing the value it was first given.
     val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
+    val pageParallaxPx = rememberPageParallaxPx()
     val predictiveShiftPx = rememberPredictiveBackShiftPx()
     // The name editor is the platform text-entry dialog over Home, not a page of its own:
     // a separate destination slides a second copy of Home in behind the dialog, which reads as
@@ -158,6 +161,7 @@ internal fun BudsDeviceSettings(
     val back: () -> Unit = { popPage(); Unit }
     SettingsTheme(darkTheme = darkTheme) {
         NavDisplay(
+            modifier = Modifier.pageTransitionBackground(),
             backStack = pages,
             onBack = back,
             entryProvider = { page ->
@@ -169,8 +173,8 @@ internal fun BudsDeviceSettings(
                         onRename = { renaming = true })
                 }
             },
-            transitionSpec = { forwardPageTransition() },
-            popTransitionSpec = { popPageTransition() },
+            transitionSpec = { forwardPageTransition(pageParallaxPx) },
+            popTransitionSpec = { popPageTransition(pageParallaxPx) },
             // Without this, NavDisplay falls back to its own fadeIn + scaleOut(0.7f) preview,
             // which shrinks the whole screen much further than the design guidance.
             predictivePopTransitionSpec = { swipeEdge ->

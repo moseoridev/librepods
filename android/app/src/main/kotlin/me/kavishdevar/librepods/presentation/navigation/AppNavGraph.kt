@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -24,6 +25,7 @@ fun AppNavGraph(
 ) {
     val devices by devicesState
     val context = LocalContext.current
+    val pageParallaxPx = rememberPageParallaxPx()
     val predictiveShiftPx = rememberPredictiveBackShiftPx()
 
     val appDataRepository by lazy { (context.applicationContext as LibrePodsApplication).appDataRepository }
@@ -60,6 +62,7 @@ fun AppNavGraph(
     }
 
     NavDisplay(
+        modifier = Modifier.pageTransitionBackground(),
         backStack = backStack,
         onBack = {
             if (backStack.size > 1) {
@@ -81,8 +84,8 @@ fun AppNavGraph(
                 )
             }
         },
-        transitionSpec = { forwardPageTransition() },
-        popTransitionSpec = { popPageTransition() },
+        transitionSpec = { forwardPageTransition(pageParallaxPx) },
+        popTransitionSpec = { popPageTransition(pageParallaxPx) },
         predictivePopTransitionSpec = { swipeEdge ->
             predictivePopPageTransition(swipeEdge, predictiveShiftPx)
         },
