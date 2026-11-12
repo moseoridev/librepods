@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Canvas
@@ -39,7 +40,7 @@ fun SettingsSheetSurface(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val dark = MaterialTheme.colorScheme.onSurface != Color(0xFF010102)
+    val dark = settingsIsDarkTheme()
     val density = LocalDensity.current.density
     val border = remember(dark, density) { SettingsSheetBorder(density, dark) }
     Box(modifier, contentAlignment = Alignment.TopCenter) {

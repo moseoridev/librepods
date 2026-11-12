@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.layout.Box
@@ -38,7 +39,7 @@ import me.kavishdevar.librepods.ui.theme.SettingsStyle
 /** kw.t.J/K, kw.j2: a descriptive label; the caller owns its anchor and visibility. */
 @Composable
 fun SettingsTooltip(text: String, modifier: Modifier = Modifier) {
-    val light = MaterialTheme.colorScheme.onSurface == Color(0xFF010102)
+    val light = !settingsIsDarkTheme()
     val background = if (light) Color(0xFFFCFCFF) else Color(0xFF4D4D52)
     val foreground = if (light) Color(0xFF252528) else Color(0xFFFAFAFF)
     val density = LocalDensity.current

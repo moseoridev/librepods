@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.graphics.drawable.GradientDrawable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -49,7 +50,7 @@ fun <T> SettingsModeStrip(
     captionWidth: Dp? = null,
 ) {
     if (modes.isEmpty()) return
-    val track = if (MaterialTheme.colorScheme.onSurface != Color(0xFF010102)) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
+    val track = if (settingsIsDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
     val tick = remember(track) { GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(track.toArgb()) } }
     // l1.j case 2 converts the default 10dp page inset to 20dp for this strip.
     val pageInset = SettingsStyle.pageInset()

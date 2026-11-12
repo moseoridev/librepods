@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.View
@@ -33,7 +34,7 @@ fun SettingsSheetBody(text: String, modifier: Modifier = Modifier, color: Color 
 
 @Composable
 private fun SettingsSheetText(text: String, body: Boolean, modifier: Modifier, color: Color) {
-    val dark = MaterialTheme.colorScheme.onSurface != Color(0xFF010102)
+    val dark = settingsIsDarkTheme()
     val defaultColor = if (body) {
         if (dark) Color(0xFFEAEAEB) else Color(0xFF252528)
     } else {

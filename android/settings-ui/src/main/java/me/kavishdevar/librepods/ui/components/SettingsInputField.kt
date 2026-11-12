@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
@@ -47,7 +48,7 @@ fun SettingsInputField(
         // The application-context editor resolves the platform's dynamic 600 role.
         Color(context.resources.getColor(android.R.color.system_accent1_600, context.theme))
     }
-    val dark = colors.onSurface != Color(0xFF010102)
+    val dark = settingsIsDarkTheme()
     val foreground = (if (dark) Color(0xFFFAFAFF) else Color(0xFF010102))
         .copy(alpha = if (enabled) 1f else .4f)
     val density = LocalDensity.current

@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.content.res.Configuration
 import android.view.Gravity
 import androidx.compose.foundation.background
@@ -88,7 +89,7 @@ fun SettingsDialog(
             if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 1f else if (textEntry) .8f else (2f / 3f)
         Dialog(onDismissRequest = onDismissRequest, properties = properties) {
             val view = LocalView.current
-            val dark = MaterialTheme.colorScheme.onSurface != Color(0xFF010102)
+            val dark = settingsIsDarkTheme()
             var blurred by remember(view) { mutableStateOf(false) }
             val cornerPx = with(density) { if (textEntry) entryMetrics.radius.roundToPx().toFloat() else 26.dp.toPx() }
             val surfaceColor = if (dark) Color(0xFF252528) else Color(0xFFFCFCFF)
@@ -221,9 +222,9 @@ private fun SettingsDialogActions(actions: List<SettingsDialogAction>, modifier:
             // a1.o3 case 21 measures a filled box, not an antialiased divider stroke.
             Box(Modifier.size(width = 1.dp, height = 16.dp)
                 .then(if (textEntry) Modifier.graphicsLayer { alpha = .23f } else Modifier).background(
-                if (textEntry) (if (colors.onSurface == Color(0xFF010102)) Color(0xFF848487)
+                if (textEntry) (if (!settingsIsDarkTheme()) Color(0xFF848487)
                     else Color(0xFFA3A3A7))
-                else if (colors.onSurface == Color(0xFF010102)) Color(0xFFE9E9EC) else Color(0xFF4D4D52)))
+                else if (!settingsIsDarkTheme()) Color(0xFFE9E9EC) else Color(0xFF4D4D52)))
         }
     }) { measurables, constraints ->
         val buttons = measurables.take(actions.size)

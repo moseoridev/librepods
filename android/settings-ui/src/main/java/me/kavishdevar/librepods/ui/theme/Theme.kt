@@ -25,37 +25,46 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+// xu.f.a selects nu.j.a/b from an explicit theme mode, not a color-token sentinel.
+// Outside SettingsTheme, use the platform night mode on any OEM.
+private val LocalSettingsDarkTheme = staticCompositionLocalOf<Boolean?> { null }
+
+@Composable
+internal fun settingsIsDarkTheme(): Boolean = LocalSettingsDarkTheme.current ?: isSystemInDarkTheme()
 
 val ColorScheme.sectionHeader: Color
     get() = onSurfaceVariant
 
 // Separate SESL roles: changing a Material container role would recolor unrelated screens.
 val ColorScheme.toolbarSubtitle: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0xFF636368) else Color(0xFFB7B7BB)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0xFF636368) else Color(0xFFB7B7BB)
 // indicator_background_color is distinct from screen_background in the current source.
 internal val ColorScheme.contentFade: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0xFFF1F1F3) else Color(0xFF010101)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0xFFF1F1F3) else Color(0xFF010101)
 // action_bar_floating_button_bg_color; its surface applies .9 alpha separately.
 internal val ColorScheme.floatingToolbarBackground: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0xFFFCFCFF) else Color(0xFF252528)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0xFFFCFCFF) else Color(0xFF252528)
 val ColorScheme.switchThumb: Color
     get() = Color(0xFFFCFCFF)
 
 // SESL seekbar roles: sesl_seekbar_control_color_default(_dark) and
 // sesl_thumb_control_fill_color_activated -> sesl_gray_L1/D1.
 val ColorScheme.sliderTrack: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0x1A17171A) else Color(0x26FCFCFF)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0x1A17171A) else Color(0x26FCFCFF)
 val ColorScheme.sliderThumbCore: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0xFFFCFCFF) else Color(0xFF010102)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0xFFFCFCFF) else Color(0xFF010102)
 
 // sesl_ripple_color → basic_token_state_pressed_on_surface_{light,dark}.
 internal val ColorScheme.interactionFeedback: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0x1A000000) else Color(0x33FFFFFF)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0x1A000000) else Color(0x33FFFFFF)
 
 // wm.k1.c explicitly selects basic_token_state_pressed_on_color.
 internal val ColorScheme.rowInteractionFeedback: Color
-    get() = if (onSurface == Color(0xFF010102)) Color(0x1A000000) else Color(0x29FFFFFF)
+    @Composable get() = if (!settingsIsDarkTheme()) Color(0x1A000000) else Color(0x29FFFFFF)
 
 // ASC: xu.f -> nu.j -> ju.a case 12; resolved SESL resources in the reference manager.
 private val SettingsLightColors = lightColorScheme(
@@ -84,10 +93,12 @@ fun SettingsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    MaterialExpressiveTheme(
-        colorScheme = if (darkTheme) SettingsDarkColors else SettingsLightColors,
-        motionScheme = MotionScheme.standard(),
-        typography = SettingsTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalSettingsDarkTheme provides darkTheme) {
+        MaterialExpressiveTheme(
+            colorScheme = if (darkTheme) SettingsDarkColors else SettingsLightColors,
+            motionScheme = MotionScheme.standard(),
+            typography = SettingsTypography,
+            content = content
+        )
+    }
 }

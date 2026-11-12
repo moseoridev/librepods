@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import androidx.compose.ui.unit.LayoutDirection
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
@@ -7,6 +8,7 @@ import android.text.BoringLayout
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.TextDirectionHeuristic
 import android.text.TextDirectionHeuristics
 import android.text.TextUtils
 import androidx.compose.material3.LocalContentColor
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +41,9 @@ import kotlin.math.roundToInt
 internal fun SettingsDialogActionMeasure(label: String, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     val paint = rememberDialogTextPaint()
-    val platformLayout = remember(label, paint) {
-        dialogTextLayout(label, paint, ScrollingTextWidth, Layout.Alignment.ALIGN_CENTER)
+    val direction = dialogTextDirection()
+    val platformLayout = remember(label, paint, direction) {
+        dialogTextLayout(label, paint, ScrollingTextWidth, Layout.Alignment.ALIGN_CENTER, direction)
     }
     Text(label, modifier.height(with(density) { platformLayout.height.toDp() }).clearAndSetSemantics {}.drawWithContent {
         // Keep measurement without a second visual or accessible copy of the label.
@@ -53,12 +57,13 @@ internal fun SettingsDialogActionMeasure(label: String, modifier: Modifier = Mod
 internal fun SettingsDialogTitle(title: String, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     val paint = rememberDialogTextPaint()
+    val direction = dialogTextDirection()
     BoxWithConstraints(modifier) {
         val width = constraints.maxWidth
-        val layout = remember(title, paint, width) {
-            val single = dialogTextLayout(title, paint, width, Layout.Alignment.ALIGN_NORMAL)
+        val layout = remember(title, paint, width, direction) {
+            val single = dialogTextLayout(title, paint, width, Layout.Alignment.ALIGN_NORMAL, direction)
             if (single.getEllipsisCount(0) > 0)
-                dialogTextLayout(title, paint, width, Layout.Alignment.ALIGN_NORMAL, maxLines = 2)
+                dialogTextLayout(title, paint, width, Layout.Alignment.ALIGN_NORMAL, direction, maxLines = 2)
             else single
         }
         Text(title, Modifier.fillMaxWidth().height(with(density) { layout.height.toDp() })
@@ -91,17 +96,24 @@ internal fun rememberDialogTextPaint(): TextPaint {
     }
 }
 
-private fun dialogTextLayout(text: String, paint: TextPaint, width: Int, alignment: Layout.Alignment, maxLines: Int = 1): Layout {
+// TextView.getTextDirectionHeuristic: default first-strong follows the view's layout direction.
+@Composable
+private fun dialogTextDirection(): TextDirectionHeuristic =
+    if (LocalLayoutDirection.current == LayoutDirection.Rtl) TextDirectionHeuristics.FIRSTSTRONG_RTL
+    else TextDirectionHeuristics.FIRSTSTRONG_LTR
+
+private fun dialogTextLayout(text: String, paint: TextPaint, width: Int, alignment: Layout.Alignment,
+    direction: TextDirectionHeuristic, maxLines: Int = 1): Layout {
     if (Build.VERSION.SDK_INT >= 35) return Layout.Builder(text, 0, text.length, paint, width)
-        .setAlignment(alignment).setTextDirectionHeuristic(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+        .setAlignment(alignment).setTextDirectionHeuristic(direction)
         .setFontPaddingIncluded(true).setFallbackLineSpacingEnabled(true)
         .setUseBoundsForWidth(true).setShiftDrawingOffsetForStartOverhang(false)
         .setMaxLines(maxLines).setEllipsize(TextUtils.TruncateAt.END).setEllipsizedWidth(width).build()
-    val metrics = BoringLayout.isBoring(text, paint, TextDirectionHeuristics.FIRSTSTRONG_LTR, true, null)
+    val metrics = BoringLayout.isBoring(text, paint, direction, true, null)
     return if (metrics != null && metrics.width <= width)
         BoringLayout.make(text, paint, width, alignment, metrics, true, TextUtils.TruncateAt.END, width, true)
     else StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
-        .setAlignment(alignment).setIncludePad(true).setUseLineSpacingFromFallbacks(true)
+        .setAlignment(alignment).setTextDirection(direction).setIncludePad(true).setUseLineSpacingFromFallbacks(true)
         .setMaxLines(maxLines).setEllipsize(TextUtils.TruncateAt.END).setEllipsizedWidth(width).build()
 }
 

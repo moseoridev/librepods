@@ -1,5 +1,6 @@
 package me.kavishdevar.librepods.ui.components
 
+import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.graphics.Paint
 import android.graphics.RectF
 import androidx.compose.foundation.Canvas
@@ -36,7 +37,7 @@ fun SettingsBatteryMeter(level: Int?, name: String, value: String, description: 
     nameContent: (@Composable () -> Unit)? = null,
     artwork: @Composable () -> Unit) {
     val density = LocalDensity.current
-    val dark = MaterialTheme.colorScheme.onSurface != Color(0xFF010102)
+    val dark = settingsIsDarkTheme()
     // wm.l1.a clamps its reading, then selects color_low_battery_progress at
     // <=10 and color_battery_progress above it. Keep explicit caller tint.
     val sourceProgressColor = if ((level ?: 0).coerceIn(0, 100) <= 10) {

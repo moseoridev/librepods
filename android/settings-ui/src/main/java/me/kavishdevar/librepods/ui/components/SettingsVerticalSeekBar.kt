@@ -47,6 +47,7 @@ fun SettingsVerticalSeekBar(
     interactionSource: MutableInteractionSource? = null,
 ) {
     val colors = MaterialTheme.colorScheme
+    val trackColor = colors.sliderTrack
     val internalInteractionSource = remember { MutableInteractionSource() }
     val resolvedInteractionSource = interactionSource ?: internalInteractionSource
     val thumbFeedback = settingsSliderThumbFeedback(enabled, resolvedInteractionSource)
@@ -70,7 +71,7 @@ fun SettingsVerticalSeekBar(
         }
         Layout(modifier = Modifier.matchParentSize().padding(vertical = 6.dp), content = {
             Canvas(Modifier.width(3.dp).fillMaxHeight().clip(CircleShape)) {
-                drawRect(colors.sliderTrack)
+                drawRect(trackColor)
                 val progress = state.coercedValueAsFraction * size.height
                 if (progress > 0f) drawRect(colors.primary,
                     topLeft = Offset(0f, size.height - progress),

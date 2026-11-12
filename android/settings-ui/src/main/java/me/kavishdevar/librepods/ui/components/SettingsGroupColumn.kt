@@ -47,7 +47,7 @@ fun SettingsGroupColumn(modifier: Modifier = Modifier, content: @Composable () -
         else (placeables.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
         val height = cursor.coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(width, height) {
-            placeables.forEachIndexed { index, placeable -> placeable.place(0, positions[index]) }
+            placeables.forEachIndexed { index, placeable -> placeable.placeRelative(0, positions[index]) }
         }
     }
 }
