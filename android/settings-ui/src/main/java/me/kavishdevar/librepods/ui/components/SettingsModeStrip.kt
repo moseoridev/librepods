@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Layout
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -55,18 +56,18 @@ fun <T> SettingsModeStrip(
     val stripInset = if (pageInset == 10.dp) 20.dp else pageInset
     BoxWithConstraints(modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.TopStart) {
         val density = LocalDensity.current
-        // The source constrains each side separately. Its negative anchor values use
-        // Math.round, so a half-pixel inset resolves toward the start at 600 dpi.
-        //
-        // The inset is measured from the screen edge, not from the already-rounded
-        // page inset the caller padded with. Rounding `stripInset` alone and adding it
-        // to the rounded page inset rounds twice: at 420 dpi 10dp + 20dp is 78.75px,
-        // but 26 + 52 places the strip one pixel left and two pixels wide.
-        val sideInsetPx = -with(density) { (-(pageInset + stripInset).toPx()).roundToInt() } -
+        val capStripWidth = LocalConfiguration.current.screenWidthDp >= 589
+        // Measure the inset from the screen edge before subtracting the caller's rounded
+        // page padding. The positive combined anchor rounds half pixels upward: at 360/600dpi
+        // the native first disc starts at x91/x151, not x90/x150.
+        val sideInsetPx = with(density) { (pageInset + stripInset).roundToPx() } -
             with(density) { pageInset.roundToPx() }
         val availableWidthPx = constraints.maxWidth - sideInsetPx * 2
+        // bm.t applies the 392dp cap only from screenWidthDp 589 upward.
         val widthPx = with(density) {
-            (stripWidth?.roundToPx() ?: minOf(availableWidthPx, 392.dp.roundToPx())).coerceAtLeast(0)
+            (stripWidth?.roundToPx() ?: if (capStripWidth) {
+                minOf(availableWidthPx, 392.dp.roundToPx())
+            } else availableWidthPx).coerceAtLeast(0)
         }
         val width = with(density) { widthPx.toDp() }
         val fixedStrip = stripWidth != null

@@ -210,9 +210,9 @@ internal fun NativeHome(
                 }
                 Spacer(Modifier.height(20.dp))
                 SettingsList {
-                    NativeHomeMenu(vendor, text("voice_controls"), "ic_voice_control_ui8")
+                    NativeHomeMenu(vendor, text("voice_controls"), "ic_voice_control_ui8", enabled = true)
                     NativeHomeMenu(vendor, text("head_gesture"), "ic_head_gestures_ui8",
-                        switch = true, checked = false)
+                        enabled = true, switch = true, checked = false)
                 }
                 Spacer(Modifier.height(20.dp))
                 SettingsList { NativeHomeMenu(vendor, text("settings_sound_effect"), "ic_sounds_ui8") }
