@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.layout.onSizeChanged
@@ -31,12 +30,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.ceil
 import me.kavishdevar.librepods.ui.theme.contentFade
 
 /** Foreground effects across the viewport before the scaffold applies its content padding.
  *
- * The current source draws top and bottom in separate layers (`pw.g`). Top is 56dp with a
+ * The Manager applies its band shader to the full-height content layer (`kw.g` → `pw.e`). Top is 56dp with a
  * .12 edge and cubic (.38, 0, .54, 1). Bottom selects its profile from navigation-bar overlap
  * (`pw.a/f/p`): 40dp/.2 without overlap, 92dp/.04 for three-button overlap, or 100dp/0 with
  * a taskbar. Both use 3/255 spatial dithering. The screen reports whether more content remains
@@ -69,110 +67,17 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
             if (taskbar) BottomFadeProfile.Taskbar else BottomFadeProfile.ThreeButton
         } else BottomFadeProfile.NoOverlap
     }
-    // Keep the source's float shader length (40dp is 112.5px at 450dpi). Only the
-    // recording bounds are integral: its origin must not shift the content by half a pixel.
+    // Keep the source's fractional shader length (40dp is 112.5px at 450dpi).
     val bottomHeight = with(density) { bottomProfile.height.toPx() }
-    val bottomRecordingHeight = ceil(bottomHeight).toInt()
     val fadeBottom = bottomFade && layerHeight > 0
-    val topLayer = remember(background, topHeight) {
-        EdgeLayer(background, topHeight, TopFadeMinAlpha, .38f, .54f)
-    }
-    val bandTop = (layerHeight - bottomRecordingHeight).toFloat()
-    // Both bands run the source's shader over a recording of the content they cover.
-    // A RuntimeShader is evaluated in canvas coordinates, not in the coordinates of
-    // the rectangle being filled, so the recorded band is told where it sits on the canvas
-    // ([EdgeLayer.draw]'s `offset`, which the shader uses for the dither sample) and which edge it
-    // is (`fromBottom`).
-    //
-    // Native records transparent content and composites the faded result over the scaffold page.
-    // Exclude the bottom rows from the plain pass below so those glyphs are drawn only once.
-    val bottomLayer = remember(background, bottomProfile, bottomHeight, bandTop) {
-        EdgeLayer(background, bottomHeight, bottomProfile.edgeAlpha, bottomProfile.firstX,
-            bottomProfile.secondX, offset = bandTop, fromBottom = true)
+    val shared = remember(background, topHeight, bottomHeight, bottomProfile, layerHeight, fadeBottom) {
+        SharedEdgeLayer(background, topHeight, bottomHeight, bottomProfile, layerHeight.toFloat(), fadeBottom)
     }
     return onSizeChanged { layerHeight = it.height }
         .onGloballyPositioned { layerBottom = it.boundsInWindow().bottom }
         .then(if (layerHeight == 0) Modifier else Modifier.drawWithContent {
-            if (fadeBottom) {
-                clipRect(bottom = bandTop) { this@drawWithContent.drawContent() }
-            } else drawContent()
-            topLayer.draw(this, size.width.toInt(), ceil(topHeight).toInt(), 0f)
-            if (fadeBottom) {
-                // The band runs from its whole-pixel start to the bottom of the content, and both
-                // that length and the node's origin are whole pixels now, so the content replayed
-                // into the node lands on the pixels it was drawn at.
-                bottomLayer.draw(this, size.width.toInt(), size.height.toInt() - bandTop.toInt(),
-                    bandTop)
-            }
+            shared.draw(this, size.width.toInt(), size.height.toInt())
         })
-}
-
-/**
- * The top band, rendered the way the source does it: the content is recorded into a render node and
- * a runtime shader effect reads that node's pixels, so the fade is applied in one pass and the
- * result is stored once. The node is only as tall as the band, so the offscreen buffer is the
- * band's area rather than the viewport's. [offset] is where the band starts on the canvas, which
- * the dither needs because the effect samples in the node's own coordinates while the source's
- * full-size layer sampled in canvas coordinates.
- */
-private class EdgeLayer(
-    background: Color,
-    private val height: Float,
-    edgeAlpha: Float,
-    firstX: Float,
-    secondX: Float,
-    private val offset: Float = 0f,
-    private val fromBottom: Boolean = false,
-) {
-    private val shader = RuntimeShader(EdgeMath + EdgeMain).apply {
-        setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
-        setFloatUniform("fadeHeight", height)
-        setFloatUniform("recordingHeight", ceil(height))
-        setFloatUniform("lowAlpha", edgeAlpha)
-        // Preserve the native shader's runtime inputs and float grouping at color
-        // boundaries, including its zero/one Bézier coordinates and dither strength.
-        setFloatUniform("innerAlpha", 1f)
-        setFloatUniform("curvePoints", firstX, 0f, secondX, 1f)
-        setFloatUniform("ditherStrength", 3f)
-        setFloatUniform("ditherOffset", 0f, offset)
-        setIntUniform("fromBottom", if (fromBottom) 1 else 0)
-        setIntUniform("customXfer", if (Build.VERSION.SDK_INT >= 36) 1 else 0)
-    }
-    private val node = RenderNode("fade").apply {
-        setRenderEffect(RenderEffect.createRuntimeShaderEffect(shader, "content"))
-    }
-    private var recordedWidth = 0
-    private var recordedHeight = 0
-
-    fun draw(scope: ContentDrawScope, width: Int, bandHeight: Int, bandTop: Float) {
-        if (bandHeight <= 0) return
-        if (width != recordedWidth || bandHeight != recordedHeight) {
-            recordedWidth = width
-            recordedHeight = bandHeight
-            node.setPosition(0, 0, width, bandHeight)
-        }
-        val recording = node.beginRecording(width, bandHeight)
-        val composeCanvas = androidx.compose.ui.graphics.Canvas(recording)
-        val context = scope.drawContext
-        val previous = context.canvas
-        context.canvas = composeCanvas
-        scope.drawIntoCanvas {
-            it.save()
-            it.clipRect(0f, 0f, width.toFloat(), bandHeight.toFloat())
-            // The band shows the content rows it covers, so replay the content under its top edge.
-            it.translate(0f, -bandTop)
-            scope.drawContent()
-            it.restore()
-        }
-        context.canvas = previous
-        node.endRecording()
-        scope.drawIntoCanvas {
-            it.nativeCanvas.save()
-            it.nativeCanvas.translate(0f, bandTop)
-            it.nativeCanvas.drawRenderNode(node)
-            it.nativeCanvas.restore()
-        }
-    }
 }
 
 private enum class BottomFadeProfile(val height: Dp, val edgeAlpha: Float, val firstX: Float, val secondX: Float) {
@@ -191,8 +96,6 @@ private const val EdgeMath = """
     uniform float innerAlpha;
     uniform float4 curvePoints;
     uniform float ditherStrength;
-    uniform float2 ditherOffset;
-    uniform int fromBottom;
     uniform int customXfer;
     float curve(float t, float x1, float y1, float x2, float y2) {
         if (t <= 0.0) return 0.0;
@@ -225,34 +128,6 @@ private const val EdgeMath = """
         return mix(low, innerAlpha, curve(t, curvePts.x, curvePts.y, curvePts.z, curvePts.w));
     }
 """
-
-/**
- * The shared entry point for both edges, following the source's own: read the content, leave it
- * alone outside the band, otherwise mix it towards the background by `1 - alpha` and return that.
- * With `customXfer == 1` the output is the final unpremultiplied colour, which the compositor
- * stores once; older platforms expect the premultiplied form, as the source does.
- *
- * The dither is sampled at the node's own position plus [ditherOffset], so the pattern lands on the
- * same pixels the source's full-size layer would have used. `fromBottom` mirrors the distance, so
- * the bottom band fades towards its inner edge as the top one does.
- */
-private const val EdgeMain = """
-    half4 main(float2 coord) {
-        half4 contentColor = content.eval(coord);
-        // The node origin stays integral. Bottom distance uses its recording extent, while
-        // fadeHeight retains the source's fractional curve length.
-        float distance = fromBottom == 1 ? recordingHeight - coord.y : coord.y;
-        if (distance >= fadeHeight) return contentColor;
-        if (distance < 0.0) distance = 0.0;
-        float alpha = fadeAlpha(distance / fadeHeight, lowAlpha, curvePoints);
-        if (ditherStrength > 0.0) alpha += noise(coord + ditherOffset);
-        alpha = clamp(alpha, 0.0, 1.0);
-        half4 faded = mix(contentColor, background, 1.0 - alpha);
-        if (customXfer == 0) return half4(faded.rgb * faded.a, faded.a);
-        return half4(faded.rgb, faded.a);
-    }
-"""
-
 
 /**
  * Whether the current screen's content has more below the fold, published by the scaffold.
@@ -308,3 +183,93 @@ fun SettingsScrollReporter(canScrollForward: Boolean) {
 /** Top edge: alpha rises from [TopFadeMinAlpha] to 1 across this height. */
 private val TopFadeHeight = 56.dp
 private const val TopFadeMinAlpha = .12f
+
+/** Record the whole content once: shader-coordinate precision depends on the layer extent.
+ * Keeping just band rows changes the bottom input at content edges. Do not clip the output:
+ * a band output clip also changes the delivered coordinates. See docs/android-settings.md.
+ */
+private class SharedEdgeLayer(private val background: Color, private val topHeight: Float, private val bottomHeight: Float,
+    private val profile: BottomFadeProfile, private val viewportHeight: Float, private val bottomEnabled: Boolean) {
+    private fun shader(top: Boolean) = RuntimeShader(EdgeMath + SharedUniforms + SharedMain).apply {
+        setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
+        setFloatUniform("fadeHeight", if (top) topHeight else 0f)
+        setFloatUniform("recordingHeight", viewportHeight)
+        setFloatUniform("lowAlpha", TopFadeMinAlpha)
+        setFloatUniform("innerAlpha", 1f)
+        setFloatUniform("curvePoints", .38f, 0f, .54f, 1f)
+        setFloatUniform("ditherStrength", 3f)
+        setFloatUniform("bottomHeight", bottomHeight)
+        setFloatUniform("bottomLowAlpha", profile.edgeAlpha)
+        setFloatUniform("bottomCurve", profile.firstX, 0f, profile.secondX, 1f)
+        setIntUniform("bottomEnabled", if (!top && bottomEnabled) 1 else 0)
+        setIntUniform("customXfer", if (Build.VERSION.SDK_INT >= 36) 1 else 0)
+
+    }
+    private val topNode = RenderNode("top-fade").apply {
+        setRenderEffect(RenderEffect.createRuntimeShaderEffect(shader(true), "content"))
+    }
+    private val bottomNode = RenderNode("bottom-fade").apply {
+        setRenderEffect(RenderEffect.createRuntimeShaderEffect(shader(false), "content"))
+    }
+    private var oldWidth = 0
+    private var oldHeight = 0
+    fun draw(scope: ContentDrawScope, width: Int, height: Int) {
+        if (oldWidth != width || oldHeight != height) {
+            topNode.setPosition(0, 0, width, height)
+            bottomNode.setPosition(0, 0, width, height)
+            oldWidth = width
+            oldHeight = height
+        }
+        val contentNode = if (bottomEnabled) bottomNode else topNode
+        val recording = contentNode.beginRecording(width, height)
+        val previous = scope.drawContext.canvas
+        try {
+            scope.drawContext.canvas = androidx.compose.ui.graphics.Canvas(recording)
+            scope.drawIntoCanvas { canvas ->
+                canvas.save()
+                try {
+                    canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+                    scope.drawContent()
+                } finally { canvas.restore() }
+            }
+        } finally {
+            scope.drawContext.canvas = previous
+            contentNode.endRecording()
+        }
+        if (bottomEnabled) {
+            val outer = topNode.beginRecording(width, height)
+            outer.drawRenderNode(bottomNode)
+            topNode.endRecording()
+        }
+        scope.drawIntoCanvas { it.nativeCanvas.drawRenderNode(topNode) }
+    }
+}
+private const val SharedUniforms = """
+    uniform float bottomHeight;
+    uniform float bottomLowAlpha;
+    uniform float4 bottomCurve;
+    uniform int bottomEnabled;
+
+"""
+private const val SharedMain = """
+    half4 main(float2 coord) {
+        half4 contentColor = content.eval(coord);
+        if (coord.y < fadeHeight) {
+            float alpha = fadeAlpha(coord.y / fadeHeight, lowAlpha, curvePoints);
+            if (ditherStrength > 0.0) alpha += noise(coord);
+            alpha = clamp(alpha, 0.0, 1.0);
+            half4 faded = mix(contentColor, background, 1.0 - alpha);
+            if (customXfer == 0) return half4(faded.rgb * faded.a, faded.a);
+            return half4(faded.rgb, faded.a);
+        }
+        float stripTop = recordingHeight - bottomHeight;
+        if (bottomEnabled == 0 || coord.y < stripTop || coord.y > recordingHeight) return contentColor;
+        float distance = recordingHeight - coord.y;
+        float alpha = fadeAlpha(distance / bottomHeight, bottomLowAlpha, bottomCurve);
+        if (ditherStrength > 0.0) alpha += noise(coord);
+        alpha = clamp(alpha, 0.0, 1.0);
+        half4 faded = mix(contentColor, background, 1.0 - alpha);
+        if (customXfer == 0) return half4(faded.rgb * faded.a, faded.a);
+        return half4(faded.rgb, faded.a);
+    }
+"""
