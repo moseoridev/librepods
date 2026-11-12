@@ -1,6 +1,18 @@
 package me.kavishdevar.librepods.ui.components
 
 import android.view.WindowManager
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.BottomSheet
+import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.launch
+import me.kavishdevar.librepods.ui.R
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,9 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Current source card inside a Compose modal host. Window insets, gestures and
- * transition frames still need comparison with the original visible sheet.
- * Partial expansion is an explicit caller adaptation; the source opens Expanded.
+ * Source Expanded sheet: a navigation-inset viewport, then a Window exit after hiding.
+ * Partial expansion, outside dismissal and the pre-34 host retain the Compose adapter.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,31 +50,27 @@ fun SettingsBottomSheet(
     content: @Composable ColumnScope.(progress: Float) -> Unit,
 ) {
     if (!visible) return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = !allowPartialExpansion)
+    val nativeHost = android.os.Build.VERSION.SDK_INT >= 34 &&
+        !allowPartialExpansion && !dismissOnClickOutside
+    val sheetState = if (nativeHost) rememberBottomSheetState(SheetValue.Expanded,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
+        else rememberModalBottomSheetState(skipPartiallyExpanded = !allowPartialExpansion)
+    val callerMotion = MaterialTheme.motionScheme
+    val hostMotion = remember(callerMotion) { object : MotionScheme by callerMotion {
+        // nh.a / BottomSheetBehavior.b: medium2 (300ms) before Dialog dismissal.
+        override fun <T> fastEffectsSpec(): FiniteAnimationSpec<T> = tween(300)
+    } }
+    val scope = rememberCoroutineScope()
     val progress by animateFloatAsState(
         if (sheetState.targetValue == SheetValue.Expanded) 1f else 0f,
         label = "Settings sheet expansion",
     )
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        modifier = modifier,
-        sheetState = sheetState,
-        // The XML host spans the window; the inner card owns its width cap.
-        sheetMaxWidth = Dp.Unspecified,
-        shape = RectangleShape,
-        containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 0.dp,
-        // The native dialog dims the underlying Window. A drawn scrim changes
-        // the pixels sampled by Samsung's card blur before the blur is applied.
-        scrimColor = Color.Transparent,
-        dragHandle = null,
-        properties = ModalBottomSheetProperties(shouldDismissOnClickOutside = dismissOnClickOutside),
-    ) {
+    val sheetContent: @Composable ColumnScope.() -> Unit = {
         val view = LocalView.current
         val elevationPixels = with(LocalDensity.current) { 8.dp.toPx() }
-        DisposableEffect(view, elevationPixels) {
+        DisposableEffect(view, elevationPixels, nativeHost) {
             val window = (view.parent as? DialogWindowProvider)?.window
+            if (nativeHost) window?.setWindowAnimations(R.style.SettingsSheetWindowAnimation)
             val oldDimAmount = window?.attributes?.dimAmount
             val oldElevation = window?.decorView?.elevation
             val hadDimFlag = (window?.attributes?.flags ?: 0) and WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0
@@ -91,5 +98,30 @@ fun SettingsBottomSheet(
             }
         }
         SettingsSheetSurface(Modifier.fillMaxWidth().padding(10.dp)) { content(progress) }
+    }
+    if (nativeHost) {
+        Dialog(onDismissRequest = { scope.launch { sheetState.hide(); onDismissRequest() } },
+            properties = DialogProperties(usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false, dismissOnClickOutside = false)) {
+            // Native CoordinatorLayout excludes the navigation bar from its hide range.
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
+                MaterialTheme(motionScheme = hostMotion) {
+                    BottomSheet(modifier = modifier.align(androidx.compose.ui.Alignment.TopCenter), state = sheetState, onDismissRequest = onDismissRequest,
+                        maxWidth = Dp.Unspecified, shape = RectangleShape,
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 0.dp,
+                        dragHandle = null, contentWindowInsets = { WindowInsets(0) }) {
+                        MaterialTheme(motionScheme = callerMotion) { sheetContent() }
+                    }
+                }
+            }
+        }
+    } else {
+        ModalBottomSheet(onDismissRequest = onDismissRequest, modifier = modifier,
+            sheetState = sheetState, sheetMaxWidth = Dp.Unspecified, shape = RectangleShape,
+            containerColor = Color.Transparent, contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp, scrimColor = Color.Transparent, dragHandle = null,
+            properties = ModalBottomSheetProperties(shouldDismissOnClickOutside = dismissOnClickOutside),
+            content = sheetContent)
     }
 }

@@ -1,0 +1,6 @@
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="@integer/settings_sheet_transition_duration"
+    android:interpolator="@android:interpolator/fast_out_slow_in">
+    <translate android:fromYDelta="0" android:toYDelta="20%p" />
+    <alpha android:fromAlpha="1" android:toAlpha="0" />
+</set>

@@ -1,4 +1,9 @@
 <resources>
+    <integer name="settings_sheet_transition_duration">150</integer>
+    <style name="SettingsSheetWindowAnimation" parent="">
+        <item name="android:windowEnterAnimation">@anim/settings_sheet_enter</item>
+        <item name="android:windowExitAnimation">@anim/settings_sheet_exit</item>
+    </style>
     <!-- Base.V21.Theme.AppCompat.Light: window lighting used by native 4dp shadows. -->
     <item name="settings_window_ambient_shadow_alpha" type="dimen">0.04</item>
     <item name="settings_window_spot_shadow_alpha" type="dimen">0.1</item>

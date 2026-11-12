@@ -2,6 +2,9 @@ package me.kavishdevar.librepods.ui.components
 
 import me.kavishdevar.librepods.ui.theme.settingsIsDarkTheme
 import android.graphics.drawable.GradientDrawable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,11 +15,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -52,6 +60,21 @@ fun <T> SettingsModeStrip(
     if (modes.isEmpty()) return
     val track = if (settingsIsDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
     val tick = remember(track) { GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(track.toArgb()) } }
+    val selectedIndex = modes.indexOf(selected)
+    var previousIndex by remember(modes) { mutableIntStateOf(selectedIndex) }
+    var movingFrom by remember(modes) { mutableIntStateOf(selectedIndex) }
+    val movement = remember(modes) { Animatable(1f) }
+    LaunchedEffect(selectedIndex, modes) {
+        movingFrom = previousIndex
+        previousIndex = selectedIndex
+        if (movingFrom in modes.indices && selectedIndex in modes.indices && movingFrom != selectedIndex) {
+            // NoiseControlSeekBar.setProgressWithAnimation; interrupted moves restart
+            // at the previous target, just as the source's current-index field does.
+            movement.snapTo(0f)
+            movement.animateTo(1f, tween(500, easing = CubicBezierEasing(.33f, 0f, .67f, 1f)))
+        } else movement.snapTo(1f)
+    }
+    val movingColor = MaterialTheme.colorScheme.primary
     // l1.j case 2 converts the default 10dp page inset to 20dp for this strip.
     val pageInset = SettingsStyle.pageInset()
     val stripInset = if (pageInset == 10.dp) 20.dp else pageInset
@@ -106,6 +129,22 @@ fun <T> SettingsModeStrip(
                             tick.setBounds(left, top, left + 44.dp.roundToPx(), top + 44.dp.roundToPx())
                             tick.draw(canvas.nativeCanvas)
                         }
+                    }
+                    if (modes.size > 1 && movingFrom in modes.indices && selectedIndex in modes.indices &&
+                        movingFrom != selectedIndex && movement.value < 1f) {
+                        val step = (size.width - 2 * radius) / (modes.size - 1)
+                        val direction = if (selectedIndex > movingFrom) 1f else -1f
+                        val start = radius + step * movingFrom + direction * radius
+                        val end = radius + step * selectedIndex - direction * radius
+                        val distance = kotlin.math.abs(end - start)
+                        val travelDirection = if (end >= start) 1f else -1f
+                        val maximumLength = 2 * distance / 3
+                        val travelled = (distance + maximumLength) * movement.value
+                        val head = start + travelDirection * minOf(travelled, distance)
+                        val length = if (travelled >= distance) maximumLength - (travelled - distance)
+                            else minOf(travelled, maximumLength)
+                        drawLine(movingColor, Offset(head - travelDirection * length, size.height / 2),
+                            Offset(head, size.height / 2), strokeWidth = 6.dp.toPx(), cap = StrokeCap.Round)
                     }
                 }
                 modes.forEachIndexed { index, mode ->

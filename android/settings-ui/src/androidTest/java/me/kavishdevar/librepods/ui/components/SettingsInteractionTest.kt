@@ -144,6 +144,22 @@ class SettingsInteractionTest {
         compose.onNodeWithTag("sheet-title").assertIsDisplayed()
     }
 
+    @Test fun sheetBackDismissesExactlyOnce() {
+        var visible by mutableStateOf(true)
+        var dismissals = 0
+        compose.setContent {
+            SettingsTheme {
+                SettingsBottomSheet(visible, { dismissals++; visible = false }) { _ ->
+                    Text("設定", Modifier.testTag("back-sheet"))
+                }
+            }
+        }
+        compose.onNodeWithTag("back-sheet").assertIsDisplayed()
+        androidx.test.espresso.Espresso.pressBack()
+        compose.onNodeWithTag("back-sheet").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, dismissals) }
+    }
+
     @Test fun sheetDimsItsWindowAndRestoresItWhenRemoved() {
         var visible by mutableStateOf(true)
         var sheetWindow: android.view.Window? = null
@@ -288,7 +304,8 @@ class SettingsInteractionTest {
                 }
             }
         }
-        onView(isAssignableFrom(SettingsSheetBackground::class.java)).check { view, error ->
+        onView(isAssignableFrom(SettingsSheetBackground::class.java))
+            .inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog()).check { view, error ->
             if (error != null) throw error
             background = view as SettingsSheetBackground
             assertTrue(background.isAttachedToWindow)
