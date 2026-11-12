@@ -19,6 +19,7 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -37,6 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.Dp
 import me.kavishdevar.librepods.ui.theme.switchThumb
 import me.kavishdevar.librepods.ui.theme.interactionFeedback
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
+import kotlin.math.abs
 
 /** Separate pointer feedback while the containing row owns accessibility and keyboard input. */
 @Composable
@@ -132,8 +135,14 @@ internal fun SettingsSwitchVisual(
     interactionSource: MutableInteractionSource? = null,
     feedbackEnabled: Boolean = enabled,
 ) {
-    val progress by animateFloatAsState(if (checked) 1f else 0f,
-        animationSpec = tween(200), label = "Settings switch")
+    val position = remember { Animatable(if (checked) 1f else 0f) }
+    LaunchedEffect(checked) {
+        val target = if (checked) 1f else 0f
+        // nw.w.f → a1.c1 case 18 → i0.g1 case 1; nw.z.a supplies the easing.
+        position.animateTo(target, tween((300 * abs(target - position.value)).toInt(),
+            easing = CubicBezierEasing(.22f, .25f, 0f, 1f)))
+    }
+    val progress = position.value
     val colors = MaterialTheme.colorScheme
     // The track follows the checked state alone: `sesl_switch_track_off_color` (outline) gives way
     // to `sesl_switch_track_on_color` (primary) as the thumb travels. Disabling swaps both tokens
