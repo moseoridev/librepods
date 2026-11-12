@@ -12,7 +12,7 @@ Perform investigation, implementation and verification directly. Delegate to sub
 
 Follow explicit user instructions over this file and skill guidance. If a skill causes a pause, approval request or unfinished work, link the exact skill file, quote the instruction and explain how it applies. Distinguish a written requirement from an inferred restriction; do not invent approval steps for hypothetical risks.
 
-Communicate in Korean unless requested otherwise. Lead with the result, use plain language and concise paragraphs, and report relevant evidence and limitations. Give short progress updates for meaningful findings or changes in direction. Use lists when they make steps or comparisons easier to follow.
+Lead with the result, use plain language and concise paragraphs, and report relevant evidence and limitations. Give short progress updates for meaningful findings or changes in direction. Use lists when they make steps or comparisons easier to follow.
 
 ## Active migration
 
