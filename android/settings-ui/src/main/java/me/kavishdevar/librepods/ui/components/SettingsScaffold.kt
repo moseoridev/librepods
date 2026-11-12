@@ -210,12 +210,9 @@ fun SettingsScaffold(
                                         }
                                     }
                                 } else {
-                                    // ku.k3 reserves 28dp for the absent navigation slot. Captured
-                                    // title bounds place it another 8dp in; keeping those measurements
-                                    // separate yields 79+23px at density 2.8125, where a combined 36dp
-                                    // inset rounds to 101px.
+                                    // kw.h3 / kw.m2.b and im.g's absent-navigation branch
+                                    // reserve one 28dp slot before the title column.
                                     Spacer(Modifier.width(28.dp))
-                                    Spacer(Modifier.width(8.dp))
                                 }
                                 Column(Modifier.weight(1f)
                                     .graphicsLayer { alpha = (1f - 2f * header.fraction).coerceIn(0f, 1f) }
