@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,20 +19,20 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -298,25 +297,33 @@ private fun DevicePageContent(
     }
 }
 
-/** Locally drawn functional chevron, using the source's 72-unit/24dp proportions. */
+/** Filled navigation outline and white-cache/tint stages of ic_tw_ic_ab_back_mtrl. */
 @Composable
 private fun BudsBackIcon() {
     val ink = MaterialTheme.colorScheme.onSurface
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val path = remember { Path().apply {
-        moveTo(15.04f, 3.62f)
-        lineTo(7.26f, 11.29f)
-        quadraticTo(6.96f, 11.59f, 6.96f, 12f)
-        quadraticTo(6.96f, 12.41f, 7.26f, 12.71f)
-        lineTo(15.04f, 20.38f)
-    } }
-    Canvas(Modifier.size(24.dp)) {
-        scale(if (rtl) -1f else 1f, 1f) {
-            scale(size.width / 24f, size.height / 24f, pivot = androidx.compose.ui.geometry.Offset.Zero) {
-                drawPath(path, ink, style = Stroke(1.5f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    val image = remember {
+        ImageVector.Builder("SettingsBack", 72.dp, 72.dp, 72f, 72f, autoMirror = true).apply {
+            path(fill = SolidColor(Color.White), stroke = SolidColor(Color.Transparent),
+                strokeLineWidth = 1f, pathFillType = PathFillType.EvenOdd) {
+                moveTo(46.6923f, 12.4566f)
+                curveTo(47.5773f, 11.5836f, 47.5893f, 10.1586f, 46.7163f, 9.2736f)
+                curveTo(45.8433f, 8.3916f, 44.4183f, 8.3826f, 43.5333f, 9.2556f)
+                lineTo(20.1993f, 32.2656f)
+                curveTo(19.1913f, 33.2586f, 18.6363f, 34.5876f, 18.6363f, 36.0036f)
+                curveTo(18.6363f, 37.4166f, 19.1913f, 38.7486f, 20.1993f, 39.7416f)
+                lineTo(43.5333f, 62.7486f)
+                curveTo(43.9713f, 63.1776f, 44.5413f, 63.3936f, 45.1143f, 63.3936f)
+                curveTo(45.6933f, 63.3936f, 46.2753f, 63.1686f, 46.7163f, 62.7246f)
+                curveTo(47.5893f, 61.8396f, 47.5773f, 60.4146f, 46.6923f, 59.5416f)
+                lineTo(23.3613f, 36.5346f)
+                curveTo(23.1633f, 36.3456f, 23.1363f, 36.1206f, 23.1363f, 36.0036f)
+                curveTo(23.1363f, 35.8866f, 23.1633f, 35.6586f, 23.3613f, 35.4696f)
+                lineTo(46.6923f, 12.4566f)
+                close()
             }
-        }
+        }.build()
     }
+    Image(rememberVectorPainter(image), null, Modifier.size(24.dp), colorFilter = ColorFilter.tint(ink))
 }
 
 private fun AppleUiState.value(command: Command): Int? = state.controlStates[command]?.firstOrNull()?.toInt()?.and(255)
