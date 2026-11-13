@@ -237,7 +237,13 @@ private fun DevicePageContent(
         onNavigateBack = back,
         navigationIcon = { BudsBackIcon() },
         scrollState = scroll,
-        contentGroupSpacing = if (page == DevicePage.Home) 0.dp else SettingsStyle.GroupSpacing,
+        // Native column spacing is a page contract, not a consequence of scrolling.
+        // Head and the two long-press pages use spacedBy(20dp); Accessibility
+        // uses zero. Keep the other adapted pages at their existing header position.
+        contentGroupSpacing = when (page) {
+            DevicePage.Head, DevicePage.Left, DevicePage.Right -> SettingsStyle.GroupSpacing
+            else -> 0.dp
+        },
         background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
     ) {
         // Groups do not share one gap: a titled group and a section label bring
