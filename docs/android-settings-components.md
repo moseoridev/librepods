@@ -14,6 +14,8 @@ Menu/speaker slots use locally drawn24dp/1.5-unit line icons; own static mode gl
 
 ## Verification ledger
 
+The [product-element sweep](/Users/moseoridev/programming/android/librepodsDeviceEvidence/animation-parity-20261112/product-elements-navigation-results.json) retains the library/product boundary: Back artwork was a product composition correction; the Head master has a stable62/6-pixel ON/OFF thumb-edge residual (max channel1,0 above summed RGB3) in otherwise matching156px-high cards. This does not establish a new geometry defect or native nondeterminism. Source spacing/type rules are retained for mixed and AirPods-only rows; product feature/content differences have no whole-screen Manager counterpart. Both gesture and3-button native Home comparison app regions now match exactly; real product IME/RTL and disconnected/missing/long-text cases are inspected with the limits in the settings reference. Taskbar, split-window, other OEM and vendor-theme runtime claims remain open.
+
 For the target AirPods UI, start with the [screenshot implementation audit](android-settings.md#screenshot-implementation-readiness). This ledger records component evidence, not target-screen completion. Existing-app inquiry/log sheets, purchase flows and quick-settings surfaces are compatibility notes, not screenshot-redesign prerequisites.
 
 Use this ledger to select work. The detailed sections below own source anchors, raw reports, APK/source hashes and exact limitations. A later regression sample does not replace or add to the coverage of an earlier full matrix. Do not sum overlapping pixel counts into a completion percentage.
