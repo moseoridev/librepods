@@ -2,7 +2,7 @@
 
 > The renderer is ported to rewrite state with per-widget Room device routing. Native geometry/device observations below were recorded on the preserved branch, not recaptured for this port; see [migration state](rewrite-migration.md) for current code/build proof.
 
-The branch supplies its own battery and controls widgets. It does not inject AirPods into Samsung's battery widget or integrate Galaxy Watch. The inspected Samsung provider/central-reader paths require privileged access; this does not rule out every possible nonroot watch integration. Watch support is excluded by maintainer choice.
+The branch supplies its own battery and controls widgets. It does not inject AirPods into Samsung's battery widget or integrate Galaxy Watch. Watch support is excluded by maintainer choice.
 
 ## State and publication
 
@@ -37,4 +37,4 @@ Samsung metadata and `android.R.id.background` participate in native launcher ha
 
 Packaged artwork intentionally differs from Samsung. Layout and surface behavior follow the inspected renderer and launcher contracts; this is not a claim of pixel identity across devices, states or themes.
 
-JVM regressions cover battery/mode normalization, rejected packet freshness and layout selection. Target-device trials covered controls, battery/ANC display, widget dimensions and clipping. Full restored-ID behavior, actual Knox installation, RTL rendering, theme transitions and every size/state combination remain unverified. Build success does not establish Android receiver lifetime, power savings or responsiveness. Power/jank and long-term OEM behavior remain unmeasured.
+JVM regressions cover battery/mode normalization, rejected packet freshness and layout selection. Historical target-device trials predate the rewrite and their raw outputs are retired; the current source harness has not been revalidated against the port. Full restored-ID behavior, actual Knox installation, RTL rendering, theme transitions and every size/state combination remain unverified. Build success does not establish Android receiver lifetime, power savings or responsiveness. Power/jank and long-term OEM behavior remain unmeasured.

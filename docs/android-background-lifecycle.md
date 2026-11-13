@@ -63,20 +63,4 @@ A job binds for at most ten seconds. It releases its exact session on cancellati
 
 Host tests cover session cancellation/ownership, ordered writes, stale callbacks/queries, retry and presence-observation limits, and BLE identity/freshness/replay. They do not exercise Android binding, broadcasts, real sockets or power. Choose checks for the changed behavior using the [development guide](android-development.md#build-and-verify).
 
-The following are short 2026-09-20 trials on SM-S947N, Android 17/API 37, One UI 9; most used USB, while cold-process/toggle checks used wireless ADB without external power. Post-reboot observation reported external power. They are historical observations of the tested APKs, not a fresh certification of each later commit.
-
-| Scenario | Established evidence | Limit |
-| --- | --- | --- |
-| Closed-case disconnect | Both services absent, presence observation off, no ongoing app scan; One UI active-app dialog omitted LibrePods. Cached-process CPU counters unchanged over the sampled interval. | Does not exclude brief system scans or measure battery use. |
-| Process loss while Bluetooth stayed connected | `run-as` process kill followed by CDM/engine/AACP recovery without opening the app, about eleven seconds in this trial. | Simulated abrupt loss, not a measured low-memory kill or force-stop. |
-| Screen-off and initially absent process | Connection event restored bindings/AACP/notification without launching the UI; foreground-start counters remained zero. | Limited successful cycles, not long-term reconnect reliability. |
-| Bluetooth off/on and reboot/unlock | Services/notification removed on normal Bluetooth disable, restored on enable; real reboot plus user unlock restored connection/notification. | `BLE_ON` remained for system/other clients. Reboot test does not isolate the initiating callback. |
-| Notification changes | Duplicate battery values skipped reposting; changed values posted; disconnect removed notification and manual connection restored it. | Name, Reverse/Reconnect, permission/channel recovery and isolated phone-battery receiver transitions remain statically reviewed. |
-| Bottom popup / Nearby | Visible connection popup with Nearby off; enabling Nearby registered/delivered batched LOW_POWER results. Registration survived engine teardown and stopped when disabled. | No BLE-only rendering proof, process-loss/screen-off scan trial or automatic takeover/handoff validation. |
-| Island screen-off/unlock | Synthetic connected-island request while dozing created no window; unlock within the deadline showed the whole pill and the user confirmed no clipping. Screen-off removed it before normal timeout. | Physical reconnect was not repeated in this test; expiry, stale sessions and gesture cancellation were statically reviewed. |
-
-Automatic Bluetooth connection previously failed before LibrePods could recover. The user reported recovery after resetting AirPods without an app-code change. Apple-device pairing as the cause is an unconfirmed hypothesis.
-
-Association removal, rapid reconnects, repeated lifecycle cycles, legacy root audio-profile transitions, long-term reliability and power/jank remain unverified. The unused diagnostic head-tracking screen fix is deferred. Galaxy Watch integration, including a separate watch app, is excluded by maintainer choice. These are scope/evidence boundaries, not a required suite for unrelated edits.
-
-Detailed earlier chronology is retained in Git (this file at `6b62289`); firmware and recovery captures are indexed with the [local evidence](android-development.md#reverse-engineering-and-local-evidence). Update the relevant row when evidence changes rather than appending a new execution diary.
+Historical device trials on the preserved implementation have been retired with their superseded captures. Current source/JVM checks establish finite ownership, cancellation, state normalization and publication contracts, not current OEM reconnect behavior or battery savings. Association removal, repeated reconnect/lifecycle cycles, process-loss recovery, root audio-profile transitions, long-term reliability, power and jank still need explicitly scoped runtime work. Watch support remains excluded by maintainer choice.
