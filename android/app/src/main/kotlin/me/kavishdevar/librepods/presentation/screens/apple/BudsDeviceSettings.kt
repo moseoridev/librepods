@@ -237,19 +237,11 @@ private fun DevicePageContent(
         onNavigateBack = back,
         navigationIcon = { BudsBackIcon() },
         scrollState = scroll,
-        // Native column spacing is a page contract, not a consequence of scrolling.
-        // Head and the two long-press pages use spacedBy(20dp); Accessibility
-        // uses zero. Keep the other adapted pages at their existing header position.
-        contentGroupSpacing = when (page) {
-            DevicePage.Head, DevicePage.Left, DevicePage.Right -> SettingsStyle.GroupSpacing
-            else -> 0.dp
-        },
         background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
     ) {
         // Groups do not share one gap: a titled group and a section label bring
         // their own 16dp lead, and the battery row brings its own 14dp trail.
-        SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
-            .testTag("device-page-${page.name}")) {
+        val groups: @Composable () -> Unit = {
             // Repeated taps must not stack the same destination twice.
             val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
             when (page) {
@@ -300,6 +292,17 @@ private fun DevicePageContent(
                 }
             }
             Spacer(Modifier.height(16.dp))
+        }
+        val pageModifier = Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
+            .testTag("device-page-${page.name}")
+        if (page == DevicePage.Home) {
+            // Native Home has a zero-gap outer column containing an internally
+            // spaced body. Only that outer column reserves the header.
+            SettingsGroupColumn(pageModifier, spacing = 0.dp) {
+                SettingsGroupColumn(content = groups)
+            }
+        } else {
+            SettingsGroupColumn(pageModifier, content = groups)
         }
     }
 }

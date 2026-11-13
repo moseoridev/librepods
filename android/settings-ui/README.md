@@ -10,7 +10,7 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 | --- | --- |
 | 색상·글꼴·간격·모서리·창 그림자 | `SettingsTheme`, `SettingsStyle`, `SettingsGroupShape`, `SettingsWindowTheme`, `SettingsWindowOverlay` |
 | 화면·헤더·스크롤 페이드 | `SettingsScaffold`, `SettingsScrollReporter` |
-| 카드·섹션·구분선 | `SettingsCard`, `SettingsList`, `SettingsSectionLabel`, `SettingsRowDivider` |
+| 카드·섹션·구분선 | `SettingsGroupColumn`, `SettingsCard`, `SettingsList`, `SettingsSectionLabel`, `SettingsRowDivider` |
 | 일반 행·선택 행·토글 행 | `SettingsListItem`, `SettingsChoiceRow`, `SettingsChoiceRowStyle`, `SettingsMultiChoiceRow`, `SettingsToggle` |
 | 독립 스위치 | `SettingsSwitch` |
 | 가로·세로 슬라이더 | `SettingsSeekBar`, `SettingsSeekBarRow`, `SettingsSeekBarStyle`, `SettingsVerticalSeekBar` |
@@ -30,6 +30,8 @@ LibrePods의 설정 화면에서 사용할 독립 Compose 라이브러리입니�
 현재 제품의16개 기기 설정 페이지와 iOS 자료는 [설정 참고 문서](../../docs/android-settings.md)에 정리합니다. 현재 원본은 Manager9.0.10.1724이며, 과거1704 픽셀 검증을 현재 결과로 확대하지 않습니다. 상태·명령 지원과 UI 표현의 검증은 구분합니다.
 
 ## 모듈 경계
+
+`SettingsScaffold(scrollState=...)`가 스크롤을 소유할 때 콘텐츠 루트에 `SettingsGroupColumn`을 둡니다. 열의 `spacing` 값(기본 20dp) 하나가 실제 그룹 간격과 헤더 예약 공간의 분할 반올림을 함께 결정합니다. Scaffold에는 별도의 그룹 간격 값이 없습니다. 헤더 예약은 바깥 열에서 한 번만 소비하고, 중첩 열은 자신의 그룹만 배치합니다. 섹션의 16dp 선행 공간과 배터리의 14dp 후행 공간 예외는 유지됩니다. 내부 간격을 따로 가진 콘텐츠를 감싸는 무간격 바깥 열은 `spacing = 0.dp`로 표현합니다.
 
 ```text
 소비 앱: 상태·지원 여부·문구·그림·내비게이션·기기 명령

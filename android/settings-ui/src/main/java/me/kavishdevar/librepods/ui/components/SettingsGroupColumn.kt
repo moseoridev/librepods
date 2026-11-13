@@ -1,11 +1,18 @@
 package me.kavishdevar.librepods.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
+
+// The scaffold supplies the measured header remainder. Only the outer content
+// column consumes it; nested columns arrange their own groups normally.
+internal val LocalSettingsHeaderSpace = compositionLocalOf<Dp?> { null }
 
 /**
  * Stacks a settings page's groups with the source's spacing rule.
@@ -25,19 +32,27 @@ import me.kavishdevar.librepods.ui.theme.SettingsStyle
  * [SettingsList]s declare their lead automatically.
  */
 @Composable
-fun SettingsGroupColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Layout(content, modifier) { measurables, constraints ->
-        val gap = SettingsStyle.GroupSpacing.roundToPx()
-        val spacing = measurables.map { it.parentData as? SelfSpaced ?: SelfSpaced(false, false) }
+fun SettingsGroupColumn(modifier: Modifier = Modifier,
+    spacing: Dp = SettingsStyle.GroupSpacing, content: @Composable () -> Unit) {
+    val headerSpace = LocalSettingsHeaderSpace.current
+    Layout(content = {
+        CompositionLocalProvider(LocalSettingsHeaderSpace provides null, content = content)
+    }, modifier = modifier) { measurables, constraints ->
+        val gap = spacing.roundToPx()
+        val selfSpaced = measurables.map { it.parentData as? SelfSpaced ?: SelfSpaced(false, false) }
         // Match Column: children measure against a zero minimum so a wrap-content child
         // (a pill button, for example) keeps its natural width instead of filling the page.
         val childConstraints = constraints.copy(minWidth = 0, minHeight = 0)
         val placeables = measurables.map { it.measure(childConstraints) }
-        var cursor = 0
+        // wm.u1/w1 use this column's spacing for both spacedBy and the
+        // leading header spacer. Spacer's measured height is at least zero.
+        var cursor = headerSpace?.let {
+            (it - spacing).roundToPx().coerceAtLeast(0) + gap
+        } ?: 0
         val positions = IntArray(placeables.size)
         placeables.forEachIndexed { index, placeable ->
             // The first group has no predecessor; the caller's own top inset owns that edge.
-            if (index > 0 && !(spacing[index].leading || spacing[index - 1].trailing)) cursor += gap
+            if (index > 0 && !(selfSpaced[index].leading || selfSpaced[index - 1].trailing)) cursor += gap
             positions[index] = cursor
             cursor += placeable.height
         }

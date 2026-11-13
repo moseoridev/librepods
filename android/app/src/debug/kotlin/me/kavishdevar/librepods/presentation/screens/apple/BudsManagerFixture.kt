@@ -31,6 +31,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import me.kavishdevar.librepods.ui.components.SettingsBatteryMeter
 import me.kavishdevar.librepods.ui.components.SettingsBatteryRow
 import me.kavishdevar.librepods.ui.components.SettingsDeviceIllustration
+import me.kavishdevar.librepods.ui.components.SettingsGroupColumn
 import me.kavishdevar.librepods.ui.components.SettingsImageBackdrop
 import me.kavishdevar.librepods.ui.components.SettingsList
 import me.kavishdevar.librepods.ui.components.SettingsListScope
@@ -121,7 +122,9 @@ internal fun NativeHome(
             }
         },
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        // Native Home's outer column has zero spacing; the body below already
+        // supplies its observed spacers and section/battery padding explicitly.
+        SettingsGroupColumn(Modifier.fillMaxWidth(), spacing = 0.dp) {
             // rl.r.l has an outer 6dp inset; zn.a adds 12dp above the 120x80dp hero.
             Spacer(Modifier.height(6.dp))
             // Hero and battery row overlap in rl.r.l's Box. Reserve the source

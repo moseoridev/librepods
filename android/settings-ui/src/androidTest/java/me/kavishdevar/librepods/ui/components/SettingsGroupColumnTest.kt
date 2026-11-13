@@ -2,14 +2,18 @@ package me.kavishdevar.librepods.ui.components
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.SettingsTheme
 import org.junit.Assert.assertEquals
@@ -21,6 +25,37 @@ class SettingsGroupColumnTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun tag(name: String) = Modifier.width(300.dp).height(40.dp).testTag(name)
+
+    @Test fun columnSpacingControlsHeaderSplitAndGapsAndNestedColumnsReserveNoHeader() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(2.625f),
+                LocalSettingsHeaderSpace provides (190f / 2.625f).dp) {
+                Column {
+                    SettingsGroupColumn(Modifier.testTag("spaced"), spacing = 20.dp) {
+                        SettingsGroupColumn(Modifier.testTag("nested"), spacing = 10.dp) {
+                            Box(tag("first"))
+                            Box(tag("second"))
+                        }
+                        Box(tag("third"))
+                    }
+                    SettingsGroupColumn(Modifier.testTag("zero"), spacing = 0.dp) {
+                        Box(tag("zero-first"))
+                        Box(tag("zero-second"))
+                    }
+                }
+            }
+        }
+        fun bounds(name: String) = compose.onNodeWithTag(name).fetchSemanticsNode().boundsInRoot
+        // Native 420dpi: the same 20dp value splits 190px into 138+53,
+        // and contributes 53px between ordinary groups.
+        assertEquals(191f, bounds("nested").top - bounds("spaced").top, .01f)
+        assertEquals(53f, bounds("third").top - bounds("nested").bottom, .01f)
+        assertEquals(0f, bounds("first").top - bounds("nested").top, .01f)
+        assertEquals(26f, bounds("second").top - bounds("first").bottom, .01f)
+        // Zero spacing changes both measurements; it is not a header-only override.
+        assertEquals(190f, bounds("zero-first").top - bounds("zero").top, .01f)
+        assertEquals(0f, bounds("zero-second").top - bounds("zero-first").bottom, .01f)
+    }
 
     @Test fun sectionLabelAndOwnSpaceGroupsSkipTheOrdinaryGap() {
         compose.setContent {
