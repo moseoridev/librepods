@@ -6,7 +6,7 @@ Keep Android improvements usable without root while preserving existing optional
 
 For settings UI work, preserve the referenced iOS AirPods information structure and supported behavior while reproducing the actual Galaxy Buds 4 Manager appearance, not a generic One UI-inspired design. Derive layout, typography, colors and control geometry from the reference implementation; distinguish source-backed matches from unverified adaptations. Keep redesign changes in presentation and reuse upstream state and command paths so upstream updates remain practical. Reference screenshots describe observed UI, not proof of Android feature support; do not package vendor artwork from them.
 
-Infer intent and scope from the request and session context. Treat requests for action as authorization to do the work, and carry implementation through integration and proportionate verification. Investigations should produce concrete findings unless implementation is requested. Make routine, reversible local decisions without repeated approval; existing authorization carries forward. Ask only when missing information materially changes the outcome or the next action exceeds that authorization. Complete independent authorized preparation before asking. Deliver what was asked at the scope intended; do not add features, abstractions, options or defensive code the request does not need. If a better approach exists, say so in a sentence and continue with the task as asked.
+Treat requests for action as authorization to do the work, and carry implementation through integration and proportionate verification. Investigations should produce concrete findings unless implementation is requested. Make routine, reversible local decisions without repeated approval; existing authorization carries forward. Ask only when missing information materially changes the outcome or the next action exceeds that authorization. Complete independent authorized preparation before asking. Deliver what was asked at the scope intended; do not add features, abstractions, options or defensive code the request does not need. If a better approach exists, say so in a sentence and continue with the task as asked.
 
 Incorporate corrections and status questions without losing the active task; replace it only when the user cancels it or requests an incompatible objective.
 
@@ -14,13 +14,10 @@ Follow explicit user instructions over this file and skill guidance. If a skill 
 
 Lead with the result, use plain language and concise paragraphs, and report relevant evidence and limitations. Give short progress updates for meaningful findings or changes in direction. Use lists when they make steps or comparisons easier to follow.
 
-## Active migration
-
-The maintainer authorized the rewrite migration and screenshot-based UI implementation on 2026-11-05. The migration checklist in [rewrite migration state](docs/rewrite-migration.md) is complete; read it after a context reset for pinned branches and recorded limits. The old `moody-penguin` branch is the preservation source; current work continues on branches based on `rewrite-port`.
-
 ## Read according to the task
 
 - Android setup or builds: [development guide](docs/android-development.md).
+- Rewrite migration history, pinned branches and device authorization (after a context reset): [rewrite migration state](docs/rewrite-migration.md).
 - Settings structure, iOS screenshot sources, or One UI redesign: [settings reference](docs/android-settings.md).
 - Android connection lifetime, reconnects, or background resource use: [lifecycle notes](docs/android-background-lifecycle.md).
 - Widget state, rendering, or Samsung parity: [widget notes](docs/android-widgets.md).
@@ -33,7 +30,7 @@ Use code and configuration as the source of truth. Keep durable working agreemen
 
 ## Git completion
 
-After proportionate verification, finish implementation work with coherent commits and push them to a working branch on the maintainer's fork without asking again, unless the user requests otherwise. Keep unrelated work out of those commits; an investigation alone does not require a commit. Check the actual destination and triggered workflow before pushing; this standing authorization does not include upstream pushes, merges, releases, or external notifications. See the development guide for current remotes and CI behavior.
+After proportionate verification, finish implementation work with coherent commits and push them to a working branch on the maintainer's fork without asking again, unless the user requests otherwise. Keep unrelated work out of those commits; an investigation alone does not require a commit. Write commit subjects as `type(scope): summary`, for example `fix(settings-ui): use source title inset`. Check the actual destination and triggered workflow before pushing; this standing authorization does not include upstream pushes, merges, releases, or external notifications. See the development guide for current remotes and CI behavior.
 
 ## Verification and boundaries
 
