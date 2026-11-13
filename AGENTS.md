@@ -6,9 +6,9 @@ Keep Android improvements usable without root while preserving existing optional
 
 For settings UI work, preserve the referenced iOS AirPods information structure and supported behavior while reproducing the actual Galaxy Buds 4 Manager appearance, not a generic One UI-inspired design. Derive layout, typography, colors and control geometry from the reference implementation; distinguish source-backed matches from unverified adaptations. Keep redesign changes in presentation and reuse upstream state and command paths so upstream updates remain practical. Reference screenshots describe observed UI, not proof of Android feature support; do not package vendor artwork from them.
 
-Infer intent and scope from the request and session context. Treat requests for action as authorization to do the work, and carry implementation through integration and proportionate verification. Investigations should produce concrete findings unless implementation is requested. Make routine, reversible local decisions without repeated approval; existing authorization carries forward. Ask only when missing information materially changes the outcome or the next action exceeds that authorization. Complete independent authorized preparation before asking.
+Infer intent and scope from the request and session context. Treat requests for action as authorization to do the work, and carry implementation through integration and proportionate verification. Investigations should produce concrete findings unless implementation is requested. Make routine, reversible local decisions without repeated approval; existing authorization carries forward. Ask only when missing information materially changes the outcome or the next action exceeds that authorization. Complete independent authorized preparation before asking. Deliver what was asked at the scope intended; do not add features, abstractions, options or defensive code the request does not need. If a better approach exists, say so in a sentence and continue with the task as asked.
 
-Perform investigation, implementation and verification directly. Delegate to subagents only when the user explicitly requests it. Incorporate corrections and status questions without losing the active task; replace it only when the user cancels it or requests an incompatible objective.
+Incorporate corrections and status questions without losing the active task; replace it only when the user cancels it or requests an incompatible objective.
 
 Follow explicit user instructions over this file and skill guidance. If a skill causes a pause, approval request or unfinished work, link the exact skill file, quote the instruction and explain how it applies. Distinguish a written requirement from an inferred restriction; do not invent approval steps for hypothetical risks.
 
@@ -16,7 +16,7 @@ Lead with the result, use plain language and concise paragraphs, and report rele
 
 ## Active migration
 
-The maintainer authorized the rewrite migration and screenshot-based UI implementation on 2026-11-05. Resume from [rewrite migration state](docs/rewrite-migration.md) after any context reset. The old `moody-penguin` branch is the preservation source; work on `rewrite-port`. Complete the recorded objective rather than stopping after setup. Do not delegate unless explicitly requested.
+The maintainer authorized the rewrite migration and screenshot-based UI implementation on 2026-11-05. The migration checklist in [rewrite migration state](docs/rewrite-migration.md) is complete; read it after a context reset for pinned branches and recorded limits. The old `moody-penguin` branch is the preservation source; current work continues on branches based on `rewrite-port`.
 
 ## Read according to the task
 

@@ -2,7 +2,7 @@
 
 ## Goal and authorization
 
-The maintainer authorized this migration on 2026-11-05 and explicitly requested persistence across context resets. Work directly, without review agents. Keep this file current at meaningful checkpoints.
+The maintainer authorized this migration on 2026-11-05 and explicitly requested persistence across context resets. Keep this file current at meaningful checkpoints.
 
 Move to upstream `android/rewrite` while retaining our connection lifetime, cancellation, bounded recovery/Nearby, widgets and popup policies; then implement the screenshot-based AirPods settings structure with the already extracted Buds components. Preserve nonroot use and optional privileged paths. Commit coherent verified changes and push only to the maintainer fork. No upstream pushes, releases, CI dispatch or external notifications. The original migration authorization covered code only. The maintainer subsequently authorized S25 installation, inspection, UI fixes and a Bluetooth-independent UI test path; root, Bluetooth/system setting changes remain outside this follow-up.
 
