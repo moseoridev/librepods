@@ -286,15 +286,17 @@ fun SettingsScaffold(
                                 // the header. Keep the source's navigation inset plus 20dp end space.
                                 val scrollPadding = PaddingValues(
                                     start = padding.calculateStartPadding(layoutDirection),
-                                    top = if (visible) TopAppBarDefaults.windowInsets.asPaddingValues().calculateTopPadding() else 0.dp,
+                                    top = if (visible) padding.calculateTopPadding() else 0.dp,
                                     end = padding.calculateEndPadding(layoutDirection),
                                     bottom = padding.calculateBottomPadding(),
                                 )
                                 Column(Modifier.fillMaxSize().verticalScroll(sourceScroll)
                                     .padding(scrollPadding).padding(bottom = 20.dp)) {
+                                    // Always reserve the measured header, including for plain
+                                    // content. A group column only adjusts its rounding split.
                                     CompositionLocalProvider(LocalSettingsHeaderSpace provides
                                         if (visible) padding.calculateTopPadding() -
-                                            scrollPadding.calculateTopPadding() else null) {
+                                            TopAppBarDefaults.windowInsets.asPaddingValues().calculateTopPadding() else null) {
                                         content()
                                     }
                                 }

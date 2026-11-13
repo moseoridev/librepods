@@ -3,6 +3,7 @@ package me.kavishdevar.librepods.ui.components
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
@@ -31,16 +32,21 @@ class SettingsGroupColumnTest {
             CompositionLocalProvider(LocalDensity provides Density(2.625f),
                 LocalSettingsHeaderSpace provides (190f / 2.625f).dp) {
                 Column {
-                    SettingsGroupColumn(Modifier.testTag("spaced"), spacing = 20.dp) {
-                        SettingsGroupColumn(Modifier.testTag("nested"), spacing = 10.dp) {
-                            Box(tag("first"))
-                            Box(tag("second"))
+                    // Model Scaffold's unconditional unsplit reservation.
+                    Box(Modifier.testTag("spaced").padding(top = (190f / 2.625f).dp)) {
+                        SettingsGroupColumn(spacing = 20.dp) {
+                            SettingsGroupColumn(Modifier.testTag("nested")) {
+                                Box(tag("first"))
+                                Box(tag("second"))
+                            }
+                            Box(tag("third"))
                         }
-                        Box(tag("third"))
                     }
-                    SettingsGroupColumn(Modifier.testTag("zero"), spacing = 0.dp) {
-                        Box(tag("zero-first"))
-                        Box(tag("zero-second"))
+                    Box(Modifier.testTag("zero").padding(top = (190f / 2.625f).dp)) {
+                        SettingsGroupColumn(spacing = 0.dp) {
+                            Box(tag("zero-first"))
+                            Box(tag("zero-second"))
+                        }
                     }
                 }
             }
@@ -51,7 +57,7 @@ class SettingsGroupColumnTest {
         assertEquals(191f, bounds("nested").top - bounds("spaced").top, .01f)
         assertEquals(53f, bounds("third").top - bounds("nested").bottom, .01f)
         assertEquals(0f, bounds("first").top - bounds("nested").top, .01f)
-        assertEquals(26f, bounds("second").top - bounds("first").bottom, .01f)
+        assertEquals(53f, bounds("second").top - bounds("first").bottom, .01f)
         // Zero spacing changes both measurements; it is not a header-only override.
         assertEquals(190f, bounds("zero-first").top - bounds("zero").top, .01f)
         assertEquals(0f, bounds("zero-second").top - bounds("zero-first").bottom, .01f)

@@ -933,6 +933,27 @@ class SettingsInteractionTest {
         compose.runOnIdle { assertEquals(4f, value); assertEquals(1, callbacks) }
     }
 
+    @Test fun scaffoldReservesTheMeasuredHeaderForPlainScrollingContent() {
+        var ownsScroll by mutableStateOf(false)
+        val scroll = ScrollState(0)
+        compose.setContent {
+            SettingsTheme {
+                SettingsScaffold(title = "Measured header", backLabel = "Go back",
+                    scrollState = if (ownsScroll) scroll else null) {
+                    Box(Modifier.fillMaxWidth().height(80.dp).testTag("plain-first"))
+                }
+            }
+        }
+        fun firstTop() = compose.onNodeWithTag("plain-first").fetchSemanticsNode().boundsInRoot.top
+        // The non-scrolling path uses Scaffold's measured top padding. Its
+        // content edge is the actual header bottom, independent of density.
+        val headerBottom = firstTop()
+        assertTrue(headerBottom > compose.onNodeWithText("Measured header")
+            .fetchSemanticsNode().boundsInRoot.bottom)
+        compose.runOnIdle { ownsScroll = true }
+        assertEquals(headerBottom, firstTop(), .01f)
+    }
+
     @Test fun expandableHeaderKeepsNamedNavigationAndCallerContext() {
         val scroll = ScrollState(0)
         var allowExpansion by mutableStateOf(true)

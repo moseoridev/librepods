@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 
-// The scaffold supplies the measured header remainder. Only the outer content
-// column consumes it; nested columns arrange their own groups normally.
+// The scaffold reserves the measured header. The outer content column consumes
+// its remainder only to adjust rounding; nested columns arrange groups normally.
 internal val LocalSettingsHeaderSpace = compositionLocalOf<Dp?> { null }
 
 /**
@@ -44,10 +44,10 @@ fun SettingsGroupColumn(modifier: Modifier = Modifier,
         // (a pill button, for example) keeps its natural width instead of filling the page.
         val childConstraints = constraints.copy(minWidth = 0, minHeight = 0)
         val placeables = measurables.map { it.measure(childConstraints) }
-        // wm.u1/w1 use this column's spacing for both spacedBy and the
-        // leading header spacer. Spacer's measured height is at least zero.
+        // wm.u1/w1 use this spacing for both spacedBy and the header split.
+        // Scaffold already reserved the unsplit remainder; add only the delta.
         var cursor = headerSpace?.let {
-            (it - spacing).roundToPx().coerceAtLeast(0) + gap
+            (it - spacing).roundToPx().coerceAtLeast(0) + gap - it.roundToPx()
         } ?: 0
         val positions = IntArray(placeables.size)
         placeables.forEachIndexed { index, placeable ->
