@@ -15,7 +15,7 @@ The main checkout's uncommitted removal of the Korean-only instruction was super
 
 The rewrite port retains finite per-device connection ownership/cancellation/recovery, companion presence handling, optional bounded Nearby behavior, legacy settings/address import, own widgets with per-instance device routing, bounded popup/island policies and the separate settings-ui presentation layer. The supported iOS information structure uses upstream state and command paths; screenshots do not establish Apple service or firmware support.
 
-Current behavior and evidence belong in [settings](android-settings.md), [component provenance](android-settings-components.md), [lifecycle](android-background-lifecycle.md) and [widgets](android-widgets.md). Keep the migration note small instead of duplicating their investigation chronology. Open presentation limits include the context-dependent master-switch edge residual,420dpi placement, cold-transition timing, unpaired native rename IME and unavailable taskbar/split-window/other-OEM/theme configurations.
+Current behavior and evidence belong in [settings](android-settings.md), [component provenance](android-settings-components.md), [lifecycle](android-background-lifecycle.md) and [widgets](android-widgets.md). Keep the migration note small instead of duplicating their investigation chronology. Open presentation limits include the context-dependent master-switch edge residual, cold-transition timing, unpaired native rename IME and unavailable taskbar/split-window/other-OEM/theme configurations.
 
 ## Local data and verification
 

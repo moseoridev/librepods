@@ -237,6 +237,7 @@ private fun DevicePageContent(
         onNavigateBack = back,
         navigationIcon = { BudsBackIcon() },
         scrollState = scroll,
+        contentGroupSpacing = if (page == DevicePage.Home) 0.dp else SettingsStyle.GroupSpacing,
         background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
     ) {
         // Groups do not share one gap: a titled group and a section label bring

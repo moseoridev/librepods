@@ -56,20 +56,25 @@ fun SettingsToggle(
             title?.let { SettingsSectionLabel(it) }
             // wm.k1.y → u1.q: a 52dp centered master row. Allow caller text
             // to grow beyond that minimum instead of clipping enlarged labels.
-            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp)
+            Box(Modifier.fillMaxWidth().heightIn(min = 52.dp)
                 .graphicsLayer { alpha = if (enabled) 1f else .4f }
                 .background(if (checked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface, SettingsStyle.GroupShape)
                 .clip(SettingsStyle.GroupShape)
                 .toggleable(value = checked, interactionSource = interactionSource, indication = null,
                     enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-                .then(settingsRowFeedback(enabled, interactionSource, MaterialTheme.colorScheme.interactionFeedback))
-                .padding(horizontal = SettingsStyle.RowInset), verticalAlignment = Alignment.CenterVertically) {
-                Text(label, Modifier.weight(1f),
-                    style = SettingsStyle.RowTitle.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                // Each native 17.5/5.5dp inset rounds once. The complete disabled
-                // card fades once; it retains enabled switch colors underneath.
-                SettingsRowSwitch(checked, enabled, onCheckedChange, startInset = 17.5.dp, visualEnabled = true)
+                .then(settingsRowFeedback(enabled, interactionSource, MaterialTheme.colorScheme.interactionFeedback)),
+                contentAlignment = Alignment.Center) {
+                // u1.q centers the natural inner row inside the master card, then
+                // centers each child in that row. Keep both alignment measurements.
+                Row(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.RowInset),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(label, Modifier.weight(1f),
+                        style = SettingsStyle.RowTitle.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                    // Each native 17.5/5.5dp inset rounds once. The complete disabled
+                    // card fades once; it retains enabled switch colors underneath.
+                    SettingsRowSwitch(checked, enabled, onCheckedChange, startInset = 17.5.dp, visualEnabled = true)
+                }
             }
             description?.let { Text(it, style = SettingsStyle.RowSummary,
                 color = SettingsStyle.summaryColor(descriptionIsState, canClick = true, enabled = enabled),

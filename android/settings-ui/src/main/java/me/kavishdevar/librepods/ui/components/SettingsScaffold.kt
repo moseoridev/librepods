@@ -60,6 +60,7 @@ import me.kavishdevar.librepods.ui.theme.contentFade
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
@@ -86,6 +87,9 @@ fun SettingsScaffold(
     // Supplying a state makes the scaffold own the scroll viewport and content insets.
     // Content then supplies ordinary, non-scrolling composables (`wm.u1/w1`).
     scrollState: ScrollState? = null,
+    // wm.u1/w1 reserve the header with a leading spacer followed by the
+    // searchable column's independently measured group gap (Home uses zero).
+    contentGroupSpacing: Dp = 0.dp,
     // Source Home supplies a separate backdrop below the scrolling foreground (wm.b2).
     background: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
@@ -286,12 +290,19 @@ fun SettingsScaffold(
                                 // the header. Keep the source's navigation inset plus 20dp end space.
                                 val scrollPadding = PaddingValues(
                                     start = padding.calculateStartPadding(layoutDirection),
-                                    top = if (visible) padding.calculateTopPadding() else 0.dp,
+                                    top = if (visible) TopAppBarDefaults.windowInsets.asPaddingValues().calculateTopPadding() else 0.dp,
                                     end = padding.calculateEndPadding(layoutDirection),
                                     bottom = padding.calculateBottomPadding(),
                                 )
                                 Column(Modifier.fillMaxSize().verticalScroll(sourceScroll)
-                                    .padding(scrollPadding).padding(bottom = 20.dp)) { content() }
+                                    .padding(scrollPadding).padding(bottom = 20.dp)) {
+                                    if (visible) {
+                                        Spacer(Modifier.height(padding.calculateTopPadding() -
+                                            scrollPadding.calculateTopPadding() - contentGroupSpacing))
+                                        Spacer(Modifier.height(contentGroupSpacing))
+                                    }
+                                    content()
+                                }
                             }
                         }
                     }
