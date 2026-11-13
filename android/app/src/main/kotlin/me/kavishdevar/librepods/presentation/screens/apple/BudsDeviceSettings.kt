@@ -303,7 +303,9 @@ private fun BudsBackIcon() {
     val ink = MaterialTheme.colorScheme.onSurface
     val image = remember {
         ImageVector.Builder("SettingsBack", 72.dp, 72.dp, 72f, 72f, autoMirror = true).apply {
-            path(fill = SolidColor(Color.White), stroke = SolidColor(Color.Transparent),
+            // An invisible stroke is omitted by the XML parser. Keeping its black RGB
+            // brush here prevents VectorPainter's single-color Alpha8 cache path.
+            path(fill = SolidColor(Color.White),
                 strokeLineWidth = 1f, pathFillType = PathFillType.EvenOdd) {
                 moveTo(46.6923f, 12.4566f)
                 curveTo(47.5773f, 11.5836f, 47.5893f, 10.1586f, 46.7163f, 9.2736f)
