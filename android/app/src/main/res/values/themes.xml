@@ -1,14 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Base application theme. -->
-    <style name="Theme.LibrePods" parent="Theme.AppCompat.DayNight">
+    <!-- Manager Platform.V7.AppCompat inherits DeviceDefault window lighting;
+         Base.V21 supplies its light/night shadow alphas. Shared by the product and fixtures. -->
+    <style name="Theme.LibrePods" parent="SettingsWindowTheme">
+        <!-- Platform.V21.AppCompat previously inherited Theme.Material.Light:
+             keep its dialog lineage and Material window-background token. -->
+        <item name="android:dialogTheme">@style/Theme.LibrePods.Dialog</item>
+        <item name="android:windowBackground">@color/librepods_window_background</item>
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
          <item name="android:windowLightStatusBar" >true</item>
          <item name="android:windowLightNavigationBar" >true</item>
          <item name="android:statusBarColor">@android:color/transparent</item>
          <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Full Material dialog parent preserves the old activity + Material dialog
+         overlay geometry and lighting; the explicit dim keeps the old activity contract. -->
+    <style name="Theme.LibrePods.Dialog" parent="android:style/Theme.Material.Light.Dialog">
+        <!-- Compose DialogWindowTheme preserves child shadows outside the decor outline. -->
+        <item name="android:windowClipToOutline">false</item>
+        <!-- Theme.Material[.Light] activity + dialog overlay resolved this dim. -->
+        <item name="android:backgroundDimAmount">0.6</item>
+    </style>
+    <color name="librepods_window_background">@color/background_material_light</color>
+
+    <!-- Dialog constructors inspect this base context before resolving dialogTheme.
+         Retain the old AppCompat/Material lineage for all dialog hosts, while the
+         activity itself keeps DeviceDefault lighting. The items mirror Compose UI
+         and Material3's original window overlays; no per-dialog window mutation. -->
+    <style name="LibrePodsDialogContext" parent="Theme.AppCompat.DayNight">
+        <item name="android:dialogTheme">@style/Theme.LibrePods.Dialog</item>
+    </style>
+    <style name="DialogWindowTheme" parent="LibrePodsDialogContext">
+        <item name="android:windowClipToOutline">false</item>
+    </style>
+    <style name="FloatingDialogWindowTheme" parent="DialogWindowTheme">
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+    <style name="EdgeToEdgeFloatingDialogWindowTheme" parent="LibrePodsDialogContext">
+        <item name="android:dialogTheme">@style/EdgeToEdgeFloatingDialogTheme</item>
     </style>
 
     <!-- Theme for the transparent dialog me.kavishdevar.librepods.presentation.activity -->

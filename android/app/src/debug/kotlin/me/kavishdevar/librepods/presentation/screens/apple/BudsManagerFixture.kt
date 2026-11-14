@@ -80,8 +80,10 @@ private fun NativeImage(vendor: Context, name: String, modifier: Modifier, tint:
 }
 
 @Composable
+// rl.r.s/a -> rl.x1/rl.b -> n2.b.P: these menus are enabled in the fixed
+// connected, non-updating reference state. Capability-gated controls supply their own state.
 internal fun SettingsListScope.NativeHomeMenu(vendor: Context, label: String, icon: String,
-    enabled: Boolean = false, switch: Boolean = false, checked: Boolean = false) {
+    enabled: Boolean = true, switch: Boolean = false, checked: Boolean = false) {
     val ink = MaterialTheme.colorScheme.onSurface
     SettingsListItem(name = label, onClick = {}, enabled = enabled, homeMenu = true,
         leadingContent = { NativeImage(vendor, icon, Modifier.size(24.dp), ink) },

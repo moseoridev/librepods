@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Platform.V21.AppCompat's dark Theme.Material lineage; no copied dimensions. -->
+    <style name="Theme.LibrePods.Dialog" parent="android:style/Theme.Material.Dialog">
+        <!-- Compose DialogWindowTheme, restored after the full Material parent. -->
+        <item name="android:windowClipToOutline">false</item>
+        <!-- Theme.Material[.Light] activity + dialog overlay resolved this dim. -->
+        <item name="android:backgroundDimAmount">0.6</item>
+    </style>
+    <color name="librepods_window_background">@color/background_material_dark</color>
+</resources>
