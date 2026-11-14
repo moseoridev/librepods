@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
@@ -96,9 +97,13 @@ fun SettingsScaffold(
     // content remains below rather than being guessed per screen.
     val scrollHolder = remember { SettingsScrollState() }
     val configuration = LocalConfiguration.current
-    val compact = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && configuration.screenHeightDp < 580
+    // kw.m2.a reads WindowInfo's IntSize: this breakpoint is in pixels, not dp.
+    val compact = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+        LocalWindowInfo.current.containerSize.height < 580
     // The source token comes from a resource with default 0dp and h442dp 4dp.
     val toolbarTopPadding = if (configuration.screenHeightDp >= 442) 4.dp else 0.dp
+    // bm.r case 9 passes this base offset to both wm.i3's Box and toolbar row.
+    val toolbarOffset = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) (-2).dp else (-4).dp
     // kw.t.D measures the full compact toolbar row. The two source padding/
     // negative-offset pairs round independently at fractional densities.
     val headerRowHeight = if (compact) 56.dp else 64.dp
@@ -185,7 +190,7 @@ fun SettingsScaffold(
                         Column(Modifier.windowInsetsPadding(TopAppBarDefaults.windowInsets)
                             .padding(top = toolbarTopPadding)) {
                             Box(Modifier.fillMaxWidth().padding(top = toolbarTopPadding)
-                                .offset(y = -toolbarTopPadding)
+                                .offset(y = toolbarOffset)
                                 .height(headerRowHeight)
                                 .clipToBounds()
                                 .then(if (canExpand && !scrolled) Modifier.draggable(
@@ -197,7 +202,7 @@ fun SettingsScaffold(
                             if (!scrolled) {
                             Row(Modifier.align(Alignment.TopStart)
                                 .semantics { isTraversalGroup = true }.fillMaxWidth().height(headerRowHeight)
-                                    .offset(y = -toolbarTopPadding),
+                                    .offset(y = toolbarOffset),
                                 verticalAlignment = Alignment.CenterVertically) {
                                 if (showBackButton) {
                                     // The current navigation slot measures 48dp around a 24dp icon.
@@ -310,7 +315,9 @@ fun SettingsScaffold(
                             // surface with 4dp shadow and .9 background alpha.
                             if (showBackButton) {
                                 Box(Modifier.floatingHeaderSurface()) {
-                                    SettingsIconButton(onNavigateBack, backLabel) {
+                                    // Native measures the 24dp icon and two 12dp insets
+                                    // independently, without the public button's 48dp minimum.
+                                    SettingsIconButtonContent(onNavigateBack, backLabel, contentPadding = 12.dp) {
                                         if (navigationIcon != null) navigationIcon()
                                         else Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
                                     }

@@ -2,6 +2,7 @@ package me.kavishdevar.librepods.presentation.screens.apple
 
 import android.content.res.Configuration
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
@@ -27,6 +28,16 @@ class BudsManagerFixtureActivity : ComponentActivity() {
                 if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             // Preserve the system font step, including Samsung's 0.8 minimum.
             fontScale = intent.getFloatExtra("font_scale", resources.configuration.fontScale)
+        }
+        // Manager BaseActivity.z: its full-window phone landscape surface is fullscreen.
+        // The comparison activity does not provide DeX or Samsung pop-over windows.
+        if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+            configuration.smallestScreenWidthDp < 420) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
         }
         showBudsManagerPage(dark, configuration,
             page = intent.getStringExtra("page") ?: "Home",

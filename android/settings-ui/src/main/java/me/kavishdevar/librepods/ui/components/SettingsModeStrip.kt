@@ -87,10 +87,10 @@ fun <T> SettingsModeStrip(
         val sideInsetPx = with(density) { (pageInset + stripInset).roundToPx() } -
             with(density) { pageInset.roundToPx() }
         val availableWidthPx = constraints.maxWidth - sideInsetPx * 2
-        // bm.t applies the 392dp cap only from screenWidthDp 589 upward.
+        // bm.t / rl.r1.a cap the outer strip at 412dp from screenWidthDp 589 upward.
         val widthPx = with(density) {
             (stripWidth?.roundToPx() ?: if (capStripWidth) {
-                minOf(availableWidthPx, 392.dp.roundToPx())
+                minOf(availableWidthPx, 412.dp.roundToPx())
             } else availableWidthPx).coerceAtLeast(0)
         }
         val width = with(density) { widthPx.toDp() }
@@ -206,7 +206,7 @@ fun <T> SettingsModeStrip(
             val strip = measurables.single().measure(constraints.copy(minWidth = 0, minHeight = 0))
             layout(constraints.maxWidth, strip.height) {
                 val left = if (stripWidth == null && widthPx == availableWidthPx) sideInsetPx
-                    else (constraints.maxWidth - strip.width) / 2
+                    else ((constraints.maxWidth - strip.width) / 2f).roundToInt()
                 strip.placeRelative(left, 0)
             }
         }
