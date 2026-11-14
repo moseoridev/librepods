@@ -31,7 +31,6 @@ object SettingsStyle {
     // 9.0.10.1704: wm.k1.d pads the text column by 14dp; leading controls
     // stay outside that padding (wm.e0). This also keeps multi-line rows natural.
     val RowVerticalPadding = 14.dp
-    val HomeMenuVerticalPadding = 14.dp
     // The source constrains the row before padding its text, not the whole row to 48dp.
     // Compose's clickable/toggleable still expand the touch target to the platform minimum.
     val RowMinHeight = 28.dp
