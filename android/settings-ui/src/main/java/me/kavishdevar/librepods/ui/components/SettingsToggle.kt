@@ -99,10 +99,10 @@ fun SettingsListScope.SettingsToggle(
 ) {
     item { index, count ->
         val interactionSource = remember { MutableInteractionSource() }
-        val rowPadding = if (homeMenu) Modifier.padding(horizontal = SettingsStyle.RowInset,
-            vertical = SettingsStyle.HomeMenuVerticalPadding)
-        else Modifier.padding(horizontal = SettingsStyle.RowInset)
-        val textPadding = if (homeMenu) Modifier else Modifier.padding(vertical = SettingsStyle.RowVerticalPadding)
+        // wm.k1.c/d: only the text column has vertical padding. Padding the
+        // entire row lets a taller switch grow the row at small font sizes.
+        val rowPadding = Modifier.padding(horizontal = SettingsStyle.RowInset)
+        val textPadding = Modifier.padding(vertical = SettingsStyle.RowVerticalPadding)
         Row(Modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, SettingsStyle.RowMinHeight))
             .toggleable(value = checked, interactionSource = interactionSource, indication = null,
                 enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
@@ -111,8 +111,8 @@ fun SettingsListScope.SettingsToggle(
             .then(settingsRowFeedback(enabled, interactionSource))
             .then(rowPadding),
             verticalAlignment = Alignment.CenterVertically) {
-            // wm.k1.c constrains the row, not the natural text inside it.
-            Column(Modifier.weight(1f).then(textPadding),
+            // wm.k1.d applies the text-column minimum before its vertical insets.
+            Column(Modifier.weight(1f).heightIn(min = SettingsStyle.RowMinHeight).then(textPadding),
                 verticalArrangement = if (homeMenu) Arrangement.Center else Arrangement.Top) {
                 Text(label, style = SettingsStyle.RowTitle,
                     color = MaterialTheme.colorScheme.onSurface)

@@ -192,7 +192,8 @@ internal fun NativeHome(
                                 }
                             }
                             val tint = color(if (selected) "buds_icon_on" else "buds_icon_off")
-                            LottieAnimation(composition, progress = { 1f }, alignment = Alignment.TopStart,
+                            // rl.q1 → l8.b.d uses its Center alignment default.
+                            LottieAnimation(composition, progress = { 1f }, alignment = Alignment.Center,
                                 modifier = Modifier.requiredSize(44.dp)
                                     .graphicsLayer { colorFilter = ColorFilter.tint(tint) })
                         })

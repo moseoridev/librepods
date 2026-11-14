@@ -99,11 +99,9 @@ fun SettingsScaffold(
     val compact = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && configuration.screenHeightDp < 580
     // The source token comes from a resource with default 0dp and h442dp 4dp.
     val toolbarTopPadding = if (configuration.screenHeightDp >= 442) 4.dp else 0.dp
-    // kw.m1 measures the 24dp action and each 12dp content inset separately.
-    // Its natural height can exceed the 48dp navigation slot by a pixel (450dpi).
-    val headerRowHeight = with(LocalDensity.current) {
-        maxOf(48.dp.roundToPx(), 24.dp.roundToPx() + 2 * 12.dp.roundToPx()).toDp()
-    }
+    // kw.t.D measures the full compact toolbar row. The two source padding/
+    // negative-offset pairs round independently at fractional densities.
+    val headerRowHeight = if (compact) 56.dp else 64.dp
     val canExpand = visible && expandableHeader && configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
     val range = with(LocalDensity.current) { if (canExpand) 198.dp.toPx() else 0f }
     val scope = rememberCoroutineScope()
@@ -187,7 +185,8 @@ fun SettingsScaffold(
                         Column(Modifier.windowInsetsPadding(TopAppBarDefaults.windowInsets)
                             .padding(top = toolbarTopPadding)) {
                             Box(Modifier.fillMaxWidth().padding(top = toolbarTopPadding)
-                                .height(if (compact) 56.dp else 64.dp)
+                                .offset(y = -toolbarTopPadding)
+                                .height(headerRowHeight)
                                 .clipToBounds()
                                 .then(if (canExpand && !scrolled) Modifier.draggable(
                                     state = rememberDraggableState { header.drag(it) }, orientation = Orientation.Vertical,
@@ -197,7 +196,8 @@ fun SettingsScaffold(
                             // content beneath the header can receive touches during scrolling.
                             if (!scrolled) {
                             Row(Modifier.align(Alignment.TopStart)
-                                .semantics { isTraversalGroup = true }.fillMaxWidth().height(headerRowHeight),
+                                .semantics { isTraversalGroup = true }.fillMaxWidth().height(headerRowHeight)
+                                    .offset(y = -toolbarTopPadding),
                                 verticalAlignment = Alignment.CenterVertically) {
                                 if (showBackButton) {
                                     // The current navigation slot measures 48dp around a 24dp icon.

@@ -25,7 +25,8 @@ class BudsManagerFixtureActivity : ComponentActivity() {
         val configuration = Configuration(resources.configuration).apply {
             uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                 if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
-            fontScale = intent.getFloatExtra("font_scale", 1f).coerceIn(.85f, 2f)
+            // Preserve the system font step, including Samsung's 0.8 minimum.
+            fontScale = intent.getFloatExtra("font_scale", resources.configuration.fontScale)
         }
         showBudsManagerPage(dark, configuration,
             page = intent.getStringExtra("page") ?: "Home",

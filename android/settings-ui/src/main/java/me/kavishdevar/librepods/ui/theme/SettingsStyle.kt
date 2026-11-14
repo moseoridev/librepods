@@ -5,6 +5,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -15,7 +17,10 @@ object SettingsStyle {
     val RowTitle = TextStyle(fontFamily = SettingsFontFamily, fontSize = 17.sp)
     val RowSummary = TextStyle(fontFamily = SettingsFontFamily, fontSize = 13.sp)
     val SectionTitle = RowSummary.copy(fontWeight = FontWeight.SemiBold)
-    val CompactTitle = RowTitle.copy(fontSize = 21.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold)
+    // v1.j0 supplies untrimmed Center line height to kw.m2.a's toolbar title.
+    val CompactTitle = RowTitle.copy(fontSize = 21.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None))
     val CompactSubtitle = RowSummary.copy(fontWeight = FontWeight.SemiBold)
     val ExpandedTitle = RowTitle.copy(fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
     val GroupRadius = 26.dp
