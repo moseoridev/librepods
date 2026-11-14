@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.*
@@ -13,6 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +32,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import com.airbnb.lottie.LottieCompositionFactory
 import com.airbnb.lottie.compose.LottieAnimation
+import me.kavishdevar.librepods.ui.components.SettingsButton
+import me.kavishdevar.librepods.ui.components.SettingsButtonStyle
 import me.kavishdevar.librepods.ui.components.SettingsBatteryMeter
 import me.kavishdevar.librepods.ui.components.SettingsBatteryRow
 import me.kavishdevar.librepods.ui.components.SettingsDeviceIllustration
@@ -46,11 +57,11 @@ import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.SettingsTheme
 
 /**
- * The installed Manager 9.0.10.1724 Home, built from settings-ui and the vendor's own resources.
+ * The installed Manager 9.0.10.1724 Home and Head pages, built from settings-ui and the vendor's own resources.
  *
  * Every string, drawable, colour and Lottie asset resolves from the installed
  * `com.samsung.accessory.budsunitemgr` package at runtime, so nothing vendor-owned is packaged
- * here and the only variable left against a native capture is our own component geometry. The
+ * here. Paired captures must also control animation phase and display configuration. The
  * vendor package is read only: this file opens its resources and never invokes its code.
  *
  * Debug source set only; never packaged into a release variant.
@@ -245,8 +256,91 @@ internal fun NativeHome(
     }
 }
 
-/** Hosts [NativeHome] under a configuration supplied from the intent, never from the device. */
-internal fun ComponentActivity.showBudsManagerHome(dark: Boolean, configuration: Configuration) {
+/**
+ * dc.u.b/d and em.f: fixed reference Buds4, One UI 9 / Bixby-enabled Head content.
+ * Vendor content comes from the installed package, including the looping illustration.
+ * Mapping rows and Learn how are inert; the master state is local to this fixture.
+ */
+@Composable
+internal fun NativeHead(vendor: Context, scroll: ScrollState, onNavigateBack: () -> Unit,
+    initiallyChecked: Boolean = true) {
+    fun text(name: String): String {
+        val id = vendor.resources.getIdentifier(name, "string", vendor.packageName)
+        check(id != 0) { "Missing installed reference string: $name" }
+        return vendor.getString(id)
+    }
+    var checked by remember { mutableStateOf(initiallyChecked) }
+    val ink = MaterialTheme.colorScheme.onSurface
+    val composition = remember(vendor) {
+        val id = vendor.resources.getIdentifier("head_gesture", "raw", vendor.packageName)
+        check(id != 0) { "Missing installed reference animation: head_gesture" }
+        vendor.resources.openRawResource(id).use {
+            checkNotNull(LottieCompositionFactory.fromJsonInputStreamSync(it, null).value).also { composition ->
+                // Lottie Compose's rememberLottieComposition normally decodes embedded images.
+                // This runtime resource loader supplies that same step without a vendor asset copy.
+                composition.images.values.forEach { image ->
+                    val data = image.fileName
+                    if (data.startsWith("data:") && data.contains("base64,")) {
+                        val bytes = Base64.decode(data.substringAfter(','), Base64.DEFAULT)
+                        // a1.o2 case 7: preserve the raw image's 160dpi decode density.
+                        val options = BitmapFactory.Options().apply { inScaled = true; inDensity = 160 }
+                        image.bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                    }
+                }
+            }
+        }
+    }
+    val illustrationBackground = remember(vendor) {
+        val id = vendor.resources.getIdentifier("color_bg_lottie", "color", vendor.packageName)
+        check(id != 0) { "Missing installed reference color: color_bg_lottie" }
+        Color(vendor.getColor(id))
+    }
+    SettingsScaffold(title = text("head_gesture"), showBackButton = true, backLabel = text("sesl_action_bar_up_description"),
+        onNavigateBack = onNavigateBack, scrollState = scroll,
+        navigationIcon = { NativeImage(vendor, "ic_tw_ic_ab_back_mtrl", Modifier.size(24.dp), ink) }) {
+        SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())) {
+            SettingsToggle(label = text(if (checked) "vn_on" else "vn_off"),
+                checked = checked, onCheckedChange = { checked = it }, header = true)
+            // dc.u.b: full-width 26dp background, centered 290 x 190dp Lottie.
+            Row(Modifier.fillMaxWidth().background(illustrationBackground, SettingsStyle.GroupShape),
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                LottieAnimation(composition, Modifier.size(290.dp, 190.dp), iterations = Int.MAX_VALUE)
+            }
+            // dc.u.d: 18dp inset; separate bullet/paragraph Text nodes in natural
+            // rows with a 21dp minimum, 14sp text and untrimmed 21sp line height.
+            val descriptionStyle = SettingsStyle.RowTitle.copy(fontSize = 14.sp, lineHeight = 21.sp,
+                color = ink, textAlign = TextAlign.Start,
+                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None))
+            Column(Modifier.padding(horizontal = 18.dp)) {
+                Row(Modifier.heightIn(min = 21.dp), verticalAlignment = Alignment.Top) {
+                    Text(text("head_gesture_oneui9_desc_1"), style = descriptionStyle)
+                }
+                listOf("head_gesture_desc_2", "head_gesture_desc_3", "head_gesture_desc_4",
+                    "head_gesture_desc_5").forEach { name ->
+                    Row(Modifier.heightIn(min = 21.dp), verticalAlignment = Alignment.Top) {
+                        Text("  •  ", style = descriptionStyle)
+                        Text(text(name), style = descriptionStyle)
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                SettingsButton({}, Modifier.size(158.dp, 52.dp), style = SettingsButtonStyle.Tonal) {
+                    Text(text("learn_how"))
+                }
+            }
+            SettingsList {
+                SettingsListItem(name = text("yes_or_accept"), description = text("nod"),
+                    descriptionIsState = true, enabled = checked, onClick = {})
+                SettingsListItem(name = text("no_or_decline"), description = text("shake"),
+                    descriptionIsState = true, enabled = checked, onClick = {})
+            }
+        }
+    }
+}
+
+/** Hosts the selected Manager resource page under the fixture configuration. */
+internal fun ComponentActivity.showBudsManagerPage(dark: Boolean, configuration: Configuration,
+    page: String, checked: Boolean) {
     val configured = createConfigurationContext(configuration)
     val vendor = createPackageContext(VENDOR_PACKAGE, 0).createConfigurationContext(configuration)
     setContent {
@@ -256,7 +350,12 @@ internal fun ComponentActivity.showBudsManagerHome(dark: Boolean, configuration:
             LocalDensity provides Density(resources.displayMetrics.density, configuration.fontScale),
         ) {
             SettingsTheme(darkTheme = dark) {
-                NativeHome(vendor, dark, rememberScrollState(), onNavigateBack = {})
+                val scroll = rememberScrollState()
+                when (page) {
+                    "Home" -> NativeHome(vendor, dark, scroll, onNavigateBack = {})
+                    "Head" -> NativeHead(vendor, scroll, onNavigateBack = {}, initiallyChecked = checked)
+                    else -> error("Unknown Manager fixture page: $page")
+                }
             }
         }
     }

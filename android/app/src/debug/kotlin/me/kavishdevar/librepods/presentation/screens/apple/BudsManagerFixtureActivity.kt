@@ -3,7 +3,6 @@ package me.kavishdevar.librepods.presentation.screens.apple
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
 
@@ -28,6 +27,8 @@ class BudsManagerFixtureActivity : ComponentActivity() {
                 if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             fontScale = intent.getFloatExtra("font_scale", 1f).coerceIn(.85f, 2f)
         }
-        showBudsManagerHome(dark, configuration)
+        showBudsManagerPage(dark, configuration,
+            page = intent.getStringExtra("page") ?: "Home",
+            checked = intent.getBooleanExtra("checked", true))
     }
 }
