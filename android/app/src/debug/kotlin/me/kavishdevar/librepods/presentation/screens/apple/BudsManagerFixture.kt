@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import android.graphics.BitmapFactory
+import android.graphics.drawable.ColorDrawable
 import android.util.Base64
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -299,7 +300,7 @@ internal fun NativeHead(vendor: Context, scroll: ScrollState, onNavigateBack: ()
         Color(vendor.getColor(id))
     }
     SettingsScaffold(title = text("head_gesture"), showBackButton = true, backLabel = text("sesl_action_bar_up_description"),
-        onNavigateBack = onNavigateBack, scrollState = scroll,
+        onNavigateBack = onNavigateBack, scrollState = scroll, expandableHeader = true,
         navigationIcon = { NativeImage(vendor, "ic_tw_ic_ab_back_mtrl", Modifier.size(24.dp), ink) }) {
         SettingsGroupColumn(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())) {
             SettingsToggle(label = text(if (checked) "vn_on" else "vn_off"),
@@ -346,6 +347,11 @@ internal fun ComponentActivity.showBudsManagerPage(dark: Boolean, configuration:
     page: String, checked: Boolean) {
     val configured = createConfigurationContext(configuration)
     val vendor = createPackageContext(VENDOR_PACKAGE, 0).createConfigurationContext(configuration)
+    // AppThemeBase overrides DeviceDefault's windowBackground with color_background.
+    // hl.e leaves its host unpainted, exposing this resource at rounding remainders.
+    val windowBackground = vendor.resources.getIdentifier("color_background", "color", vendor.packageName)
+    check(windowBackground != 0) { "Missing installed reference color: color_background" }
+    window.setBackgroundDrawable(ColorDrawable(vendor.getColor(windowBackground)))
     setContent {
         CompositionLocalProvider(
             LocalConfiguration provides configuration,

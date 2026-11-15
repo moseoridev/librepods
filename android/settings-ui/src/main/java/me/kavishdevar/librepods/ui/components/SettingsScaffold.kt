@@ -57,7 +57,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.ui.theme.toolbarSubtitle
 import me.kavishdevar.librepods.ui.theme.floatingToolbarBackground
-import me.kavishdevar.librepods.ui.theme.contentFade
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.unit.dp
@@ -138,16 +137,20 @@ fun SettingsScaffold(
     // hl.e keeps the 262dp expanded title outside the inset-bearing scaffold.
     // Its expanding offset moves the whole scaffold, including the fade viewport;
     // increasing only the compact bar height changes title/Back and shader pixels.
-    // Fractional travel can expose the parent below the reduced scaffold. That
-    // background has the indicator role; hl.e paints the title's page role itself.
-    Box(modifier.nestedScroll(header).background(MaterialTheme.colorScheme.contentFade)) {
+    // hl.e leaves the host box unpainted. Its opaque title background covers
+    // the expanding page; any rounding remainder outside the translated
+    // scaffold belongs to the owning window, not the fading-edge indicator.
+    Box(modifier.nestedScroll(header)) {
         if (canExpand && !scrolled) {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 1f)) {
                 Column(Modifier.fillMaxWidth().height(262.dp)
                     .offset { IntOffset(0, ((header.fraction - 1f) * range).toInt() * 3 / 5) }
-                    .graphicsLayer { alpha = (2f * header.fraction - 1f).coerceIn(0f, 1f) }
+                    // hl.e: screen_background precedes the alpha layer. Only
+                    // the title content fades; precompositing its background
+                    // into the layer changes fractional-alpha glyph pixels.
                     .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .graphicsLayer { alpha = (2f * header.fraction - 1f).coerceIn(0f, 1f) }
                     .draggable(state = rememberDraggableState { header.drag(it) },
                         orientation = Orientation.Vertical,
                         onDragStarted = { header.stop() }, onDragStopped = { header.settle() })
