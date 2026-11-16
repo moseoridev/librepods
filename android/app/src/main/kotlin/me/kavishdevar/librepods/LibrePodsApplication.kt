@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods
 
 import android.app.Application
+import android.app.UiModeManager
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -13,9 +14,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import me.kavishdevar.librepods.billing.BillingManager
 import me.kavishdevar.librepods.billing.BillingProviderFactory
+import me.kavishdevar.librepods.data.app.NightTheme
 import me.kavishdevar.librepods.core.utils.GestureFeedback
 import me.kavishdevar.librepods.database.LibrePodsDatabase
 import me.kavishdevar.librepods.presentation.overlays.IslandWindow
@@ -73,6 +77,20 @@ class LibrePodsApplication: Application(), XposedServiceHelper.OnServiceListener
             appDataRepository.awaitInitialized()
             appleRepository.initialize()
             widgetConfigRepository.awaitInitialized()
+        }
+
+        // The initial StateFlow value is now the persisted preference. Main.immediate
+        // applies it before creating UI; activity recreation does not restart this collector.
+        val uiModeManager = getSystemService(UiModeManager::class.java)
+        scope.launch {
+            appDataRepository.settings.map { it.nightMode }.distinctUntilChanged().collect { mode ->
+                uiModeManager.setApplicationNightMode(when (mode) {
+                    NightTheme.Light -> UiModeManager.MODE_NIGHT_NO
+                    NightTheme.Dark -> UiModeManager.MODE_NIGHT_YES
+                    // The per-app API maps AUTO to an undefined override, inheriting the system.
+                    NightTheme.System -> UiModeManager.MODE_NIGHT_AUTO
+                })
+            }
         }
 
         islandWindow = IslandWindow(applicationContext, appDataRepository.settings.value)

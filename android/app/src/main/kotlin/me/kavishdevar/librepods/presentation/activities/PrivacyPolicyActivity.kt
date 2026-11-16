@@ -29,7 +29,6 @@ import me.kavishdevar.librepods.data.app.Design
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
 import me.kavishdevar.librepods.presentation.screens.onboarding.PrivacyPolicyPage
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
-import me.kavishdevar.librepods.data.app.NightTheme
 
 class PrivacyPolicyActivity : ComponentActivity() {
     val appDataRepository by lazy { (application as LibrePodsApplication).appDataRepository }
@@ -40,13 +39,7 @@ class PrivacyPolicyActivity : ComponentActivity() {
         setContent {
             val settings by appDataRepository.settings.collectAsState()
 
-            val systemDarkTheme = isSystemInDarkTheme()
-
-            val darkTheme = when (settings.nightMode) {
-                NightTheme.Dark -> true
-                NightTheme.Light -> false
-                NightTheme.System -> systemDarkTheme
-            }
+            val darkTheme = isSystemInDarkTheme()
 
             val view = LocalView.current
             val window = (view.context as Activity).window

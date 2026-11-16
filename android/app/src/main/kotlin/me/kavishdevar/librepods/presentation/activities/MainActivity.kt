@@ -55,7 +55,6 @@ import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.LibrePodsApplication
 import me.kavishdevar.librepods.data.app.Design
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
-import me.kavishdevar.librepods.data.app.NightTheme
 import me.kavishdevar.librepods.presentation.navigation.NavigationRoot
 import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
 import me.kavishdevar.librepods.repository.AppDataRepository
@@ -83,13 +82,7 @@ class MainActivity: ComponentActivity() {
         setContent {
             val settings by appDataRepository.settings.collectAsStateWithLifecycle()
 
-            val systemDarkTheme = isSystemInDarkTheme()
-
-            val darkTheme = when (settings.nightMode) {
-                NightTheme.Dark -> true
-                NightTheme.Light -> false
-                NightTheme.System -> systemDarkTheme
-            }
+            val darkTheme = isSystemInDarkTheme()
 
             val view = LocalView.current
             val window = (view.context as Activity).window
