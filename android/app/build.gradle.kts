@@ -179,7 +179,6 @@ dependencies {
     implementation(libs.haze.glass.material3)
     implementation(libs.androidx.dynamicanimation)
     implementation(libs.androidx.compose.material.icons.core)
-    implementation(libs.billing)
     debugImplementation(libs.androidx.compose.ui.tooling)
     // The Buds Manager fixture plays the vendor's own Lottie mode artwork to a settled frame.
     debugImplementation("com.airbnb.android:lottie-compose:6.7.1")

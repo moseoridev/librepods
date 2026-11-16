@@ -38,7 +38,6 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
-import me.kavishdevar.librepods.presentation.components.primitives.StyledButton
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
 import me.kavishdevar.librepods.presentation.components.primitives.StyledToggle
 import me.kavishdevar.librepods.presentation.design.LocalDesign
@@ -47,8 +46,7 @@ import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
 @Composable
 fun HearingProtectionScreen(
     viewModel: AppleViewModel,
-    navigateBack: (() -> Unit)?,
-    navigateToPurchase: () -> Unit
+    navigateBack: (() -> Unit)?
 ) {
     val backdrop = rememberLayerBackdrop()
     val uiState by viewModel.uiState.collectAsState()
@@ -66,22 +64,6 @@ fun HearingProtectionScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(topPadding))
-            if (!uiState.isPremium) {
-                StyledButton(
-                    onClick = navigateToPurchase,
-                    backdrop = rememberLayerBackdrop(),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxScale = 0.05f,
-                    surfaceColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(
-                        stringResource(R.string.unlock_advanced_features),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
             if (uiState.vendorIdHook) {
                 StyledToggle(
@@ -94,8 +76,7 @@ fun HearingProtectionScreen(
                             ATTHandle.LOUD_SOUND_REDUCTION,
                             byteArrayOf(if (it) 1.toByte() else 0.toByte())
                         )
-                    },
-                    enabled = uiState.isPremium
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -111,8 +92,7 @@ fun HearingProtectionScreen(
                     viewModel.setControlCommand(
                         ControlCommandIdentifier.PPE_TOGGLE_CONFIG, it
                     )
-                },
-                enabled = uiState.isPremium
+                }
             )
             Spacer(modifier = Modifier.height(bottomPadding))
         }

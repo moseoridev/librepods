@@ -105,7 +105,6 @@ fun BudsDeviceSettingsRoute(
     navigateBack: (() -> Unit)?,
     navigateToHearingProtection: () -> Unit,
     navigateToHearingAid: () -> Unit,
-    navigateToPurchase: () -> Unit,
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecording: () -> Unit,
     navigateToHeartRate: () -> Unit,
@@ -116,7 +115,7 @@ fun BudsDeviceSettingsRoute(
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val actions = remember(viewModel) { ViewModelSettingsActions(viewModel) }
     BudsDeviceSettings(ui, actions, navigateBack, navigateToHearingProtection,
-        navigateToHearingAid, navigateToPurchase, navigateToTransparencyCustomization,
+        navigateToHearingAid, navigateToTransparencyCustomization,
         navigateToRecording, navigateToHeartRate, navigateToDebug,
         navigateToOverlays, navigateToProximity, mediaVolume = { PhoneMediaVolume() })
 }
@@ -129,7 +128,6 @@ internal fun BudsDeviceSettings(
     navigateBack: (() -> Unit)? = null,
     navigateToHearingProtection: () -> Unit = {},
     navigateToHearingAid: () -> Unit = {},
-    navigateToPurchase: () -> Unit = {},
     navigateToTransparencyCustomization: () -> Unit = {},
     navigateToRecording: () -> Unit = {},
     navigateToHeartRate: () -> Unit = {},
@@ -166,7 +164,7 @@ internal fun BudsDeviceSettings(
             entryProvider = { page ->
                 NavEntry(page) {
                     DevicePageContent(uiState, actions, page, pages, back, mediaVolume, navigateBack,
-                        navigateToHearingProtection, navigateToHearingAid, navigateToPurchase,
+                        navigateToHearingProtection, navigateToHearingAid,
                         navigateToTransparencyCustomization, navigateToRecording, navigateToHeartRate,
                         navigateToDebug, navigateToOverlays, navigateToProximity, darkTheme,
                         onRename = { renaming = true })
@@ -218,7 +216,6 @@ private fun DevicePageContent(
     navigateBack: (() -> Unit)?,
     navigateToHearingProtection: () -> Unit,
     navigateToHearingAid: () -> Unit,
-    navigateToPurchase: () -> Unit,
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecording: () -> Unit,
     navigateToHeartRate: () -> Unit,
@@ -246,7 +243,7 @@ private fun DevicePageContent(
             val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
             when (page) {
                 DevicePage.Home -> DeviceHome(ui, go, onRename,
-                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) }, navigateToPurchase)
+                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) })
                 DevicePage.Audio -> AudioPage(ui, actions, go)
                 DevicePage.Controls -> ControlsPage(ui, go)
                 DevicePage.Accessibility -> AccessibilityPage(ui, actions)
@@ -284,7 +281,7 @@ private fun DevicePageContent(
                         } == true
                         if (!hearingAidEnabled && ui.vendorIdHook) SettingsListItem(
                             name = stringResource(R.string.customize_transparency_mode),
-                            onClick = navigateToTransparencyCustomization, enabled = ui.isPremium)
+                            onClick = navigateToTransparencyCustomization)
                         if (LocalDebugMode.current) SettingsListItem(name = "Debug", onClick = navigateToDebug)
                     }
                     SettingsToggle(label = stringResource(R.string.disconnect_when_not_wearing), checked = ui.settings.disconnectWhenNotWearing,
@@ -351,7 +348,7 @@ private fun AppleUiState.allowOffListeningMode(): Boolean =
 
 @Composable
 private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, disconnect: () -> Unit,
-    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit, navigateToPurchase: () -> Unit) {
+    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit) {
     DeviceBatteries(ui)
     SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.displayName, onClick = onRename) }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
@@ -387,10 +384,6 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
     SettingsList {
         SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
         SettingsListItem(name = stringResource(R.string.disconnect), onClick = disconnect)
-    }
-    if (!ui.isPremium) SettingsButton(onClick = navigateToPurchase, style = SettingsButtonStyle.Filled,
-        modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.unlock_advanced_features))
     }
 }
 
@@ -471,9 +464,9 @@ private fun modeLabel(mode: Int): String = stringResource(when (mode) {
 @Composable
 private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePage) -> Unit) {
     if (ui.has(BaseCapability.ADAPTIVE_VOLUME)) CommandToggle(ui, vm, Command.ADAPTIVE_VOLUME_CONFIG,
-        R.string.personalized_volume, R.string.personalized_volume_description, premium = true)
+        R.string.personalized_volume, R.string.personalized_volume_description)
     if (ui.has(BaseCapability.CONVERSATION_AWARENESS)) CommandToggle(ui, vm, Command.CONVERSATION_DETECT_CONFIG,
-        R.string.conversation_awareness, R.string.conversation_awareness_description, premium = true)
+        R.string.conversation_awareness, R.string.conversation_awareness_description)
     if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 9)
         SettingsList { SettingsListItem(name = stringResource(R.string.equalizer), onClick = { go(DevicePage.Equalizer) }) }
     SettingsList {
@@ -491,10 +484,10 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
         descriptionIsState = true,
         description = ui.value(Command.MIC_MODE)?.let { stringResource(when(it) { 2 -> R.string.microphone_always_left; 1 -> R.string.microphone_always_right; else -> R.string.microphone_automatic }) }) }
     if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) CommandSlider(stringResource(R.string.customize_adaptive_audio),
-        ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED && ui.isPremium) {
+        ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED) {
         vm.setControlCommand(Command.AUTO_ANC_STRENGTH, it)
     }
-    if (ui.has(BaseCapability.SLEEP_DETECTION)) CommandToggle(ui, vm, Command.SLEEP_DETECTION_CONFIG, R.string.sleep_detection, premium = true)
+    if (ui.has(BaseCapability.SLEEP_DETECTION)) CommandToggle(ui, vm, Command.SLEEP_DETECTION_CONFIG, R.string.sleep_detection)
 }
 
 @Composable
@@ -572,11 +565,8 @@ private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean)
 
 @Composable
 private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    // Upstream kept the toggle reachable once enabled, so a lapsed purchase does not
-    // silently disable a feature the wearer is already using.
     SettingsToggle(label = stringResource(if (ui.settings.headGesturesEnabled) R.string.settings_in_use else R.string.settings_not_in_use),
         checked = ui.settings.headGesturesEnabled, header = true,
-        enabled = ui.isPremium || ui.settings.headGesturesEnabled,
         onCheckedChange = vm::setHeadGesturesEnabled)
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
         SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head), descriptionIsState = true)
@@ -592,16 +582,16 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         listOf(0 to R.string.default_option, 1 to R.string.shorter_label, 2 to R.string.shortest_label), R.string.press_and_hold_duration, R.string.press_and_hold_duration_description)
     if (ui.has(BaseCapability.LISTENING_MODE)) Column(Modifier.ownLeadingSpace()) {
         SettingsSectionLabel(stringResource(R.string.listening_mode))
-        CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description, premium = true)
+        CommandToggle(ui, vm, Command.ONE_BUD_ANC_MODE, R.string.noise_cancellation_single_airpod, R.string.noise_cancellation_single_airpod_description)
     }
     CommandSlider(stringResource(R.string.tone_volume), ui.value(Command.CHIME_VOLUME),
-        enabled = (ui.connectionState == ConnectionState.CONNECTED) && ui.isPremium, description = stringResource(R.string.tone_volume_description)) {
+        enabled = ui.connectionState == ConnectionState.CONNECTED, description = stringResource(R.string.tone_volume_description)) {
         vm.setControlCommand(Command.CHIME_VOLUME, it)
     }
     if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
         Column(Modifier.ownLeadingSpace()) {
             SettingsSectionLabel(stringResource(R.string.volume_control))
-            CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_swipe, R.string.volume_control_description, premium = true)
+            CommandToggle(ui, vm, Command.VOLUME_SWIPE_MODE, R.string.volume_swipe, R.string.volume_control_description)
         }
         // Keep the existing firmware-facing mapping until the conflicting 0/1-based documentation is resolved.
         CommandChoices(ui, vm, Command.VOLUME_SWIPE_INTERVAL,
@@ -619,7 +609,7 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         })
     if (ui.has(BaseCapability.LOUD_SOUND_REDUCTION) && ui.vendorIdHook)
         SettingsToggle(label = stringResource(R.string.loud_sound_reduction), checked = ui.state.loudSoundReductionEnabled,
-            enabled = ui.isPremium && (ui.connectionState == ConnectionState.CONNECTED),
+            enabled = ui.connectionState == ConnectionState.CONNECTED,
             onCheckedChange = { vm.writeATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION, byteArrayOf(if (it) 1 else 0)) })
 }
 
@@ -631,10 +621,10 @@ private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
 
 @Composable
 private fun CommandToggle(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, label: Int,
-    description: Int? = null, premium: Boolean = false, onChange: ((Boolean) -> Unit)? = null) {
+    description: Int? = null, onChange: ((Boolean) -> Unit)? = null) {
     SettingsToggle(label = stringResource(label), description = description?.let { stringResource(it) },
         checked = ui.value(command) == 1,
-        enabled = (ui.connectionState == ConnectionState.CONNECTED) && (!premium || ui.isPremium) && ui.value(command) != null,
+        enabled = ui.connectionState == ConnectionState.CONNECTED && ui.value(command) != null,
         onCheckedChange = { checked ->
             if (onChange != null) { onChange(checked) } else { vm.setControlCommand(command, checked) }
         })

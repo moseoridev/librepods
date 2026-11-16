@@ -24,12 +24,13 @@ import me.kavishdevar.librepods.database.widget.WidgetConfigEntity
         WidgetConfigEntity::class,
         HeartRateSampleEntity::class
     ],
-    version = 5,
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4, spec = Migration3To4::class),
         AutoMigration(from = 4, to = 5, spec = Migration4To5::class),
+        AutoMigration(from = 5, to = 6, spec = Migration5To6::class),
     ]
 )
 abstract class LibrePodsDatabase: RoomDatabase() {

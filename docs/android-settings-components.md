@@ -4,7 +4,7 @@ The independent [`:settings-ui` library](../android/settings-ui/README.md) suppl
 
 ## Product composition check
 
-The product retains the iOS AirPods information structure. The [settings reference](android-settings.md) owns the screenshot catalog, current presentation limits, pixel/motion results and cost measurements. Matching a primitive does not establish Apple feature support or whole-screen Manager equivalence. Generic inquiry/log sheets, purchases and quick settings are compatibility consumers, not screenshot completion criteria.
+The product retains the iOS AirPods information structure. The [settings reference](android-settings.md) owns the screenshot catalog, current presentation limits, pixel/motion results and cost measurements. Matching a primitive does not establish Apple feature support or whole-screen Manager equivalence. Generic inquiry/log sheets and quick settings are compatibility consumers, not screenshot completion criteria.
 
 ## Verification ledger
 

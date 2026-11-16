@@ -97,7 +97,6 @@ fun AppleSettingsRoute(
     navigateBack: (() -> Unit)?,
     navigateToHearingProtection: () -> Unit,
     navigateToHearingAid: () -> Unit,
-    navigateToPurchase: () -> Unit,
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecordingScreen: () -> Unit,
     navigateToDebugScreen: () -> Unit,
@@ -110,7 +109,6 @@ fun AppleSettingsRoute(
         navigateBack = navigateBack,
         navigateToHearingProtection = navigateToHearingProtection,
         navigateToHearingAid = navigateToHearingAid,
-        navigateToPurchase = navigateToPurchase,
         navigateToTransparencyCustomization = navigateToTransparencyCustomization,
         navigateToRecording = navigateToRecordingScreen,
         navigateToHeartRate = navigateToHeartRateScreen,
@@ -145,7 +143,6 @@ fun AppleSettingsScreen(
     navigateToHearingAid: () -> Unit,
     navigateToLeftLongPress: () -> Unit,
     navigateToRightLongPress: () -> Unit,
-    navigateToPurchase: () -> Unit,
     navigateToEqualizer: () -> Unit,
     navigateToHeadTracking: () -> Unit,
     navigateToAccessibility: () -> Unit,
@@ -314,8 +311,7 @@ fun AppleSettingsScreen(
                                 startImageVector = LocalIcons.current.SpeakerMin,
                                 endImageVector = LocalIcons.current.SpeakerMax,
                                 independent = true,
-                                description = stringResource(R.string.adaptive_audio_description),
-                                enabled = uiState.isPremium
+                                description = stringResource(R.string.adaptive_audio_description)
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -397,26 +393,6 @@ fun AppleSettingsScreen(
 //                    }
 //                }
 
-            item(key = "upgrade_button") {
-                if (!uiState.isPremium) {
-                    Spacer(modifier = Modifier.height(28.dp))
-                    StyledButton(
-                        onClick = navigateToPurchase,
-                        backdrop = rememberLayerBackdrop(),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxScale = 0.05f,
-                        surfaceColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text(
-                            stringResource(R.string.unlock_advanced_features),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-
             item(key = "spacer_audio") { Spacer(modifier = Modifier.height(16.dp)) }
             item(key = "audio") {
                 val adaptiveVolumeCapability = baseCapabilities.contains(BaseCapability.ADAPTIVE_VOLUME)
@@ -438,7 +414,7 @@ fun AppleSettingsScreen(
                             checked
                         )
                     },
-                    conversationAwarenessChecked = conversationAwarenessChecked && uiState.isPremium,
+                    conversationAwarenessChecked = conversationAwarenessChecked,
                     onConversationAwarenessCheckedChange = { checked ->
                         setControlCommandBoolean(
                             ControlCommandIdentifier.CONVERSATION_DETECT_CONFIG,
@@ -453,8 +429,7 @@ fun AppleSettingsScreen(
                         )
                     },
                     navigateToEqualizer = navigateToEqualizer,
-                    vendorIdHook = uiState.vendorIdHook,
-                    isPremium = uiState.isPremium
+                    vendorIdHook = uiState.vendorIdHook
                 )
             }
 
@@ -497,8 +472,7 @@ fun AppleSettingsScreen(
                     StyledToggle(
                         label = stringResource(R.string.sleep_detection),
                         checked = state.controlStates[id]?.getOrNull(0) == 0x01.toByte(),
-                        onCheckedChange = { setControlCommandBoolean(id, it) },
-                        enabled = uiState.isPremium
+                        onCheckedChange = { setControlCommandBoolean(id, it) }
                     )
                 }
             }
@@ -632,7 +606,6 @@ fun AppleSettingsScreenPreviewApple() {
             navigateToHearingAid = {},
             navigateToLeftLongPress = {},
             navigateToRightLongPress = {},
-            navigateToPurchase = {},
             navigateToEqualizer = {},
             navigateToHeadTracking = {},
             navigateToAccessibility = {},
@@ -673,7 +646,6 @@ fun AppleSettingsScreenPreviewMaterial() {
             navigateToHearingAid = {},
             navigateToLeftLongPress = {},
             navigateToRightLongPress = {},
-            navigateToPurchase = {},
             navigateToEqualizer = {},
             navigateToHeadTracking = {},
             navigateToAccessibility = {},

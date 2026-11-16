@@ -31,7 +31,6 @@
     <string name="airpods_not_connected">AirPods chưa được kết nối</string>
     <string name="airpods_not_connected_description">Vui lòng kết nối đến AirPods của bạn để truy cập cài đặt.</string>
     <string name="back">Quay lại</string>
-    <string name="customizations">Tùy chỉnh</string>
     <string name="relative_conversation_awareness_volume">Âm lượng tương đối</string>
     <string name="relative_conversation_awareness_volume_description">Giảm xuống phần trăm của âm lượng hiện tại thay vì âm lượng tối đa.</string>
     <string name="conversation_awareness_pause_music">Tạm dừng nhạc</string>
@@ -206,5 +205,4 @@
     <string name="listening_mode_transparency_description">Cho phép âm thanh bên ngoài</string>
     <string name="listening_mode_adaptive_description">Điều chỉnh động tiếng ồn bên ngoài</string>
     <string name="listening_mode_noise_cancellation_description">Chặn âm thanh bên ngoài</string>
-    <string name="play_foss_premium_banner">Ứng dụng của bạn đã được cập nhật lên phiên bản Google Play; các tính năng nâng cao sẽ bị tắt sau %1$d ngày. Hãy cập nhật từ nguồn ban đầu để tiếp tục dùng phiên bản FOSS, đợi hết thời gian này để mua nâng cấp trực tiếp, hoặc nhấn vào đây để yêu cầu mã khuyến mãi nếu bạn đã là người ủng hộ.</string>
 </resources>

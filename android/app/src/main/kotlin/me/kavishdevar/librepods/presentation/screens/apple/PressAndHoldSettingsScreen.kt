@@ -43,7 +43,6 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.data.StemAction
-import me.kavishdevar.librepods.presentation.components.primitives.StyledButton
 import me.kavishdevar.librepods.presentation.components.primitives.StyledList
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItemOrientation
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
@@ -55,8 +54,7 @@ import kotlin.experimental.and
 fun LongPress(
     viewModel: AppleViewModel,
     name: String,
-    navigateBack: (() -> Unit)?,
-    navigateToPurchase: () -> Unit
+    navigateBack: (() -> Unit)?
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -111,27 +109,8 @@ fun LongPress(
                             side,
                             StemAction.DIGITAL_ASSISTANT
                         )
-                    },
-                    enabled = uiState.isPremium
+                    }
                 )
-            }
-
-            if (!uiState.isPremium) {
-                Spacer(modifier = Modifier.height(24.dp))
-                StyledButton(
-                    onClick = navigateToPurchase,
-                    backdrop = rememberLayerBackdrop(),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxScale = 0.05f,
-                    surfaceColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(
-                        stringResource(R.string.unlock_advanced_features),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
             if (longPressAction == StemAction.CYCLE_listening_mode_MODES) {

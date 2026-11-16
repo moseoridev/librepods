@@ -60,7 +60,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.billing.BillingManager
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
@@ -95,7 +94,6 @@ fun DeviceListScreen(
     val design = LocalDesign.current
     val scrollState = rememberScrollState()
 
-    val isPremium by BillingManager.provider.isPremium.collectAsState()
 
     val density = LocalDensity.current
 
@@ -555,8 +553,7 @@ fun DeviceListScreen(
                                                             newMode
                                                         )
                                                     }
-                                                },
-                                                enabled = isPremium
+                                                }
                                             )
                                         }
 

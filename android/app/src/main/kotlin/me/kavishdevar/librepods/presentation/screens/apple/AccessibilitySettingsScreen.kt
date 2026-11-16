@@ -48,7 +48,6 @@ import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifi
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.BaseCapability
-import me.kavishdevar.librepods.presentation.components.primitives.StyledButton
 import me.kavishdevar.librepods.presentation.components.primitives.StyledList
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItem
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
@@ -63,7 +62,6 @@ import kotlin.time.Duration.Companion.milliseconds
 fun AccessibilitySettingsScreen(
     viewModel: AppleViewModel,
     navigateBack: (() -> Unit)?,
-    navigateToPurchase: () -> Unit,
     navigateToTransparencyCustomization: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -92,23 +90,6 @@ fun AccessibilitySettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(topPadding))
-
-            if (!uiState.isPremium) {
-                StyledButton(
-                    onClick = navigateToPurchase,
-                    backdrop = rememberLayerBackdrop(),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxScale = 0.05f,
-                    surfaceColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(
-                        stringResource(R.string.unlock_advanced_features),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
 //            val phoneMediaEQ = remember { mutableStateOf(FloatArray(8) { 0.5f }) }
 //            val phoneEQEnabled = remember { mutableStateOf(false) }
@@ -239,8 +220,7 @@ fun AccessibilitySettingsScreen(
                     viewModel.setControlCommand(
                         ControlCommandIdentifier.ONE_BUD_ANC_MODE, it
                     )
-                },
-                enabled = uiState.isPremium
+                }
             )
 
             if (AirPodsSpecs.getSpec(metadata.model).baseCapabilities.contains(BaseCapability.LOUD_SOUND_REDUCTION) && uiState.vendorIdHook) {
@@ -253,16 +233,14 @@ fun AccessibilitySettingsScreen(
                             ATTHandle.LOUD_SOUND_REDUCTION,
                             if (it) byteArrayOf(0x01) else byteArrayOf(0x00)
                         )
-                    },
-                    enabled = uiState.isPremium
+                    }
                 )
             }
 
             if (!hearingAidEnabled && uiState.vendorIdHook) {
                 StyledListItem(
                     contentText = stringResource(R.string.customize_transparency_mode),
-                    onClick = navigateToTransparencyCustomization,
-                    enabled = uiState.isPremium
+                    onClick = navigateToTransparencyCustomization
                 )
             }
 
@@ -292,8 +270,7 @@ fun AccessibilitySettingsScreen(
                 snapPoints = listOf(80f),
                 startImageVector = LocalIcons.current.SpeakerMin,
                 endImageVector = LocalIcons.current.SpeakerMax,
-                independent = true,
-                enabled = uiState.isPremium
+                independent = true
             )
 
             if (AirPodsSpecs.getSpec(metadata.model).baseCapabilities.contains(BaseCapability.SWIPE_FOR_VOLUME)) {
@@ -309,8 +286,7 @@ fun AccessibilitySettingsScreen(
                         viewModel.setControlCommand(
                             ControlCommandIdentifier.VOLUME_SWIPE_MODE, it
                         )
-                    },
-                    enabled = uiState.isPremium
+                    }
                 )
 
                 StyledList(

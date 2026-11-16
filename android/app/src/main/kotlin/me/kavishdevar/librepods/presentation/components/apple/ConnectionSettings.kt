@@ -71,30 +71,26 @@ fun ConnectionSettings(
 //            label = stringResource(R.string.takeover_disconnected),
 //            description = stringResource(R.string.takeover_disconnected_desc),
 //            checked = takeoverWhenDisconnected,
-//            onCheckedChange = onTakeoverWhenDisconnectedChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenDisconnectedChanged
 //        )
 //        StyledToggle(
 //            label = stringResource(R.string.takeover_idle),
 //            description = stringResource(R.string.takeover_idle_desc),
 //            checked = takeoverWhenIdle,
-//            onCheckedChange = onTakeoverWhenIdleChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenIdleChanged
 //        )
 //        StyledToggle(
 //            label = stringResource(R.string.takeover_music),
 //            description = stringResource(R.string.takeover_music_desc),
 //            checked = takeoverWhenMusic,
-//            onCheckedChange = onTakeoverWhenMusicChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenMusicChanged
 //        )
 //
 //        StyledToggle(
 //            label = stringResource(R.string.takeover_call),
 //            description = stringResource(R.string.takeover_call_desc),
 //            checked = takeoverWhenCall,
-//            onCheckedChange = onTakeoverWhenCallChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenCallChanged
 //        )
 //    }
 //
@@ -103,15 +99,13 @@ fun ConnectionSettings(
 //            label = stringResource(R.string.takeover_ringing_call),
 //            description = stringResource(R.string.takeover_ringing_call_desc),
 //            checked = takeoverWhenRingingCall,
-//            onCheckedChange = onTakeoverWhenRingingCallChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenRingingCallChanged
 //        )
 //        StyledToggle(
 //            label = stringResource(R.string.takeover_media_start),
 //            description = stringResource(R.string.takeover_media_start_desc),
 //            checked = takeoverWhenMediaStart,
-//            onCheckedChange = onTakeoverWhenMediaStartChanged,
-//            enabled = isPremium
+//            onCheckedChange = onTakeoverWhenMediaStartChanged
 //        )
 //    }
 }

@@ -8,8 +8,6 @@ data class AppStateEntity(
     @PrimaryKey
     val id: Int = 0,
 
-    val isPremium: Boolean = false,
-
     val hasCompletedOnboarding: Boolean = false,
     val lastVersionShown: String? = null,
 
@@ -17,6 +15,4 @@ data class AppStateEntity(
     val firstSuccessfulConnectionTime: Long? = null,
 
     val reviewPrompted: Boolean = false,
-
-    val timeUntilFOSSPremiumExpiry: Long = 0L,
 )

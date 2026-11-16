@@ -17,8 +17,8 @@ internal object LegacySettingsMapper {
     data class Plan(val appSettings: AppSettingsEntity, val appState: AppStateEntity,
         val device: AppleEntity?, val widgets: List<WidgetConfigEntity>)
 
-    fun plan(values: Map<String, *>, widgetIds: Set<Int>, now: Long, playBuild: Boolean): Plan? {
-        if (values.keys.none { it in setOf("mac_address", "onboarding_complete", "connection_successful", "foss_upgraded", "IRK", "ENC_KEY") }) return null
+    fun plan(values: Map<String, *>, widgetIds: Set<Int>): Plan? {
+        if (values.keys.none { it in setOf("mac_address", "onboarding_complete", "connection_successful", "IRK", "ENC_KEY") }) return null
         fun bool(key: String, default: Boolean) = values[key] as? Boolean ?: default
         fun text(key: String) = values[key] as? String ?: ""
         fun number(key: String, default: Long = 0) = (values[key] as? Number)?.toLong() ?: default
@@ -80,12 +80,10 @@ internal object LegacySettingsMapper {
             version2 = text("airpods_version2"), version3 = text("airpods_version3"),
             hardwareRevision = text("airpods_hardware_revision"), updaterIdentifier = text("airpods_updater_identifier")),
             AppleCache(magicKeys = keys, controlStates = controls)) }
-        val state = AppStateEntity(isPremium = !playBuild && bool("foss_upgraded", false),
-            hasCompletedOnboarding = bool("onboarding_complete", false),
+        val state = AppStateEntity(hasCompletedOnboarding = bool("onboarding_complete", false),
             hasConnectedToAACP = bool("connection_successful", false),
             firstSuccessfulConnectionTime = number("first_connection_successful_time").takeIf { it > 0 },
-            reviewPrompted = bool("review_prompted", false),
-            timeUntilFOSSPremiumExpiry = (number("premium_expiry_time") - now).coerceAtLeast(0))
+            reviewPrompted = bool("review_prompted", false))
         return Plan(AppSettingsEntity(proximityCardSettings = me.kavishdevar.librepods.data.app.ProximityCardSettings(useVideo = true)), state, device,
             address?.let { mac -> widgetIds.filter { it >= 0 }.map { WidgetConfigEntity(it, mac) } }.orEmpty())
     }

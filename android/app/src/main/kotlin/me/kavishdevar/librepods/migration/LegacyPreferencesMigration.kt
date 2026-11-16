@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import androidx.room3.withWriteTransaction
-import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.database.LibrePodsDatabase
 import me.kavishdevar.librepods.presentation.widgets.BatteryWidget
 import me.kavishdevar.librepods.presentation.widgets.NoiseControlWidget
@@ -21,8 +20,8 @@ object LegacyPreferencesMigration {
         val installed = listOf(BatteryWidget::class.java, NoiseControlWidget::class.java).flatMap {
             manager.getAppWidgetIds(ComponentName(context, it)).toList()
         }.toSet()
-        val plan = LegacySettingsMapper.plan(legacy, installed + LegacySettingsMapper.widgetIds(battery, controls),
-            System.currentTimeMillis(), BuildConfig.PLAY_BUILD) ?: return
+        val plan = LegacySettingsMapper.plan(legacy, installed + LegacySettingsMapper.widgetIds(battery, controls))
+            ?: return
         database.withWriteTransaction {
             if (database.appSettingsDao().get() == null) database.appSettingsDao().upsert(plan.appSettings)
             if (database.appStateDao().get() == null) database.appStateDao().upsert(plan.appState)

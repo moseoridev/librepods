@@ -28,7 +28,7 @@ class LegacySettingsMapperTest {
             put("takeover_when_idle", true)
             put("takeover_when_media_start", true)
         }
-        val plan = checkNotNull(LegacySettingsMapper.plan(values, setOf(10, 11), 100, false))
+        val plan = checkNotNull(LegacySettingsMapper.plan(values, setOf(10, 11)))
         val device = checkNotNull(plan.device)
         assertEquals(MacAddress(mac), device.macAddress)
         assertEquals(AirPodsModel.AIRPODS_5_WCC, device.metadata.model)
@@ -45,18 +45,18 @@ class LegacySettingsMapperTest {
 
     @Test fun defaultsDoNotEnableTakeoverAndForeignOrMalformedKeysAreNotImported() {
         val foreign = values().apply { put("proximity_key_address", "11:22:33:44:55:66") }
-        val device = checkNotNull(LegacySettingsMapper.plan(foreign, emptySet(), 0, false)?.device)
+        val device = checkNotNull(LegacySettingsMapper.plan(foreign, emptySet())?.device)
         assertTrue(device.cache.magicKeys.isEmpty())
         assertFalse(device.settings.connectOnMediaWhenAccessoryDisconnected)
         assertFalse(device.settings.connectOnPhoneWhenAccessoryIdle)
         val malformed = values().apply { put("IRK", "not a key"); put("ENC_KEY", true) }
-        assertTrue(LegacySettingsMapper.plan(malformed, emptySet(), 0, false)!!.device!!.cache.magicKeys.isEmpty())
-        assertNull(LegacySettingsMapper.plan(mapOf("some_new_setting" to true), emptySet(), 0, false))
-        assertNull(LegacySettingsMapper.plan(values().apply { put("mac_address", "bad") }, emptySet(), 0, false)!!.device)
+        assertTrue(LegacySettingsMapper.plan(malformed, emptySet())!!.device!!.cache.magicKeys.isEmpty())
+        assertNull(LegacySettingsMapper.plan(mapOf("some_new_setting" to true), emptySet()))
+        assertNull(LegacySettingsMapper.plan(values().apply { put("mac_address", "bad") }, emptySet())!!.device)
     }
 
     @Test fun existingRewriteChoicesWinAndKeyPairsCannotBeMixedAcrossIdentities() {
-        val imported = checkNotNull(LegacySettingsMapper.plan(values(), emptySet(), 0, false)?.device)
+        val imported = checkNotNull(LegacySettingsMapper.plan(values(), emptySet())?.device)
         val current = imported.copy(settings = AppleSettings(showIslandPopup = false),
             metadata = AppleMetadata(name = "current"), cache = AppleCache(magicKeys = mapOf(MagicKeyType.IRK to irk)))
         val merged = LegacySettingsMapper.mergeDevice(current, imported)
@@ -69,13 +69,13 @@ class LegacySettingsMapperTest {
         assertSame(current, LegacySettingsMapper.mergeDevice(current, incompleteLegacy))
     }
 
-    @Test fun widgetSettingsKeepProviderIdsAndExpiredPremiumCannotBeRevived() {
+    @Test fun widgetSettingsKeepProviderIdsAndPurchaseKeysAreIgnored() {
         assertEquals(setOf(11, 12), LegacySettingsMapper.widgetIds(
             mapOf("11_items" to "3,1", "nonsense" to true), mapOf("12_opacity" to 2, "11_color" to 0)))
+        // Purchase-era keys must not resurrect a paid state; the import still completes.
         val plan = LegacySettingsMapper.plan(values().apply {
             put("premium_expiry_time", 99L); put("foss_upgraded", true)
-        }, emptySet(), 100, true)!!
-        assertFalse(plan.appState.isPremium)
-        assertEquals(0L, plan.appState.timeUntilFOSSPremiumExpiry)
+        }, emptySet())!!
+        assertTrue(plan.appState.hasCompletedOnboarding)
     }
 }

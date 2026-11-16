@@ -78,7 +78,7 @@ internal class SettingsFixture(
                     serialNumber = "DEMO-0000", version1 = "fixture-v1", version2 = "fixture-v2", version3 = "9442784"),
                 state = AppleState(battery = batteries, batteryReceived = scenario != "disconnected", controlStates = controls,
                     confirmedControlStates = if (scenario in setOf("pending", "disconnected")) emptyMap() else controls),
-                isPremium = true, vendorIdHook = true,
+                vendorIdHook = true,
             )
         }
     }

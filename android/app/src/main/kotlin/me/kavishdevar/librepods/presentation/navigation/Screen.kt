@@ -77,9 +77,6 @@ sealed interface Screen: NavKey {
     ): DeviceScreen
 
     @Serializable
-    data object Purchase: Screen
-
-    @Serializable
     data class Equalizer(
         override val macAddress: MacAddress
     ): DeviceScreen

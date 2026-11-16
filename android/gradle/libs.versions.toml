@@ -14,7 +14,6 @@ dynamicanimation = "1.1.0"
 aboutLibraries = "15.3.0"
 materialIconsCore = "1.7.8"
 backdrop = "2.0.1"
-billing = "9.1.0"
 hilt = "2.60.1"
 #noinspection NewerVersionAvailable
 xposed = "101.0.0"
@@ -62,7 +61,6 @@ aboutlibraries-compose = { group = "com.mikepenz", name = "aboutlibraries-compos
 aboutlibraries-compose-m3 = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "materialIconsCore" }
 backdrop = { group = "io.github.kyant0", name = "backdrop", version.ref = "backdrop" }
-billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 hilt = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "xposed" }

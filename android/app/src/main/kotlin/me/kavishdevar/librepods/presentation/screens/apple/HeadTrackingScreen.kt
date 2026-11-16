@@ -111,8 +111,7 @@ import kotlin.time.Duration.Companion.seconds
 @Composable
 fun HeadTrackingScreen(
     viewModel: AppleViewModel,
-    navigateBack: (() -> Unit)?,
-    navigateToPurchase: () -> Unit
+    navigateBack: (() -> Unit)?
 ) {
     val design = LocalDesign.current
 
@@ -191,28 +190,10 @@ fun HeadTrackingScreen(
                     .padding(top = 8.dp)
             ) {
 
-                if (!uiState.isPremium) {
-                    StyledButton(
-                        onClick = navigateToPurchase,
-                        backdrop = rememberLayerBackdrop(),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxScale = 0.05f,
-                        surfaceColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text(
-                            stringResource(R.string.unlock_advanced_features),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
                 StyledToggle(
                     label = "Posture alert",
                     checked = settings.postureAlertEnabled,
                     onCheckedChange = { viewModel.setPostureAlertEnabled(it) },
-                    enabled = uiState.isPremium || settings.postureAlertEnabled,
                     header = true
                 )
 
@@ -221,7 +202,6 @@ fun HeadTrackingScreen(
                     label = stringResource(R.string.head_gestures),
                     checked = settings.headGesturesEnabled,
                     onCheckedChange = { viewModel.setHeadGesturesEnabled(it) },
-                    enabled = uiState.isPremium || settings.headGesturesEnabled,
                     description = stringResource(R.string.head_gestures_details),
                     header = true
                 )
@@ -339,8 +319,7 @@ fun HeadTrackingScreen(
                     valueRange = 10f..200f,
                     snapPoints = listOf(40f),
                     independent = true,
-                    description = "how often airpods report sensor information",
-                    enabled = uiState.isPremium
+                    description = "how often airpods report sensor information"
                 )
             }
 

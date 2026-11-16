@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 
 @Composable
@@ -59,7 +58,7 @@ fun PrivacyPolicyPage(
             )
 
             Text(
-                text = "All information remains on your device unless you explicitly choose to contact me, create a GitHub issue from the app, or make a purchase or sponsorship through a third-party platform.",
+                text = "All information remains on your device unless you explicitly choose to contact me, or create a GitHub issue from the app.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -155,49 +154,6 @@ fun PrivacyPolicyPage(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Text(
-                text = "Payments",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            if (BuildConfig.PLAY_BUILD) {
-                Text(
-                    text = "Google Play",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = "When using the version available on Google Play, purchases are processed by Google Play.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = "LibrePods verifies the purchase with Google Play on-device, not with a remote server that I control. I do not receive any information about you or your purchase from Google Play. Payment processing is handled entirely by Google Play, and I do not have access to any of your payment information.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Text(
-                    text = "GitHub Sponsors",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = "When using the FOSS version available on GitHub, the upgrade button links to GitHub Sponsors. If you choose to sponsor LibrePods, your sponsorship is processed by GitHub.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = "Your username and country/region are shared with me when you sponsor LibrePods. Depending on your GitHub Sponsors privacy settings, I may also receive your email address.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
 
             Text(
                 text = "Contact",

@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
-import me.kavishdevar.librepods.billing.BillingManager
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.data.StemAction
@@ -58,7 +57,6 @@ data class AppleUiState(
     val appState: AppStateEntity = AppStateEntity(),
     val appSettings: AppSettingsEntity = AppSettingsEntity(),
 
-    val isPremium: Boolean = false,
     val vendorIdHook: Boolean = false,
     val recordings: List<Recording> = emptyList(),
 
@@ -73,8 +71,6 @@ class AppleViewModel(
     private val recordingRepository: RecordingRepository,
     private val heartRateRepository: HeartRateRepository
 ) : ViewModel(), DeviceViewModel {
-    val billingManager = BillingManager
-
     val events = device.events
 
     private var attObserveJob: Job? = null
@@ -112,16 +108,14 @@ class AppleViewModel(
     val uiState = combine(
         deviceDetails,
         appData,
-        billingManager.provider.isPremium,
         _heartRateRange,
         heartRateSamples
-    ) { deviceUi, (appState, appSettings), isPremium, heartRateRange, heartRateSamples ->
+    ) { deviceUi, (appState, appSettings), heartRateRange, heartRateSamples ->
         AppleUiState(
             state = deviceUi.state,
             settings = deviceUi.settings,
             metadata = deviceUi.metadata,
             connectionState = deviceUi.connectionState,
-            isPremium = isPremium,
             vendorIdHook = XposedRemotePrefProvider.create().getBoolean(
                 "vendor_id_hook",
                 false
@@ -139,7 +133,6 @@ class AppleViewModel(
             state = device.state.value,
             settings = device.settings.value,
             metadata = device.metadata.value,
-            isPremium = billingManager.provider.isPremium.value,
             vendorIdHook = XposedRemotePrefProvider.create()
                 .getBoolean("vendor_id_hook", false)
         )
