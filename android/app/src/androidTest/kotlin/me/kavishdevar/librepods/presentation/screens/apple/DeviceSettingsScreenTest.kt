@@ -20,6 +20,7 @@ import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.platform.app.InstrumentationRegistry
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.core.devices.AirPodsModel
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
 import org.junit.Assert.*
 import org.junit.Rule
@@ -324,23 +325,64 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithText(text(R.string.shake_head)).assertIsDisplayed()
     }
 
-    @Test fun advancedControlsHaveNoPurchaseGateOnHeadAccessibilityAndAudio() {
+    @Test fun disconnectWhenNotWearingSitsWithEarDetectionAndExtrasKeepsOnlyModelOptions() {
         val fixture = SettingsFixture()
-        var page by mutableStateOf(DevicePage.Head)
+        var page by mutableStateOf(DevicePage.Audio)
         compose.setContent {
-            key(page) {
-                BudsDeviceSettings(fixture.ui.copy(settings = fixture.ui.settings.copy(headGesturesEnabled = false)),
-                    fixture, initialPage = page, mediaVolume = { FixtureMediaVolume() })
+            key(page) { BudsDeviceSettings(fixture.ui, fixture, initialPage = page, mediaVolume = { FixtureMediaVolume() }) }
+        }
+        compose.onNodeWithText(text(R.string.disconnect_when_not_wearing)).performScrollTo()
+            .assertIsOn().performClick().assertIsOff()
+        compose.runOnIdle { assertFalse(fixture.ui.settings.disconnectWhenNotWearing) }
+
+        // Extras keeps the model-specific pages only; app-owned entries moved out.
+        compose.runOnIdle { page = DevicePage.Extras }
+        compose.onNodeWithText(text(R.string.overlay_settings)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.automatic_connection)).assertDoesNotExist()
+        compose.onNodeWithText("Debug").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.disconnect_when_not_wearing)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.customize_transparency_mode)).assertDoesNotExist()
+
+        // Transparency tuning now sits on Accessibility, at the iOS Audio & Visual position.
+        compose.runOnIdle { page = DevicePage.Accessibility }
+        compose.onNodeWithText(text(R.string.noise_cancellation_single_airpod)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.iphone_audio_visual_settings)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun transparencyRowFollowsItsVendorHookAndHearingAidGate() {
+        val fixture = SettingsFixture()
+        var ui by mutableStateOf(fixture.ui)
+        var transparencyOpened = 0
+        compose.setContent {
+            key(ui) {
+                BudsDeviceSettings(ui, fixture, initialPage = DevicePage.Accessibility,
+                    navigateToTransparencyCustomization = { transparencyOpened++ }, mediaVolume = { FixtureMediaVolume() })
             }
         }
-        compose.onNodeWithText(text(R.string.settings_not_in_use)).performScrollTo().assertIsEnabled()
+        compose.onNodeWithText(text(R.string.iphone_audio_visual_settings)).performScrollTo()
+            .assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, transparencyOpened) }
+        // The row is a navigation entry, not a toggle: it changes no setting or command.
+        compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
 
-        compose.runOnIdle { page = DevicePage.Accessibility }
-        compose.onNodeWithText(text(R.string.noise_cancellation_single_airpod)).performScrollTo().assertIsEnabled()
-        compose.onNodeWithContentDescription(text(R.string.tone_volume)).performScrollTo().assertIsEnabled()
+        compose.runOnIdle { ui = ui.copy(vendorIdHook = false) }
+        compose.onNodeWithText(text(R.string.iphone_audio_visual_settings)).assertDoesNotExist()
 
-        compose.runOnIdle { page = DevicePage.Audio }
-        compose.onNodeWithText(text(R.string.personalized_volume)).performScrollTo().assertIsEnabled()
+        // Transparency tuning shares the hearing-aid ATT handle, so it hides while that is on.
+        compose.runOnIdle {
+            ui = ui.copy(vendorIdHook = true, state = ui.state.copy(
+                controlStates = ui.state.controlStates + (Command.HEARING_AID to byteArrayOf(1, 1))))
+        }
+        compose.onNodeWithText(text(R.string.iphone_audio_visual_settings)).assertDoesNotExist()
+    }
+
+    @Test fun extrasDisappearsFromHomeWhenNoModelOptionApplies() {
+        val fixture = SettingsFixture()
+        val bare = fixture.ui.copy(vendorIdHook = false,
+            metadata = fixture.ui.metadata.copy(model = AirPodsModel.AIRPODS_3, version3 = "4442784"))
+        compose.setContent { BudsDeviceSettings(bare, fixture, mediaVolume = { FixtureMediaVolume() }) }
+        compose.onNodeWithText(text(R.string.librepods_options)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.disconnect)).performScrollTo().assertIsDisplayed()
     }
 
     private fun capture(name: String) {

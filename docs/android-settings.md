@@ -213,7 +213,7 @@ Source: `Picsew_20260921225516.PNG`. Observed order:
 | Press Speed | Default (selected), Slower, Slowest | Timing for double/triple presses. |
 | Press and Hold Duration | Default (selected), Shorter, Shortest | Duration needed for holding the stem. |
 | Noise Control → Noise Cancellation with One AirPod | Switch, off | Allows cancellation with one earbud worn. |
-| iPhone Audio & Visual Settings | Navigation/action link | Additional phone audio accessibility settings, including Mono Audio. Destination is not captured. |
+| iPhone Audio & Visual Settings | Navigation/action link | Additional phone audio accessibility settings, including Mono Audio. Destination is not captured. The product reuses this position and label for transparency tuning, an inherited iOS structure rather than a reproduction of the phone-side destination. |
 | Spatial Audio Head Tracking → Follow iPhone | Switch, on | Explanation associates supported spatial audio with the phone rather than following head movement. |
 | Tone Volume | Slider, label 100% | AirPods sound-effect volume. The thumb is not at the far end; do not assume 100% is the maximum. Range/steps are not shown. |
 | Volume Control → Volume Swipe | Switch, on | Adjust media/call volume by swiping the touch control. |
@@ -227,6 +227,29 @@ Source: `Picsew_20260921225516.PNG`. Observed order:
 | Find My — `IMG_0088.PNG` | Find My Network on; Show in Find My action. Explanation describes locating individual AirPods on a map. No map or network operation is captured. |
 | Version — `IMG_0089.PNG` | Version 9A350, Case Version 9A350; firmware-details link to support.apple.com. |
 | Limited Warranty — `Picsew_20260921225559.PNG` | Device card (AirPods 5, serial field), Limited Warranty, expiry field, Hardware Service and Chat & Phone Support coverage, benefits link. Need Help? section with Apple Support app card/Get button, explanatory text and Get Support on Web action. Coverage/legal explanatory text includes further links. This is an external service flow, not an AirPods configuration command. |
+
+## LibrePods option placement
+
+The product's `LibrePods options` page is now limited to model-specific pages. Entries with an iOS position moved to it; app-owned features moved to app settings.
+
+| Former Extras entry | Now | Notes |
+| --- | --- | --- |
+| Automatic Connection | `Audio & Routing` → `Connect to This iPhone` | The page carries both `SMART_ROUTING_MODE` (On/Off) and the prox-connect rules (`alwaysConnectWhenAccessoryDisconnected`, the phone/media disconnected/idle/music booleans) from `AppleSettings`. The standalone prox-connect destination is no longer routed. |
+| Disconnect AirPods when not wearing | `Audio & Routing`, immediately after Automatic Ear Detection | The switch uses `settings.disconnectWhenNotWearing` and its explanatory footer, matching the iOS grouping. |
+| Customize Transparency Mode | `Accessibility`, after the one-bud noise-control switch and before Tone Volume | The iOS path is Accessibility → Audio & Visual → Headphone Accommodations → Transparency Mode. The row is labelled `iPhone Audio & Visual Settings` and opens the existing transparency-tuning screen; the vendor-ID-hook and not-hearing-aid-enabled gate is unchanged, and Extras no longer lists it. The row's description reuses the transparency-tuning text. |
+| Overlays | App settings, below Island settings | Device-scoped (`showIslandPopup`, `showBottomSheetPopup`). The row appears only when an Apple device is known and resolves the connected device, else the first known one. No per-model list. |
+| Debug | App settings → Advanced options | Still shown only while debug mode is on, and only with an Apple device to receive raw packets. |
+
+Pending placement — these are absent from the captured menus because that model lacks them; their iOS position is unknown, so they stay on `LibrePods options` with their existing gates:
+
+| Entry | Gate | Destination | Why undecided |
+| --- | --- | --- | --- |
+| Hearing Protection | `PPE` base capability | `HearingProtectionScreen` (loud sound reduction plus PPE toggle) | Model-specific safety section; the catalog has no AirPods model with `PPE`. |
+| Hearing Aid | `HEARING_AID` capability and vendor-ID hook | `HearingAidScreen`, adjustments and hearing test | Model- and hook-specific; no capture for a hearing-aid-capable model. |
+| Heart Rate | `HRM` base capability | `HeartRateRoute` | Sensor capability unique to models outside the capture set. |
+| Recorder | firmware major version 8 or later | `RecordingScreenRoute` | Firmware-gated; the captured firmware has no recording page. |
+
+A model with no such row hides the Home `LibrePods options` row entirely; the condition is computed from capabilities and vendor-ID hook rather than a model list.
 
 ## Coverage and use during implementation
 

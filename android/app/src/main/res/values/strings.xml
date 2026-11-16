@@ -84,6 +84,7 @@
     <string name="takeover_media_start">Starting media playback</string>
     <string name="takeover_media_start_desc">Your phone starts playing media</string>
     <string name="undo">Undo</string>
+    <string name="iphone_audio_visual_settings">iPhone Audio &amp; Visual Settings</string>
     <string name="customize_transparency_mode_description">You can customize Transparency mode for your AirPods Pro to help you hear what\'s around you.</string>
     <string name="loud_sound_reduction_description">Loud Sound Reduction can actively reduce your exposure to loud environmental noises when in Transparency and Adaptive mode. Loud Sound Reduction is not active in Off mode.</string>
     <string name="loud_sound_reduction">Loud Sound Reduction</string>
@@ -435,7 +436,6 @@
     <string name="prox_disconnected_label">Not connected to any device</string>
     <string name="prox_idle_label">Connected to other device but idle</string>
     <string name="prox_music_label">Connected to another device playing media</string>
-    <string name="prox_connect_settings">Configure automatic connections</string>
     <string name="require_both_buds_in_case">Require both AirPods in case to show</string>
     <string name="show_close_button">Show close button</string>
     <string name="background_connection_title">Background connection</string>

@@ -72,6 +72,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffol
 import me.kavishdevar.librepods.presentation.components.primitives.styledListItem
 import me.kavishdevar.librepods.presentation.components.primitives.styledToggle
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
 import me.kavishdevar.librepods.utils.XposedState
 import kotlin.system.exitProcess
@@ -156,6 +157,15 @@ fun AppSettingsScreen(
                     onClick = navigateToIslandSettingsScreen
                 )
 
+                if (navigateToOverlays != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    StyledListItem(
+                        contentText = stringResource(R.string.overlay_settings),
+                        onClick = navigateToOverlays
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 StyledList(
@@ -213,6 +223,15 @@ fun AppSettingsScreen(
                     orientation = StyledListItemOrientation.Vertical,
                     onClick = navigateToBleSettingsScreen
                 )
+
+                val debug = LocalDebugMode.current
+                if (debug && navigateToDebug != null) {
+                    styledListItem(
+                        contentText = "Debug",
+                        orientation = StyledListItemOrientation.Vertical,
+                        onClick = navigateToDebug
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

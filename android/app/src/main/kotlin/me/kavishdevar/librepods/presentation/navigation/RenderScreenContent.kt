@@ -10,6 +10,7 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.devices.AppleDevice
+import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.devices.Device
 import me.kavishdevar.librepods.data.updates.updates
 import me.kavishdevar.librepods.presentation.screens.DeviceListScreen
@@ -28,7 +29,6 @@ import me.kavishdevar.librepods.presentation.screens.apple.HeartRateRoute
 import me.kavishdevar.librepods.presentation.screens.apple.LongPress
 import me.kavishdevar.librepods.presentation.screens.apple.MicrophoneSettingsRoute
 import me.kavishdevar.librepods.presentation.screens.apple.OverlaySettingsRoute
-import me.kavishdevar.librepods.presentation.screens.apple.ProxConnectSettingsRoute
 import me.kavishdevar.librepods.presentation.screens.apple.RecordingScreenRoute
 import me.kavishdevar.librepods.presentation.screens.apple.RenameScreen
 import me.kavishdevar.librepods.presentation.screens.apple.TransparencySettingsScreen
@@ -133,10 +133,7 @@ fun RenderScreenContent(
                 navigateToHearingAid = { navigate(Screen.HearingAid(screen.macAddress)) },
                 navigateToTransparencyCustomization = { navigate(Screen.TransparencyCustomization(screen.macAddress)) },
                 navigateToRecordingScreen = { navigate(Screen.Recording(screen.macAddress)) },
-                navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) },
-                navigateToDebugScreen = { navigate(Screen.Debug(screen.macAddress)) },
-                navigateToOverlaySettings = { navigate(Screen.OverlaySettings(screen.macAddress)) },
-                navigateToProxConnectSettings = { navigate(Screen.ProxConnectSettings(screen.macAddress)) }
+                navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) }
             )
         }
 
@@ -158,10 +155,17 @@ fun RenderScreenContent(
                 initializer { AppSettingsViewModel(appDataRepository = appDataRepository) }
             }
             val appSettingsViewModel: AppSettingsViewModel = viewModel(factory = factory)
+            // Overlays and Debug are device-scoped app features; app settings hosts their only
+            // entry points and resolves the device the user is most likely configuring.
+            val appleDevices = devices.values.filterIsInstance<AppleDevice>()
+            val target = appleDevices.firstOrNull { it.connectionState.value == ConnectionState.CONNECTED }
+                ?: appleDevices.firstOrNull()
 
             AppSettingsScreen(
                 viewModel = appSettingsViewModel,
                 navigateBack = navigateBack,
+                navigateToOverlays = target?.let { device -> { navigate(Screen.OverlaySettings(device.macAddress)) } },
+                navigateToDebug = target?.let { device -> { navigate(Screen.Debug(device.macAddress)) } },
                 navigateToOpenSourceLicenses = { navigate(Screen.OpenSourceLicenses) },
                 navigateToReleaseNotesScreen = { navigate(Screen.ReleaseNotes) },
                 navigateToBleSettingsScreen = { navigate(Screen.BLESettings) },
@@ -550,19 +554,6 @@ fun RenderScreenContent(
                 viewModel = appleViewModel,
                 navigateBack = navigateBack,
                 navigateToAppSettings = { navigate(Screen.AppSettings) }
-            )
-        }
-
-        is Screen.ProxConnectSettings -> {
-            val device = devices[screen.macAddress] as? AppleDevice ?: return
-            val factory = createAppleViewModelFactory(device, appDataRepository, recordingRepository, heartRateRepository)
-            val appleViewModel: AppleViewModel = viewModel(
-                key = "${screen.macAddress.value}:${device.connectionNumber}",
-                factory = factory
-            )
-            ProxConnectSettingsRoute(
-                viewModel = appleViewModel,
-                navigateBack = navigateBack,
             )
         }
     }

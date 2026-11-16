@@ -99,10 +99,7 @@ fun AppleSettingsRoute(
     navigateToHearingAid: () -> Unit,
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecordingScreen: () -> Unit,
-    navigateToDebugScreen: () -> Unit,
-    navigateToHeartRateScreen: () -> Unit,
-    navigateToOverlaySettings: () -> Unit,
-    navigateToProxConnectSettings: () -> Unit
+    navigateToHeartRateScreen: () -> Unit
 ) {
     BudsDeviceSettingsRoute(
         viewModel = viewModel,
@@ -111,10 +108,7 @@ fun AppleSettingsRoute(
         navigateToHearingAid = navigateToHearingAid,
         navigateToTransparencyCustomization = navigateToTransparencyCustomization,
         navigateToRecording = navigateToRecordingScreen,
-        navigateToHeartRate = navigateToHeartRateScreen,
-        navigateToDebug = navigateToDebugScreen,
-        navigateToOverlays = navigateToOverlaySettings,
-        navigateToProximity = navigateToProxConnectSettings
+        navigateToHeartRate = navigateToHeartRateScreen
     )
 }
 
@@ -153,8 +147,7 @@ fun AppleSettingsScreen(
     navigateToHeartRateScreen: () -> Unit,
     navigateToDebugScreen: () -> Unit,
     navigateToOverlaySettings: () -> Unit,
-    navigateToProxConnectSettings: () -> Unit
-) {
+    ) {
     val state = uiState.state
     val settings = uiState.settings
     val metadata = uiState.metadata
@@ -441,8 +434,7 @@ fun AppleSettingsScreen(
                     automaticConnectionEnabled = state.controlStates[ControlCommandIdentifier.SMART_ROUTING_MODE]?.getOrNull(0) == 0x01.toByte(),
                     onAutomaticConnectionChanged = { setControlCommandBoolean(ControlCommandIdentifier.SMART_ROUTING_MODE, it) },
                     disconnectWhenNotWearing = settings.disconnectWhenNotWearing,
-                    onDisconnectWhenNotWearingChanged = { enabled -> updateSettings { it.copy(disconnectWhenNotWearing = enabled) } },
-                    navigateToProxConnectSettings = navigateToProxConnectSettings
+                    onDisconnectWhenNotWearingChanged = { enabled -> updateSettings { it.copy(disconnectWhenNotWearing = enabled) } }
                 )
             }
 
@@ -615,8 +607,7 @@ fun AppleSettingsScreenPreviewApple() {
             navigateToRecordingScreen = {},
             navigateToHeartRateScreen = {},
             navigateToDebugScreen = {},
-            navigateToOverlaySettings = {},
-            navigateToProxConnectSettings = {}
+            navigateToOverlaySettings = {}
         )
     }
 }
@@ -655,8 +646,7 @@ fun AppleSettingsScreenPreviewMaterial() {
             navigateToRecordingScreen = {},
             navigateToHeartRateScreen = {},
             navigateToDebugScreen = {},
-            navigateToOverlaySettings = {},
-            navigateToProxConnectSettings = {}
+            navigateToOverlaySettings = {}
         )
     }
 }

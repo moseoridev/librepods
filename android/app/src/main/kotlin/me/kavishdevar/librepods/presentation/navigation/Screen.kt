@@ -158,10 +158,6 @@ sealed interface Screen: NavKey {
     data class OverlaySettings(
         override val macAddress: MacAddress
     ): DeviceScreen
-    @Serializable
-    data class ProxConnectSettings(
-        override val macAddress: MacAddress
-    ): DeviceScreen
 }
 
 @Serializable

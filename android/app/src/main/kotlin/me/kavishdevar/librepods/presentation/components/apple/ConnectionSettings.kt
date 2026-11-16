@@ -35,9 +35,7 @@ fun ConnectionSettings(
     automaticConnectionEnabled: Boolean,
     onAutomaticConnectionChanged: (Boolean) -> Unit,
     disconnectWhenNotWearing: Boolean,
-    onDisconnectWhenNotWearingChanged: (Boolean) -> Unit,
-
-    navigateToProxConnectSettings: () -> Unit
+    onDisconnectWhenNotWearingChanged: (Boolean) -> Unit
 ) {
     StyledList {
         styledToggle(
@@ -58,11 +56,6 @@ fun ConnectionSettings(
             description = stringResource(R.string.disconnect_when_not_wearing_description),
             checked = disconnectWhenNotWearing,
             onCheckedChange = onDisconnectWhenNotWearingChanged
-        )
-
-        styledListItem(
-            contentText = stringResource(R.string.prox_connect_settings),
-            onClick = navigateToProxConnectSettings
         )
     }
 

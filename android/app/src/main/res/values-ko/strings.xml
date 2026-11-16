@@ -82,6 +82,7 @@
     <string name="takeover_media_start">미디어 재생 시작</string>
     <string name="takeover_media_start_desc">휴대전화에서 미디어 재생을 시작할 때</string>
     <string name="undo">실행 취소</string>
+    <string name="iphone_audio_visual_settings">iPhone 오디오 및 시각 설정</string>
     <string name="customize_transparency_mode_description">주변 소리가 더 잘 들리도록 AirPods Pro의 주변음 허용 모드를 조절할 수 있습니다.</string>
     <string name="loud_sound_reduction_description">주변음 허용 및 적응형 모드에서 주변의 큰 소리를 줄여줍니다. 소음 제어를 ‘끔’으로 설정하면 작동하지 않습니다.</string>
     <string name="loud_sound_reduction">큰 소리 줄이기</string>
