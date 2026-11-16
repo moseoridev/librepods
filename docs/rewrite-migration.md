@@ -3,9 +3,9 @@
 ## Integration line
 
 - Main checkout: `/Users/moseoridev/programming/android/librepods/repo`, on `rewrite-port`.
-- `rewrite-port` is the integration base for new Paseo work. Local/origin `rewrite-port` and `short-chipmunk` are kept equal after this consolidation; `short-chipmunk` remains checked out in the existing Paseo worktree.
+- `rewrite-port` is the integration base for new Paseo work. Integration happens directly on `rewrite-port`; the former `short-chipmunk` worktree and branch were removed after integration.
 - Source checkpoint before this documentation cleanup: `edca427cbbd81ee5548d35577359d08b354890d1`.
-- Upstream rewrite base: `3d4d2703da39e9903e9789484b838bd5a0930207` (`upstream/android/rewrite`). No upstream push, merge or PR was performed.
+- Upstream rewrite base: `2e244d3fc7a52aa8bf6177480f1efa4f0d3bc415` (`upstream/android/rewrite`, merged 2026-11-16; previous base `3d4d2703`). No upstream push, merge or PR was performed.
 - `main` / `origin/main` remain untouched at `35cf8dc18215993391d991ad5a5c3f03f98c22a7`. They contain custom work and are not merely a stale upstream mirror. This is a retained historical line, not the new integration base.
 - The superseded pre-rewrite `moody-penguin` line is preserved by annotated origin tag `archive/moody-penguin-20261113`, targeting `26e5601a2740d7cb51dcf1e3ef96969a882d7c61`. Recover files with `git show archive/moody-penguin-20261113:path`; the branch is retired.
 
