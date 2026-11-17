@@ -264,6 +264,16 @@
     <string name="permissions">권한</string>
     <string name="required_permissions">필수 권한</string>
     <string name="optional_permissions">선택 권한</string>
+    <string name="bluetooth">블루투스</string>
+    <string name="permission_description_bluetooth">AirPods와 통신하는 데 필요합니다.</string>
+    <string name="notifications">알림</string>
+    <string name="permission_description_notification">배터리 상태, 심박수 이상 알림(지원 모델) 등을 표시합니다.</string>
+    <string name="permission_description_phone">머리 제스처로 전화를 받습니다.</string>
+    <string name="permission_healthconnect">Health Connect에 심박수 기록</string>
+    <string name="permission_description_healthconnect">앱이 Android의 Health Connect 플랫폼에 심박수 데이터를 기록하도록 허용합니다.</string>
+    <string name="grant_all">모두 허용</string>
+    <string name="permission_overlay">다른 앱 위에 표시</string>
+    <string name="permission_description_overlay">AirPods가 근처에 있거나 오디오가 AirPods로 전환될 때 팝업을 표시합니다.</string>
     <string name="privacy_policy">개인정보 처리방침</string>
     <string name="i_agree">동의합니다</string>
 

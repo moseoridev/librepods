@@ -44,9 +44,9 @@ fun PrivacyPolicyPage(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = OnboardingStyle.Inset)
+                .padding(horizontal = OnboardingStyle.DocumentInset)
                 .padding(top = 8.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(OnboardingStyle.DocumentParagraphGap)
         ) {
             OnboardingHero(
                 title = stringResource(R.string.privacy_policy),
@@ -64,41 +64,41 @@ fun PrivacyPolicyPage(
 
             OnboardingSectionHeading("Overview")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "LibrePods does not collect, store, sell, or share personal information for advertising, analytics, tracking, or profiling purposes. The app does not include analytics, crash reporting, telemetry, advertising SDKs, or tracking services."
             )
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "All information remains on your device unless you explicitly choose to contact me, or create a GitHub issue from the app."
             )
 
             OnboardingSectionHeading("Third Party Services")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "LibrePods provides several ways to contact me, including email, Discord, and GitHub Issues."
             )
 
             OnboardingSectionHeading("Email")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "If you contact me by email, I receive your email address and any information you choose to include in your message. When using the contact form within LibrePods, your email client will open with a pre-filled email address, the subject line and body that you fill out. The body will also include LibrePods version information and device information to help with troubleshooting."
             )
 
-            OnboardingBodyText("You can edit or remove any of this information before sending the email.")
+            OnboardingDocumentText("You can edit or remove any of this information before sending the email.")
 
             OnboardingSectionHeading("Discord")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "The app provides a link to the LibrePods Discord server. If you choose to join the Discord server, you will be subject to Discord's privacy policy."
             )
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "I do not receive any information about you from Discord other than what is publicly visible in the Discord server, such as your username, joining date, common servers, and any messages or content you post in the server, unless you choose to share it with me in the Discord server."
             )
 
             OnboardingSectionHeading("GitHub Issues")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "When creating a GitHub issue through LibrePods, the app will pre-fill the issue form with:"
             )
 
@@ -106,19 +106,19 @@ fun PrivacyPolicyPage(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                OnboardingBodyText("• LibrePods version name and version code")
-                OnboardingBodyText("• Device manufacturer and model")
-                OnboardingBodyText("• Android build information")
-                OnboardingBodyText("• Installation source (Google Play or GitHub)")
+                OnboardingDocumentText("• LibrePods version name and version code")
+                OnboardingDocumentText("• Device manufacturer and model")
+                OnboardingDocumentText("• Android build information")
+                OnboardingDocumentText("• Installation source (Google Play or GitHub)")
             }
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "This information helps diagnose bugs and provide support. No information is sent automatically. The information is only submitted if you choose to create the GitHub issue."
             )
 
             OnboardingSectionHeading("Contact")
 
-            OnboardingBodyText(
+            OnboardingDocumentText(
                 "If you have questions about this privacy policy, please contact me via email at privacy@kavish.xyz."
             )
         }

@@ -315,6 +315,7 @@
     <string name="notifications">Notifications</string>
     <string name="permission_description_notification">Show battery status, alerts for high heart rate (on supported models), and more.</string>
     <string name="permission_description_phone">Respond to phone calls with head gestures.</string>
+    <string name="grant_all">Grant all</string>
     <string name="permission_overlay">Display over other apps</string>
     <string name="permission_description_overlay">Show popups when AirPods are nearby or audio switches to them.</string>
     <string name="use_highest_refresh_rate">Use highest refresh rate available</string>

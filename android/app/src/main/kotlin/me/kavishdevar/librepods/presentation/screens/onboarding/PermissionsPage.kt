@@ -131,7 +131,7 @@ fun PermissionsPage(
         bottom = {
             OnboardingBottomButtonRow {
                 OnboardingPrimaryButton(
-                    text = "Grant all",
+                    text = stringResource(R.string.grant_all),
                     onClick = {
                         grantingAll = true
                         if (!bluetoothPermissionsState.allPermissionsGranted) bluetoothPermissionsState.launchMultiplePermissionRequest()

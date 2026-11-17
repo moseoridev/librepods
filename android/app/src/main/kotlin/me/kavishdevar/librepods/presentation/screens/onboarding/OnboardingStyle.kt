@@ -90,10 +90,26 @@ internal object OnboardingStyle {
         @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp)
     val Body: TextStyle
         @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp)
+    /**
+     * Long-document body. Buds' `activity_notice` body is 13sp with `lineSpacingExtra 9sp`, which
+     * measures as a **79px = 26.3dp** ink-to-ink pitch, and consecutive paragraphs are **156px**
+     * apart, i.e. one blank line. The product keeps 14sp (its existing body size) and takes the
+     * reference pitch, so the document reads at the reference rhythm without shrinking the Latin
+     * text below the Samsung caption size.
+     */
+    val DocumentBody: TextStyle
+        @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 26.sp)
     val Footnote: TextStyle
         @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 17.sp)
 
     val Inset = 32.dp
+    /**
+     * Document-page inset: Buds' `activity_notice` body is inset 24dp (ink starts at x=73px at
+     * 480dpi), not the 32dp the Wearable list pages use.
+     */
+    val DocumentInset = 24.dp
+    /** Reference paragraph gap: consecutive Buds paragraphs start 156px = 52dp apart. */
+    val DocumentParagraphGap = 20.dp
     /** Reference header: toolbar row 103→295px and a back button `[0,115][180,295]` at 480dpi. */
     val HeaderHeight = 64.dp
     val HeaderBackSlot = 60.dp
@@ -148,11 +164,17 @@ internal object OnboardingStyle {
      */
     val HeroTopBuds = 34.dp
     /**
-     * Welcome heading origin: the reference `갤럭시 웨어러블` starts at y=360px = 120dp from the screen
-     * top at 480dpi. The welcome page has no header row, so the body starts under the status bar and
-     * this offset carries the whole distance to the greeting block.
+     * Welcome artwork trial: the reference page puts a large product image above the title block
+     * (`wm_welcome_device_page_layout`, image `y 728–1184` = 152dp tall). LibrePods uses its own
+     * left/case/right silhouettes in that slot; the slot keeps the reference's vertical share so the
+     * title block still lands near the reference position.
      */
-    val WelcomeHeadingTop = 120.dp
+    val WelcomePodHeight = 96.dp
+    val WelcomeCaseHeight = 72.dp
+    val WelcomeArtworkGap = 12.dp
+    /** Artwork→greeting clearance; the case sits on the row's bottom edge. */
+    val WelcomeArtworkBottom = 20.dp
+    val WelcomeArtworkTop = 84.dp
     /** Gap between the greeting line and the 30sp app name, sized like the body's own line rhythm. */
     val WelcomeGreetingGap = 8.dp
     val RowIconSize = 24.dp
@@ -393,6 +415,19 @@ internal fun OnboardingSectionHeading(text: String) {
     Text(
         text = text,
         style = OnboardingStyle.RowTitle.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+/**
+ * Long-document paragraph at the Buds `activity_notice` rhythm: 14sp with a 26dp line pitch, so
+ * consecutive lines sit 79px apart at 480dpi like the reference body.
+ */
+@Composable
+internal fun OnboardingDocumentText(text: String) {
+    Text(
+        text = text,
+        style = OnboardingStyle.DocumentBody,
         color = MaterialTheme.colorScheme.onSurface
     )
 }

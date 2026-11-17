@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,7 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.Icon
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -120,8 +124,9 @@ private fun WelcomePage(onForward: () -> Unit) {
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = OnboardingStyle.Inset)
-                .padding(top = OnboardingStyle.WelcomeHeadingTop)
+                .padding(top = OnboardingStyle.WelcomeArtworkTop)
         ) {
+            WelcomePodArtwork()
             Text(
                 text = stringResource(R.string.welcome_to_appname),
                 modifier = Modifier.fillMaxWidth(),
@@ -144,6 +149,49 @@ private fun WelcomePage(onForward: () -> Unit) {
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+/**
+ * Welcome artwork: the app's own AirPods-left / case / -right silhouettes, centred and tinted from
+ * the heading colour. Wearable's welcome page draws a large product image in this slot
+ * (`wm_welcome_device_page_layout`), but that is vendor artwork; these three vectors already ship
+ * with LibrePods for its notifications and widgets, so the slot is filled with the product's own
+ * device art instead. Marked an unverified adaptation in the evidence README.
+ */
+@Composable
+private fun WelcomePodArtwork() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = OnboardingStyle.WelcomeArtworkBottom),
+        horizontalArrangement = Arrangement.spacedBy(OnboardingStyle.WelcomeArtworkGap),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.airpods_pro_left_notification),
+            contentDescription = null,
+            modifier = Modifier
+                .weight(1f)
+                .height(OnboardingStyle.WelcomePodHeight),
+            tint = OnboardingStyle.HeadingText
+        )
+        Icon(
+            painter = painterResource(R.drawable.airpods_pro_case_notification),
+            contentDescription = null,
+            modifier = Modifier
+                .weight(1f)
+                .height(OnboardingStyle.WelcomeCaseHeight),
+            tint = OnboardingStyle.HeadingText
+        )
+        Icon(
+            painter = painterResource(R.drawable.airpods_pro_right_notification),
+            contentDescription = null,
+            modifier = Modifier
+                .weight(1f)
+                .height(OnboardingStyle.WelcomePodHeight),
+            tint = OnboardingStyle.HeadingText
+        )
     }
 }
 
