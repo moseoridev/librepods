@@ -341,4 +341,16 @@
     <string name="blur_content_behind_top_bar">상단 바 뒤 콘텐츠 흐리게</string>
     <string name="black_background">검은 배경</string>
     <string name="material_symbols">Material Symbols</string>
+    <string name="background_connection_ready">백그라운드 연결 승인됨</string>
+    <string name="background_connection_ready_description">선택한 AirPods가 연결되어 있는 동안 연결 작업이 실행됩니다.</string>
+    <string name="background_connection_setup">백그라운드 연결 설정</string>
+    <string name="background_connection_setup_description">AirPods가 연결될 때 Android가 LibrePods를 시작할 수 있도록 AirPods를 승인하세요.</string>
+    <string name="background_setup_unavailable">이 기기에서는 컴패니언 기기 설정을 사용할 수 없습니다.</string>
+    <string name="island_popup">아일랜드 팝업</string>
+    <string name="island_popup_description">AirPods를 착용하면 표시됩니다. 착용 중 계속 표시하거나 몇 초 후에 숨길 수 있습니다.</string>
+    <string name="more_settings">추가 설정</string>
+    <string name="overlay_more_settings_description">오버레이의 크기, 위치, 모양과 동작을 사용자 지정합니다.</string>
+    <string name="proximity_card">근접 카드</string>
+    <string name="proximity_card_description">휴대폰 근처에서 충전 케이스를 열면 팝업을 표시합니다.</string>
+    <string name="tone_volume_above_recommended_description">AirPods에서 재생하는 효과음의 톤 음량을 조절합니다. 재생되는 소리가 권장 기본 음량보다 큽니다.</string>
 </resources>
