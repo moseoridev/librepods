@@ -191,7 +191,7 @@ fun HeadTrackingScreen(
             ) {
 
                 StyledToggle(
-                    label = "Posture alert",
+                    label = stringResource(R.string.posture_alert),
                     checked = settings.postureAlertEnabled,
                     onCheckedChange = { viewModel.setPostureAlertEnabled(it) },
                     header = true
@@ -222,11 +222,13 @@ fun HeadTrackingScreen(
                 }
             }
             val gestureTextValue = stringResource(R.string.shake_your_head_or_nod)
+            val yesGestureText = stringResource(R.string.gesture_yes_detected)
+            val noGestureText = stringResource(R.string.gesture_no_detected)
             StyledButton(
                 onClick = {
                     gestureText = gestureTextValue
                     coroutineScope.launch {
-                        viewModel.detectHeadGestures { gestureText = if (it) "\"Yes\" gesture detected." else "\"No\" gesture detected." }
+                        viewModel.detectHeadGestures { gestureText = if (it) yesGestureText else noGestureText }
                     }
                 },
                 backdrop = backdrop,

@@ -57,6 +57,8 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import androidx.compose.ui.res.stringResource
+import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 
@@ -66,8 +68,8 @@ fun StyledConfirmationDialog(
     showDialog: MutableState<Boolean>,
     title: String,
     message: String,
-    confirmText: String = "Enable",
-    dismissText: String = "Cancel",
+    confirmText: String = stringResource(R.string.enable),
+    dismissText: String = stringResource(R.string.cancel),
     onConfirm: () -> Unit,
     onDismiss: () -> Unit = { showDialog.value = false },
     backdrop: LayerBackdrop,

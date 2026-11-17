@@ -452,4 +452,12 @@
     <string name="background_detection_description">Receives nearby battery data and supports automatic takeover using system-managed low-power scanning. No foreground service. Requires proximity keys from a successful connection and Bluetooth scan batching support. Android may delay updates and takeover; scanning still uses battery. Off by default.</string>
     <string name="angular_velocity">Angular velocity</string>
     <string name="test_head_gestures">Test Head Gestures</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+    <string name="posture_alert">Posture alert</string>
+    <string name="gesture_yes_detected">\"Yes\" gesture detected.</string>
+    <string name="gesture_no_detected">\"No\" gesture detected.</string>
+    <string name="enable_hearing_aid_title">Enable Hearing Aid</string>
+    <string name="enable_hearing_aid_message">Enabling Hearing Aid will disable Headphone Accommodation and Customized Transparency Mode.</string>
+    <string name="enable">Enable</string>
 </resources>
