@@ -353,4 +353,21 @@
     <string name="proximity_card">근접 카드</string>
     <string name="proximity_card_description">휴대폰 근처에서 충전 케이스를 열면 팝업을 표시합니다.</string>
     <string name="tone_volume_above_recommended_description">AirPods에서 재생하는 효과음의 톤 음량을 조절합니다. 재생되는 소리가 권장 기본 음량보다 큽니다.</string>
+    <string name="ble_settings">BLE 설정</string>
+    <string name="contact_discord_supporting_text">커뮤니티에서 도움을 받으세요.</string>
+    <string name="contact_email_supporting_text">개발자에게 직접 도움을 요청하세요. 혼자 작업하고 있어 답장이 늦을 수 있습니다.</string>
+    <string name="contact_github_supporting_text">GitHub 저장소에 이슈를 만드세요. 기능 요청이나 문제 보고에만 사용하세요.</string>
+    <string name="customize">사용자 지정</string>
+    <string name="debug_mode_description">추가 정보와 설정을 표시합니다.</string>
+    <string name="do_not_change">무엇을 하는지 정확히 알지 못하면 이 설정을 변경하지 마세요!</string>
+    <string name="enable_debug_mode">디버그 모드 사용</string>
+    <string name="error_opening_discord_invite">Discord 초대를 열지 못했습니다</string>
+    <string name="error_opening_github_link">GitHub 링크를 열지 못했습니다</string>
+    <string name="interaction">동작</string>
+    <string name="island_settings">아일랜드 설정</string>
+    <string name="reset_app_settings">앱 설정 초기화</string>
+    <string name="reset_app_settings_description">화면 스타일, 동작, 손쉬운 사용, 아일랜드 등 모든 앱 설정이 초기화됩니다.</string>
+    <string name="size_and_position">크기 및 위치</string>
+    <string name="use_highest_refresh_rate">사용 가능한 최고 주사율 사용</string>
+    <string name="differentiate_without_color">색상 없이 구분</string>
 </resources>
