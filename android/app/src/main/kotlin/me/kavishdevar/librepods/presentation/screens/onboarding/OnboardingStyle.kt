@@ -29,11 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.R
@@ -67,6 +69,17 @@ internal object OnboardingStyle {
     /** The welcome heading; the reference draws it in the body, not in a toolbar. */
     val Title: TextStyle
         @Composable get() = MaterialTheme.typography.titleLarge.copy(fontSize = 30.sp, lineHeight = 40.sp)
+    /**
+     * Buds body-hero title: `activity_notice` declares `textSize 27dp`, `textStyle 1` (bold),
+     * `lineSpacingExtra 5dp`, centred. Measured on `buds-02`: ink `968–1039` (72px) in a
+     * `946–1058` box, i.e. 27sp × 3 = 81px cap box + 5dp spacing = 112px total line box.
+     */
+    val BudsHeroTitle: TextStyle
+        @Composable get() = MaterialTheme.typography.titleLarge.copy(
+            fontSize = 27.sp,
+            lineHeight = 37.sp,
+            fontWeight = FontWeight.Bold
+        )
     val PageTitle: TextStyle
         @Composable get() = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp, lineHeight = 32.sp)
     val RowTitle: TextStyle
@@ -84,6 +97,56 @@ internal object OnboardingStyle {
     /** Reference header: toolbar row 103→295px and a back button `[0,115][180,295]` at 480dpi. */
     val HeaderHeight = 64.dp
     val HeaderBackSlot = 60.dp
+    /**
+     * Body-hero heading colour: Wearable `gray_scale_text_color2` `#EAEAEB` night / `#252528` day,
+     * sampled on the wm-10 hero title (ink `#EAEAEB`) and in `captures-light/wm-09` (`#2D2D2D`, the
+     * same value through Display-P3). It is one step below the toolbar title's `text_color1`.
+     */
+    val HeadingText: Color
+        @Composable get() = if (settingsSurfaceIsDark()) Color(0xFFEAEAEB) else Color(0xFF252528)
+    /**
+     * Hero mark size. The reference `wm_permission_detail_fragment` declares a 46dp ImageView
+     * (`header_icon_width_height`) whose `ic_permission` drawable fills **71%** of its box — the
+     * drawn glyph is 98px inside the 138px box at `[471,463][609,601]`. The launcher monochrome
+     * fills only **45%** of its viewport (measured: 56x62px in the same 138px box), because the
+     * adaptive-icon safe zone is larger than `ic_permission`'s padding. The box is therefore scaled
+     * by 0.710/0.449 = 1.58 to 73dp so the *drawn mark* is the reference's 98px, not the reference's
+     * invisible box. This is a measured deviation from the declared 46dp; see the evidence README.
+     */
+    val HeroIconSize = 73.dp
+    /**
+     * Hero box top below the header: set so the scaled box still draws its ink at the reference's
+     * 483px. The declared `layout_marginTop 32dp` counts from a scroll origin hidden under the
+     * floating toolbar, so it does not describe the drawn gap; 43dp here reproduces the captured
+     * pixel row.
+     */
+    val HeroTop = 43.dp
+    /**
+     * Box→heading gap: tuned so the 30sp heading's ink lands on the reference's 674px row after the
+     * larger box; the declared `title_top_margin 16dp` is the box gap for a 46dp box whose ink
+     * already reaches its bottom edge.
+     */
+    val HeroHeadingGap = 4.dp
+    /**
+     * Buds hero mark→title gap: `activity_notice` declares `layout_marginBottom 11dp` on the
+     * illustration above `text_title`. Buds' mark is a vendor illustration, so the LibrePods
+     * launcher monochrome stands in for it; only the gap is source-backed.
+     */
+    val BudsHeroGap = 11.dp
+    /**
+     * Reference heading→first-group gap: 32dp (heading box bottom 1013px, `필수 권한` ink top
+     * 1109px). [OnboardingGroupLabel] already contributes its own 21dp, so callers add the rest.
+     */
+    val HeroToGroup = 11.dp
+    /** Buds hero-block→document gap: 38dp (heading box bottom 1058px, body ink 1172px). */
+    val HeroToDocument = 26.dp
+    /**
+     * Buds privacy hero top: 34dp, both declared (`activity_notice` `layout_marginTop 34dp`) and
+     * measured (toolbar bottom 307px → illustration top 409px = 102px). Buds draws a 168dp vendor
+     * illustration there; that artwork is not packaged, so the LibrePods app icon takes the slot at
+     * the Wearable 46dp box size.
+     */
+    val HeroTopBuds = 34.dp
     /**
      * Welcome heading origin: the reference `갤럭시 웨어러블` starts at y=360px = 120dp from the screen
      * top at 480dpi. The welcome page has no header row, so the body starts under the status bar and
@@ -332,4 +395,49 @@ internal fun OnboardingSectionHeading(text: String) {
         style = OnboardingStyle.RowTitle.copy(fontWeight = FontWeight.SemiBold),
         color = MaterialTheme.colorScheme.onSurface
     )
+}
+
+/**
+ * The reference body hero: a centred mark above a centred heading, both on the page background
+ * with no card or container. Wearable (`wm-10`) draws a 46dp `header_icon_width_height` icon and a
+ * centred 30sp/40sp title; Buds (`activity_notice`) draws its illustration and a centred 27sp bold
+ * `text_title`. The supply is the app's own launcher monochrome, so no vendor artwork is used.
+ *
+ * The heading style is the page's own: [OnboardingStyle.Title] for Wearable's 30sp role and
+ * [OnboardingStyle.BudsHeroTitle] for Buds' 27sp bold one. Only the toolbar title is 24sp.
+ */
+@Composable
+internal fun OnboardingHero(
+    title: String,
+    modifier: Modifier = Modifier,
+    top: Dp = OnboardingStyle.HeroTop,
+    inset: Dp = OnboardingStyle.Inset,
+    titleStyle: TextStyle = OnboardingStyle.Title,
+    showIcon: Boolean = true,
+    markGap: Dp = OnboardingStyle.HeroHeadingGap,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = inset)
+            .padding(top = top),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (showIcon) {
+            Icon(
+                painter = painterResource(R.drawable.ic_launcher_monochrome),
+                contentDescription = null,
+                modifier = Modifier.size(OnboardingStyle.HeroIconSize),
+                tint = OnboardingStyle.HeadingText
+            )
+            Spacer(Modifier.height(markGap))
+        }
+        Text(
+            text = title,
+            modifier = Modifier.fillMaxWidth(),
+            style = titleStyle,
+            color = OnboardingStyle.HeadingText,
+            textAlign = TextAlign.Center
+        )
+    }
 }

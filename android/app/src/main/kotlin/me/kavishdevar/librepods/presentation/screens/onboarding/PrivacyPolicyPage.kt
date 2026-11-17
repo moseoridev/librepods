@@ -2,7 +2,9 @@ package me.kavishdevar.librepods.presentation.screens.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -46,6 +48,14 @@ fun PrivacyPolicyPage(
                 .padding(top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            OnboardingHero(
+                title = stringResource(R.string.privacy_policy),
+                top = OnboardingStyle.HeroTopBuds,
+                inset = 0.dp,
+                titleStyle = OnboardingStyle.BudsHeroTitle,
+                markGap = OnboardingStyle.BudsHeroGap
+            )
+            Spacer(Modifier.height(OnboardingStyle.HeroToDocument))
             Text(
                 text = "Last updated: 20 June 2026",
                 style = OnboardingStyle.Footnote,

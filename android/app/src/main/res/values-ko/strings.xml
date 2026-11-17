@@ -262,6 +262,8 @@
     <string name="reconnecting">다시 연결 중</string>
     <string name="tap_to_reconnect">탭하여 다시 연결</string>
     <string name="permissions">권한</string>
+    <string name="required_permissions">필수 권한</string>
+    <string name="optional_permissions">선택 권한</string>
     <string name="privacy_policy">개인정보 처리방침</string>
     <string name="i_agree">동의합니다</string>
 

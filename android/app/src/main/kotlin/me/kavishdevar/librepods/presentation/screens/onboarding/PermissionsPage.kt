@@ -5,8 +5,10 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -159,6 +161,8 @@ fun PermissionsPage(
                 .verticalScroll(scrollState)
                 .padding(bottom = 16.dp)
         ) {
+            OnboardingHero(title = stringResource(R.string.permissions_required))
+            Spacer(Modifier.height(OnboardingStyle.HeroToGroup))
             OnboardingGroupLabel(stringResource(R.string.required_permissions))
             OnboardingPermissionRow(
                 title = stringResource(R.string.bluetooth),
