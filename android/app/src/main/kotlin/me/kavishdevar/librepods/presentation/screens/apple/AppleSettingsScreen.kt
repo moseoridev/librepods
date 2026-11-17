@@ -95,20 +95,50 @@ import kotlin.time.Duration.Companion.milliseconds
 fun AppleSettingsRoute(
     viewModel: AppleViewModel,
     navigateBack: (() -> Unit)?,
+    navigateToRename: () -> Unit,
     navigateToHearingProtection: () -> Unit,
     navigateToHearingAid: () -> Unit,
-    navigateToTransparencyCustomization: () -> Unit,
+    navigateToLeftLongPress: () -> Unit,
+    navigateToRightLongPress: () -> Unit,
+    navigateToEqualizer: () -> Unit,
+    navigateToHeadTracking: () -> Unit,
+    navigateToAccessibility: () -> Unit,
+    navigateToVersion: () -> Unit,
+    navigateToCallControlScreen: (action: String) -> Unit,
+    navigateToMicrophoneSettings: () -> Unit,
     navigateToRecordingScreen: () -> Unit,
-    navigateToHeartRateScreen: () -> Unit
+    navigateToHeartRateScreen: () -> Unit,
+    navigateToProxConnectSettings: () -> Unit
 ) {
-    BudsDeviceSettingsRoute(
-        viewModel = viewModel,
+    val uiState by viewModel.uiState.collectAsState()
+
+    AppleSettingsScreen(
+        uiState = uiState,
+
+        setControlCommandInt = { id, value -> viewModel.setControlCommand(id, value) },
+        setControlCommandBoolean = { id, value -> viewModel.setControlCommand(id, value) },
+
+        writeATTCharacteristic = viewModel::writeATTCharacteristic,
+
+        updateSettings = viewModel::updateSettings,
+
+        disconnect = viewModel::disconnect,
+
         navigateBack = navigateBack,
+        navigateToRename = navigateToRename,
         navigateToHearingProtection = navigateToHearingProtection,
         navigateToHearingAid = navigateToHearingAid,
-        navigateToTransparencyCustomization = navigateToTransparencyCustomization,
-        navigateToRecording = navigateToRecordingScreen,
-        navigateToHeartRate = navigateToHeartRateScreen
+        navigateToLeftLongPress = navigateToLeftLongPress,
+        navigateToRightLongPress = navigateToRightLongPress,
+        navigateToEqualizer = navigateToEqualizer,
+        navigateToHeadTracking = navigateToHeadTracking,
+        navigateToAccessibility = navigateToAccessibility,
+        navigateToVersion = navigateToVersion,
+        navigateToCallControlScreen = navigateToCallControlScreen,
+        navigateToMicrophoneSettings = navigateToMicrophoneSettings,
+        navigateToRecordingScreen = navigateToRecordingScreen,
+        navigateToHeartRateScreen = navigateToHeartRateScreen,
+        navigateToProxConnectSettings = navigateToProxConnectSettings
     )
 }
 
@@ -145,8 +175,7 @@ fun AppleSettingsScreen(
     navigateToMicrophoneSettings: () -> Unit,
     navigateToRecordingScreen: () -> Unit,
     navigateToHeartRateScreen: () -> Unit,
-    navigateToDebugScreen: () -> Unit,
-    navigateToOverlaySettings: () -> Unit,
+    navigateToProxConnectSettings: () -> Unit
     ) {
     val state = uiState.state
     val settings = uiState.settings
@@ -434,7 +463,8 @@ fun AppleSettingsScreen(
                     automaticConnectionEnabled = state.controlStates[ControlCommandIdentifier.SMART_ROUTING_MODE]?.getOrNull(0) == 0x01.toByte(),
                     onAutomaticConnectionChanged = { setControlCommandBoolean(ControlCommandIdentifier.SMART_ROUTING_MODE, it) },
                     disconnectWhenNotWearing = settings.disconnectWhenNotWearing,
-                    onDisconnectWhenNotWearingChanged = { enabled -> updateSettings { it.copy(disconnectWhenNotWearing = enabled) } }
+                    onDisconnectWhenNotWearingChanged = { enabled -> updateSettings { it.copy(disconnectWhenNotWearing = enabled) } },
+                    navigateToProxConnectSettings = navigateToProxConnectSettings
                 )
             }
 
@@ -510,14 +540,6 @@ fun AppleSettingsScreen(
                 }
             }
 
-            item(key = "spacer_overlay_settings") { Spacer(modifier = Modifier.height(16.dp)) }
-            item(key = "overlay_settings") {
-                StyledListItem(
-                    contentText = stringResource(R.string.overlay_settings),
-                    onClick = navigateToOverlaySettings
-                )
-            }
-
             item(key = "spacer_about") { Spacer(modifier = Modifier.height(32.dp)) }
             item(key = "about") {
                 AboutCard(
@@ -544,26 +566,6 @@ fun AppleSettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            item(key = "spacer_debug") { Spacer(modifier = Modifier.height(16.dp)) }
-
-            if (debugMode) {
-                item(key = "show_cached_battery") {
-                    StyledToggle(
-                        label = "show cached battery",
-                        checked = settings.cacheDisconnectedComponentBattery,
-                        onCheckedChange = { enabled ->
-                            updateSettings { it.copy(cacheDisconnectedComponentBattery = enabled) }
-                        }
-                    )
-                }
-                item(key = "debug_button") {
-                    StyledListItem(
-                        contentText = "debug",
-                        onClick = navigateToDebugScreen
                     )
                 }
             }
@@ -606,8 +608,7 @@ fun AppleSettingsScreenPreviewApple() {
             navigateToMicrophoneSettings = {},
             navigateToRecordingScreen = {},
             navigateToHeartRateScreen = {},
-            navigateToDebugScreen = {},
-            navigateToOverlaySettings = {}
+            navigateToProxConnectSettings = {}
         )
     }
 }
@@ -645,8 +646,7 @@ fun AppleSettingsScreenPreviewMaterial() {
             navigateToMicrophoneSettings = {},
             navigateToRecordingScreen = {},
             navigateToHeartRateScreen = {},
-            navigateToDebugScreen = {},
-            navigateToOverlaySettings = {}
+            navigateToProxConnectSettings = {}
         )
     }
 }

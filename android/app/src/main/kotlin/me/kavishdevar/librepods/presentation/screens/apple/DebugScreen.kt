@@ -34,6 +34,7 @@ import me.kavishdevar.librepods.core.bluetooth.aacp.types.MessageOpcode
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.RTBuddyDescriptor
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.SensorDataWxBuddyPayload
 import me.kavishdevar.librepods.core.devices.DeviceComponent
+import me.kavishdevar.librepods.core.devices.AppleSettings
 import me.kavishdevar.librepods.core.devices.PacketDestination
 import me.kavishdevar.librepods.presentation.components.primitives.StyledButton
 import me.kavishdevar.librepods.presentation.components.primitives.StyledInputField
@@ -41,6 +42,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.StyledList
 import me.kavishdevar.librepods.presentation.components.primitives.styledListItem
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItemOrientation
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
+import me.kavishdevar.librepods.presentation.components.primitives.StyledToggle
 import me.kavishdevar.librepods.presentation.icons.richText
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
@@ -57,6 +59,7 @@ fun DebugRoute(
         uiState = uiState,
         navigateBack = navigateBack,
         sendPacket = viewModel::sendRawPacket,
+        updateSettings = viewModel::updateSettings,
     )
 }
 
@@ -65,6 +68,7 @@ fun DebugScreen(
     uiState: AppleUiState,
     navigateBack: (() -> Unit)?,
     sendPacket: (ByteArray) -> Boolean,
+    updateSettings: (transform: (AppleSettings) -> AppleSettings) -> Unit,
 ) {
     val state = uiState.state
 
@@ -81,6 +85,14 @@ fun DebugScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(topPadding))
+
+            StyledToggle(
+                label = "show cached battery",
+                checked = uiState.settings.cacheDisconnectedComponentBattery,
+                onCheckedChange = { enabled ->
+                    updateSettings { it.copy(cacheDisconnectedComponentBattery = enabled) }
+                }
+            )
 
             val inputState = remember { TextFieldState() }
             val focusRequester = remember { FocusRequester() }

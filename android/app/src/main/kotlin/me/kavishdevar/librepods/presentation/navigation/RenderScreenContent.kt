@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -29,6 +30,7 @@ import me.kavishdevar.librepods.presentation.screens.apple.HeartRateRoute
 import me.kavishdevar.librepods.presentation.screens.apple.LongPress
 import me.kavishdevar.librepods.presentation.screens.apple.MicrophoneSettingsRoute
 import me.kavishdevar.librepods.presentation.screens.apple.OverlaySettingsRoute
+import me.kavishdevar.librepods.presentation.screens.apple.ProxConnectSettingsRoute
 import me.kavishdevar.librepods.presentation.screens.apple.RecordingScreenRoute
 import me.kavishdevar.librepods.presentation.screens.apple.RenameScreen
 import me.kavishdevar.librepods.presentation.screens.apple.TransparencySettingsScreen
@@ -126,14 +128,26 @@ fun RenderScreenContent(
                 factory = factory
             )
 
+            val left = stringResource(R.string.left)
+            val right = stringResource(R.string.right)
+
             AppleSettingsRoute(
                 viewModel = appleViewModel,
                 navigateBack = navigateBack,
+                navigateToRename = { navigate(Screen.Rename(screen.macAddress)) },
                 navigateToHearingProtection = { navigate(Screen.HearingProtection(screen.macAddress)) },
                 navigateToHearingAid = { navigate(Screen.HearingAid(screen.macAddress)) },
-                navigateToTransparencyCustomization = { navigate(Screen.TransparencyCustomization(screen.macAddress)) },
+                navigateToLeftLongPress = { navigate(Screen.LongPress(screen.macAddress, left)) },
+                navigateToRightLongPress = { navigate(Screen.LongPress(screen.macAddress, right)) },
+                navigateToEqualizer = { navigate(Screen.Equalizer(screen.macAddress)) },
+                navigateToHeadTracking = { navigate(Screen.HeadTracking(screen.macAddress)) },
+                navigateToAccessibility = { navigate(Screen.Accessibility(screen.macAddress)) },
+                navigateToVersion = { navigate(Screen.VersionInfo(screen.macAddress)) },
+                navigateToCallControlScreen = { navigate(Screen.CallControl(screen.macAddress, it)) },
+                navigateToMicrophoneSettings = { navigate(Screen.MicrophoneSettings(screen.macAddress)) },
                 navigateToRecordingScreen = { navigate(Screen.Recording(screen.macAddress)) },
-                navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) }
+                navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) },
+                navigateToProxConnectSettings = { navigate(Screen.ProxConnectSettings(screen.macAddress)) }
             )
         }
 
@@ -554,6 +568,19 @@ fun RenderScreenContent(
                 viewModel = appleViewModel,
                 navigateBack = navigateBack,
                 navigateToAppSettings = { navigate(Screen.AppSettings) }
+            )
+        }
+
+        is Screen.ProxConnectSettings -> {
+            val device = devices[screen.macAddress] as? AppleDevice ?: return
+            val factory = createAppleViewModelFactory(device, appDataRepository, recordingRepository, heartRateRepository)
+            val appleViewModel: AppleViewModel = viewModel(
+                key = "${screen.macAddress.value}:${device.connectionNumber}",
+                factory = factory
+            )
+            ProxConnectSettingsRoute(
+                viewModel = appleViewModel,
+                navigateBack = navigateBack,
             )
         }
     }

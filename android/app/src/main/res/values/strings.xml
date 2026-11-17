@@ -434,6 +434,7 @@
     <string name="prox_connect_on_phone_description">Choose when to automatically route phone audio to AirPods.</string>
     <string name="prox_connect_on_media">Media Audio Rules</string>
     <string name="prox_connect_on_media_description">Choose when to automatically route music, video, and media audio to AirPods.</string>
+    <string name="prox_connect_settings">Configure automatic connections</string>
     <string name="prox_disconnected_label">Not connected to any device</string>
     <string name="prox_idle_label">Connected to other device but idle</string>
     <string name="prox_music_label">Connected to another device playing media</string>
