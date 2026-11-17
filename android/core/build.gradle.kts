@@ -52,6 +52,12 @@ android {
         checkDependencies = false
         checkGeneratedSources = false
     }
+
+    testOptions {
+        // Production parsers log through android.util.Log; the JVM contract tests only need
+        // the parsers, not an Android runtime.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

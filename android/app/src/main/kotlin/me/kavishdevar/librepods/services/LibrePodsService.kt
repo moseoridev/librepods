@@ -103,6 +103,10 @@ class LibrePodsService: Service() {
     val devices = _devices.asStateFlow()
 
     private val serviceCoroutineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+    /** App-state flags the simulated accessory changed; restored when it is removed. */
+    private val simulatedStateBefore = mutableMapOf<MacAddress, Pair<Boolean, Long?>>()
+    /** Simulated devices own their collectors, so removal leaves nothing running. */
+    private val simulatedObserverJobs = mutableMapOf<MacAddress, List<Job>>()
     private var runtimeActive = false
     private var phoneRegistered = false
     private var destroying = false
@@ -578,12 +582,7 @@ class LibrePodsService: Service() {
                 }
 
                 if (!device.settingsInitialized) device.loadInitialState(AppleState(), AppleSettings(), device.metadata.value)
-                device.onManualDisconnect = { me.kavishdevar.librepods.bluetooth.NearbyDetection.suppress(this@LibrePodsService, device.macAddress) }
-                observeAppleEvents(device)
-                observeAppleState(device)
-                observeAppleSettings(device)
-                observeAppleMetadata(device)
-                observeAppleMicrophoneFrames(device)
+                observeAppleDevice(device)
             }
         }
 
@@ -594,8 +593,57 @@ class LibrePodsService: Service() {
         return device
     }
 
-    fun observeConnectionState(device: Device<*, *, *>) {
-        serviceCoroutineScope.launch {
+    /** Attaches the one set of collectors every AppleDevice needs, loaded or simulated. */
+    internal fun observeAppleDevice(device: AppleDevice): List<Job> {
+        device.onManualDisconnect = { me.kavishdevar.librepods.bluetooth.NearbyDetection.suppress(this@LibrePodsService, device.macAddress) }
+        return listOf(
+            observeAppleEvents(device),
+            observeAppleState(device),
+            observeAppleSettings(device),
+            observeAppleMetadata(device),
+            observeAppleMicrophoneFrames(device),
+        )
+    }
+
+    /**
+     * Debug-only entry point for the simulated-accessory harness. The device arrives already
+     * connected through the production AACP parser; this publishes it like a bonded one.
+     */
+    internal fun addSimulatedAppleDevice(device: AppleDevice) {
+        simulatedStateBefore[device.macAddress] = appDataRepository.state.value.let {
+            it.hasConnectedToAACP to it.firstSuccessfulConnectionTime
+        }
+        simulatedObserverJobs[device.macAddress] = observeAppleDevice(device) + observeConnectionState(device)
+        _devices.update { it + (device.macAddress to device) }
+    }
+
+    /**
+     * Debug-only teardown. The caller stops the simulated session first, so the disconnected
+     * state cancels alerts and closes owned overlays; this drops the map entry, releases the
+     * device and removes every row the simulated accessory wrote, then restores the app flags
+     * its first AACP packet changed.
+     */
+    internal suspend fun removeSimulatedAppleDevice(macAddress: MacAddress) {
+        val device = _devices.value[macAddress] as? AppleDevice
+        _devices.update { it - macAddress }
+        simulatedObserverJobs.remove(macAddress)?.forEach { it.cancel() }
+        device?.close()
+        if (device != null) {
+            closeOwnedPopups(device)
+            updateDeviceNotification(device)
+        }
+        appleRepository.delete(macAddress)
+        simulatedStateBefore.remove(macAddress)?.let { (connected, firstConnection) ->
+            appDataRepository.updateState {
+                it.copy(hasConnectedToAACP = connected, firstSuccessfulConnectionTime = firstConnection)
+            }
+        }
+        reconcileRuntime()
+        updateWidgets()
+    }
+
+    fun observeConnectionState(device: Device<*, *, *>): Job {
+        return serviceCoroutineScope.launch {
             var previousConnectionState = ConnectionState.DISCONNECTED
             device.connectionState.collect { state ->
                 reconcileRuntime()
@@ -639,8 +687,8 @@ class LibrePodsService: Service() {
         }
     }
 
-    private fun observeAppleEvents(device: AppleDevice) {
-        serviceCoroutineScope.launch {
+    private fun observeAppleEvents(device: AppleDevice): Job {
+        return serviceCoroutineScope.launch {
             device.events.collect { event ->
                 if (devices.value[device.macAddress] !== device || device.connectionState.value != ConnectionState.CONNECTED) return@collect
                 if (event is AppleEvent.OwnershipToFalseRequest) {
@@ -685,8 +733,8 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun observeAppleState(device: AppleDevice) {
-        serviceCoroutineScope.launch {
+    fun observeAppleState(device: AppleDevice): Job {
+        return serviceCoroutineScope.launch {
             var previousState = device.state.value
 
             device.state.collect { state ->
@@ -942,8 +990,8 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun observeAppleSettings(device: AppleDevice) {
-        serviceCoroutineScope.launch {
+    fun observeAppleSettings(device: AppleDevice): Job {
+        return serviceCoroutineScope.launch {
             var previousSettings = device.settings.value
 
             device.settings.collect { settings ->
@@ -966,8 +1014,8 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun observeAppleMetadata(device: AppleDevice) {
-        serviceCoroutineScope.launch {
+    fun observeAppleMetadata(device: AppleDevice): Job {
+        return serviceCoroutineScope.launch {
             var previousMetadata = device.metadata.value
 
             device.metadata.collect { metadata ->
@@ -991,8 +1039,8 @@ class LibrePodsService: Service() {
         }
     }
 
-    fun observeAppleMicrophoneFrames(device: AppleDevice) {
-        serviceCoroutineScope.launch(Dispatchers.IO) {
+    fun observeAppleMicrophoneFrames(device: AppleDevice): Job {
+        return serviceCoroutineScope.launch(Dispatchers.IO) {
             device.microphoneFrames.collect { frame ->
                 val state = device.state.value
 

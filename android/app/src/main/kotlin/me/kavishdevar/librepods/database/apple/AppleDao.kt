@@ -21,6 +21,9 @@ interface AppleDao {
     @Upsert
     suspend fun upsert(device: AppleEntity)
 
+    @Query("DELETE FROM AppleEntity WHERE macAddress = :macAddress")
+    suspend fun delete(macAddress: MacAddress)
+
     @Transaction
     suspend fun updateSettings(macAddress: MacAddress, settings: AppleSettings) {
         val device = get(macAddress)?: AppleEntity(macAddress = macAddress, settings = settings, metadata = AppleMetadata(), cache = AppleCache())

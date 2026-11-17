@@ -136,6 +136,56 @@ python3 tools/settings_ui_fixture.py --serial DEVICE_SERIAL --run-tests --captur
 
 Use `--test-method METHOD` to rerun one behavior while resolving a failure; it is mutually exclusive with `--capture-matrix`. The helper updates both APKs with `adb install -r -t`, invokes the selected instrumentation class directly and pulls captures to `android/app/build/outputs/settings-fixtures/` (`--output` overrides it). Both apps/data stay installed. Test windows hold `FLAG_KEEP_SCREEN_ON` only for their lifetime; no timeout, density or font setting is changed. The phone must be unlocked before starting. Do not use Gradle's `connectedFossDebugAndroidTest` on the maintainer's configured phone: this AGP runner uninstalls the target app after testing. Its first run removed the main app/local data on2026-11-06; the direct runner avoids that cleanup. Device execution requires authorized scope. UI results do not establish firmware command acceptance, connection lifetime, power savings or universal pixel parity.
 
+## Simulated AirPods (debug)
+
+Debug builds can install a simulated accessory so the real device screen can be opened and
+exercised in a CONNECTED state without AirPods. The harness lives only in debug source sets
+(`core/src/debug/.../core/simulation`, `app/src/debug/.../simulation`) and is absent from
+release APKs. The only main-source hooks are `AACPManager.sender` being `internal`, the
+`observeAppleDevice`/`addSimulatedAppleDevice`/`removeSimulatedAppleDevice` functions in
+`LibrePodsService`, `AppleRepository.delete` with its `AppleDao` query, and
+`testOptions.unitTests.isReturnDefaultValues` in core's build file so the JVM contract test can
+run the parsers that log.
+
+The simulated accessory uses the fixed locally administered address `02:11:22:33:44:55`.
+`getRemoteDevice` only builds a handle for it: nothing bonds, scans, opens an L2CAP socket or
+changes Bluetooth settings, and Nearby detection ignores the MAC because it has no BLE
+snapshot. State is produced by feeding production-format AACP packets through
+`AACPManager.processPacket`, so metadata, capabilities, battery, ear detection and control
+state come from the real parsers. A loopback sender answers outgoing control commands with the
+notification the accessory would send, which makes listening mode, conversational awareness,
+adaptive volume, sleep detection and raw gestures round-trip in the UI.
+
+```sh
+adb shell am broadcast -a me.kavishdevar.librepods.debug.SIMULATED_AIRPODS \
+  -n me.kavishdevar.librepods/me.kavishdevar.librepods.simulation.SimulatedAirPodsReceiver \
+  --es command scenarios                      # list scenario keys
+adb shell am broadcast ... --es command add --es scenario pro3
+adb shell am broadcast ... --es command status
+adb shell am broadcast ... --es command remove
+```
+
+Results are logged under the `SimulatedAirPods` tag. `add` works from a cold start, including
+after `am force-stop`: the receiver starts the service and binds it. The binding and the
+session live in the app process that ran `add`, so `remove` must reach that process; restarting
+or force-stopping the app first leaves the device uninstalled from the engine while its
+`AppleEntity` row and `hasConnectedToAACP` stay set. Re-run `add` then `remove` after a force
+stop if that happens.
+
+Scenarios: `pro3` (default), `pro3-low-battery`, `airpods4-anc`, `max2`. `add` binds
+`LibrePodsService`, publishes the device and keeps that binding until `remove`, so open the
+device from the list (or let the connected-device route open it). `remove` disconnects, drops
+the map entry, deletes the simulated MAC's `AppleEntity` row and restores `hasConnectedToAACP`
+and `firstSuccessfulConnectionTime` to their previous values; the device's first AACP packet
+sets `hasConnectedToAACP` through the normal path, which is why removal has to restore it.
+Removal leaves the device list and the database as they were, but no screen is reopened.
+
+Limits: not covered are hearing-aid ATT reads, the case/headset-only battery edge beyond the
+`max2` scenario, real audio routing or media ownership (commands that need a peer MAC return
+`false` like a device without a route), firmware thresholds beyond the fixed `8454371` version,
+ear-detection or stem-press notifications driven by physical input, heart-rate streaming,
+Buds/Manager resource rendering, and release builds.
+
 ## S25 root access for authorized device investigation
 
 The maintainer's Galaxy S25 (`SM-S931N`) can run root commands through the temporary `dev.moseori.ksuprobe` app. This is a diagnostic path for an already loaded KernelSU environment, not a rooting procedure or a LibrePods runtime dependency. A failed `adb shell su` does not establish whether this app can obtain root.

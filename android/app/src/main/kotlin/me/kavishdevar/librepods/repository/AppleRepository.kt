@@ -28,6 +28,12 @@ class AppleRepository(
         return entity
     }
 
+    /** Removes every persisted trace of a simulated device; only the debug harness calls this. */
+    suspend fun delete(macAddress: MacAddress) {
+        dao.delete(macAddress)
+        _devices.update { it - macAddress }
+    }
+
     suspend fun saveSettings(macAddress: MacAddress, settings: AppleSettings) {
 //        Log.d(TAG, "Saving AppleSettings for $macAddress: $settings")
         dao.updateSettings(macAddress, settings)

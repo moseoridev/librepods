@@ -11,5 +11,12 @@
             android:taskAffinity="${applicationId}.budsmanagerfixture"
             android:theme="@style/SettingsWindowTheme"
             android:label="Buds Manager Fixture" />
+        <!-- adb-driven simulated AirPods; debug builds only. -->
+        <receiver android:name=".simulation.SimulatedAirPodsReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="me.kavishdevar.librepods.debug.SIMULATED_AIRPODS" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

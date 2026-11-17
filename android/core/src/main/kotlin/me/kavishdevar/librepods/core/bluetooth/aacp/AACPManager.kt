@@ -81,7 +81,7 @@ class AACPManager(private val device: AppleDevice) {
     // All ownership transitions and packet delivery run on Main; socket work runs on IO.
     private val owner = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val sessions = ConnectionSessions(owner)
-    @Volatile private var sender: ((ByteArray) -> Boolean)? = null
+    @Volatile internal var sender: ((ByteArray) -> Boolean)? = null
     private val rtBuddyManager = RTBuddyManager(::sendPacket)
 
     internal val sessionScope: CoroutineScope? get() = sessions.current?.scope
