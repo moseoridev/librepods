@@ -283,4 +283,19 @@
 
     <string name="overlay_settings">오버레이 설정</string>
     <string name="recorder">녹음기</string>
+    <string name="heart_rate">심박수</string>
+    <string name="heart_rate_alerts_disabled_warning">다시 연결하거나 심박수 모니터링을 다시 켤 때까지 알림이 꺼져 있습니다.</string>
+    <string name="always_connect_when_disconnected">다른 기기가 연결되어 있지 않을 때 연결</string>
+    <string name="always_connect_when_disconnected_description">켜면 다른 기기가 AirPods에 연결되어 있지 않을 때 앱이 자동으로 연결합니다.</string>
+    <string name="prox_connect_on_media">미디어 오디오 규칙</string>
+    <string name="prox_connect_on_media_description">음악, 동영상, 미디어 오디오를 AirPods로 자동 전환할 시점을 선택합니다.</string>
+    <string name="prox_connect_on_phone">전화 통화 규칙</string>
+    <string name="prox_connect_on_phone_description">통화 오디오를 AirPods로 자동 전환할 시점을 선택합니다.</string>
+    <string name="prox_disconnected_label">어느 기기에도 연결되지 않음</string>
+    <string name="prox_idle_label">다른 기기에 연결되어 있지만 대기 중</string>
+    <string name="prox_music_label">다른 기기에 연결되어 미디어 재생 중</string>
+    <string name="recorder_description">AirPods의 고품질 마이크로 오디오를 녹음합니다.</string>
+    <string name="eq_low">저음</string>
+    <string name="eq_mid">중음</string>
+    <string name="eq_high">고음</string>
 </resources>
