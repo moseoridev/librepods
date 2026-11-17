@@ -437,11 +437,17 @@ fun StyledListItem(
                         }
                     }
                 },
+                // The Manager stacks the summary under the title, so a long
+                // description never competes with the title for width.
                 supportingContent = if (supportingText != null && (design.system == DesignSystem.Material || orientation == StyledListItemOrientation.Horizontal)) {
                     @Composable {
                         Text(
                             text = supportingText,
-                            style = if (design.system == DesignSystem.Apple && orientation == StyledListItemOrientation.Horizontal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+                            style = when {
+                                design.system == DesignSystem.Samsung -> SettingsStyle.RowSummary
+                                design.system == DesignSystem.Apple && orientation == StyledListItemOrientation.Horizontal -> MaterialTheme.typography.bodyMedium
+                                else -> MaterialTheme.typography.bodySmall
+                            },
                             color = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                         )
                     }
@@ -450,7 +456,7 @@ fun StyledListItem(
                 enabled = enabled,
                 index = index,
                 count = count,
-                orientation = orientation,
+                orientation = if (design.system == DesignSystem.Samsung && supportingText != null) StyledListItemOrientation.Vertical else orientation,
                 leadingContent = leadingContent,
                 trailingContent = trailingContent,
                 colors = colors

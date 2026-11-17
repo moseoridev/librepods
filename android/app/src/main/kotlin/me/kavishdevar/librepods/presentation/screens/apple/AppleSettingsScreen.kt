@@ -108,8 +108,26 @@ fun AppleSettingsRoute(
     navigateToMicrophoneSettings: () -> Unit,
     navigateToRecordingScreen: () -> Unit,
     navigateToHeartRateScreen: () -> Unit,
-    navigateToProxConnectSettings: () -> Unit
+    navigateToProxConnectSettings: () -> Unit,
+    navigateToTransparencyCustomization: () -> Unit,
 ) {
+    val design = LocalDesign.current
+
+    // The Samsung style is the Manager's own composition; the Apple and Material
+    // styles keep the iOS-structured device screen.
+    if (design.system == DesignSystem.Samsung) {
+        BudsDeviceSettingsRoute(
+            viewModel = viewModel,
+            navigateBack = navigateBack,
+            navigateToHearingProtection = navigateToHearingProtection,
+            navigateToHearingAid = navigateToHearingAid,
+            navigateToTransparencyCustomization = navigateToTransparencyCustomization,
+            navigateToRecording = navigateToRecordingScreen,
+            navigateToHeartRate = navigateToHeartRateScreen,
+        )
+        return
+    }
+
     val uiState by viewModel.uiState.collectAsState()
 
     AppleSettingsScreen(

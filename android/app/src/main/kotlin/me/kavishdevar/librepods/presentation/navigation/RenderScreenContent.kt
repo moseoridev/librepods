@@ -147,7 +147,8 @@ fun RenderScreenContent(
                 navigateToMicrophoneSettings = { navigate(Screen.MicrophoneSettings(screen.macAddress)) },
                 navigateToRecordingScreen = { navigate(Screen.Recording(screen.macAddress)) },
                 navigateToHeartRateScreen = { navigate(Screen.HeartRate(screen.macAddress)) },
-                navigateToProxConnectSettings = { navigate(Screen.ProxConnectSettings(screen.macAddress)) }
+                navigateToProxConnectSettings = { navigate(Screen.ProxConnectSettings(screen.macAddress)) },
+                navigateToTransparencyCustomization = { navigate(Screen.TransparencyCustomization(screen.macAddress)) }
             )
         }
 
