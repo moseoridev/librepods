@@ -54,6 +54,12 @@ object SimulatedAirPods {
     private const val IN_EAR = 0
     private const val OUT_OF_EAR = 1
 
+    // Unverified placeholder, not an observed release build. The device screen hides the
+    // equalizer below a first digit of 9 (BudsDeviceSettings, AppleSettingsScreen), so the
+    // scenarios that should exercise that row need a 9-family value. Replace it once a real
+    // build number from an accessory is available.
+    private const val EQ_CAPABLE_VERSION3 = "9442784"
+
     // Capability identifiers from the Capability enum; value sizes must match it.
     private val PRO_CAPABILITIES: List<Pair<Int, ByteArray>> = listOf(
         0x04 to byteArrayOf(0x01, 0x00, 0x00, 0x00), // SELECTIVE_SPEECH_LISTENING (4 bytes)
@@ -140,7 +146,7 @@ object SimulatedAirPods {
             serialNumber = "SIMULATEDAIRPODS5",
             version1 = "61.1868040002000000.2713",
             version2 = "61.1868040002000000.2713",
-            version3 = "8454371",
+            version3 = EQ_CAPABLE_VERSION3,
             batteries = listOf(
                 SimulatedAirPodsBattery(LEFT, 96, NOT_CHARGING),
                 SimulatedAirPodsBattery(RIGHT, 95, NOT_CHARGING),
@@ -159,7 +165,7 @@ object SimulatedAirPods {
             serialNumber = "SIMULATEDPRO3",
             version1 = "61.1868040002000000.2713",
             version2 = "61.1868040002000000.2713",
-            version3 = "8454371",
+            version3 = EQ_CAPABLE_VERSION3,
             batteries = listOf(
                 SimulatedAirPodsBattery(LEFT, 82, NOT_CHARGING),
                 SimulatedAirPodsBattery(RIGHT, 79, NOT_CHARGING),

@@ -175,7 +175,10 @@ stop if that happens.
 Scenarios: `airpods5-wcc` (default, AirPods 5 with Wireless Charging Case, A3439), `pro3`,
 `pro3-low-battery`, `airpods4-anc`, `max2`. The default mirrors the maintainer's real accessory,
 so its row set is what a real AirPods 5 WCC shows; `pro3` remains the secondary check for
-Pro-only rows such as hearing aid and heart rate. `airpods5-wcc` builds its capabilities from the
+Pro-only rows such as hearing aid and heart rate. `airpods5-wcc` and `pro3` report the
+unverified placeholder `version3` `9442784`, because the equalizer row is hidden below a first
+digit of 9; `pro3-low-battery`, `airpods4-anc` and `max2` keep `8454371`. Replace the
+placeholder when a real build number is available. `airpods5-wcc` builds its capabilities from the
 `AIRPODS_5_WCC` spec because the phone held no cached real-device entity when it was written. `add` binds
 `LibrePodsService`, publishes the device and keeps that binding until `remove`, so open the
 device from the list (or let the connected-device route open it). `remove` disconnects, drops
@@ -186,8 +189,8 @@ Removal leaves the device list and the database as they were, but no screen is r
 
 Limits: not covered are hearing-aid ATT reads, the case/headset-only battery edge beyond the
 `max2` scenario, real audio routing or media ownership (commands that need a peer MAC return
-`false` like a device without a route), firmware thresholds beyond the fixed `8454371` version,
-ear-detection or stem-press notifications driven by physical input, heart-rate streaming,
+`false` like a device without a route), firmware thresholds beyond the simulated `version3`
+values, ear-detection or stem-press notifications driven by physical input, heart-rate streaming,
 Buds/Manager resource rendering, and release builds.
 
 ## S25 root access for authorized device investigation
