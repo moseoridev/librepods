@@ -118,6 +118,18 @@ fun AppAppearanceSettingsScreen(
                 title = stringResource(R.string.design_system),
             ) {
                 styledListItem(
+                    contentText = stringResource(R.string.samsung),
+                    selected = designSystem == DesignSystem.Samsung,
+                    onClick = {
+                        onDesignSystemChanged(DesignSystem.Samsung)
+                        // The Manager supplies its own typography and icon set, so the
+                        // font and icon preferences do not apply and are hidden below.
+                        onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.SystemDefault))
+                        onIconStyleChanged(IconStyle.Apple)
+                    },
+                )
+
+                styledListItem(
                     contentText = stringResource(R.string.apple),
                     selected = designSystem == DesignSystem.Apple,
                     onClick = {
@@ -138,40 +150,42 @@ fun AppAppearanceSettingsScreen(
                 )
             }
 
-            StyledList(title = stringResource(R.string.icons)) {
-                styledListItem(
-                    contentText = stringResource(R.string.material_symbols),
-                    selected = iconStyle == IconStyle.Material,
-                    onClick = { onIconStyleChanged(IconStyle.Material) },
-                )
-                styledListItem(
-                    contentText = stringResource(R.string.apple),
-                    selected = iconStyle == IconStyle.Apple,
-                    onClick = { onIconStyleChanged(IconStyle.Apple) },
-                )
-            }
+            if (designSystem != DesignSystem.Samsung) {
+                StyledList(title = stringResource(R.string.icons)) {
+                    styledListItem(
+                        contentText = stringResource(R.string.material_symbols),
+                        selected = iconStyle == IconStyle.Material,
+                        onClick = { onIconStyleChanged(IconStyle.Material) },
+                    )
+                    styledListItem(
+                        contentText = stringResource(R.string.apple),
+                        selected = iconStyle == IconStyle.Apple,
+                        onClick = { onIconStyleChanged(IconStyle.Apple) },
+                    )
+                }
 
-            StyledList(title = stringResource(R.string.font)) {
-                styledListItem(
-                    contentText = stringResource(R.string.system),
-                    selected = fontSettings.fontFamilyOption == FontFamilyOption.SystemDefault,
-                    onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.SystemDefault)) },
-                )
-                styledListItem(
-                    contentText = stringResource(R.string.roboto_flex),
-                    selected = fontSettings.fontFamilyOption == FontFamilyOption.RobotoFlex,
-                    onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.RobotoFlex)) },
-                )
-                styledListItem(
-                    contentText = stringResource(R.string.roboto_flex_expressive),
-                    selected = fontSettings.fontFamilyOption == FontFamilyOption.RobotoFlexExpressive,
-                    onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.RobotoFlexExpressive)) },
-                )
-                styledListItem(
-                    contentText = stringResource(R.string.inter),
-                    selected = fontSettings.fontFamilyOption == FontFamilyOption.Inter,
-                    onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.Inter)) },
-                )
+                StyledList(title = stringResource(R.string.font)) {
+                    styledListItem(
+                        contentText = stringResource(R.string.system),
+                        selected = fontSettings.fontFamilyOption == FontFamilyOption.SystemDefault,
+                        onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.SystemDefault)) },
+                    )
+                    styledListItem(
+                        contentText = stringResource(R.string.roboto_flex),
+                        selected = fontSettings.fontFamilyOption == FontFamilyOption.RobotoFlex,
+                        onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.RobotoFlex)) },
+                    )
+                    styledListItem(
+                        contentText = stringResource(R.string.roboto_flex_expressive),
+                        selected = fontSettings.fontFamilyOption == FontFamilyOption.RobotoFlexExpressive,
+                        onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.RobotoFlexExpressive)) },
+                    )
+                    styledListItem(
+                        contentText = stringResource(R.string.inter),
+                        selected = fontSettings.fontFamilyOption == FontFamilyOption.Inter,
+                        onClick = { onFontSettingsChanged(fontSettings.copy(fontFamilyOption = FontFamilyOption.Inter)) },
+                    )
+                }
             }
 
             StyledListItem(

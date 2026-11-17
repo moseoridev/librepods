@@ -23,7 +23,9 @@ val update1_0_0 = listOf(
                 val design = LocalDesign.current
                 
                 when (design.system) {
-                    DesignSystem.Apple -> {
+                    // The release card predates the Samsung style and has no preview of
+                    // its own; the Apple preview is the closest retained rendering.
+                    DesignSystem.Apple, DesignSystem.Samsung -> {
                         EqualizerScreenPreviewApple()
                     }
                     DesignSystem.Material -> {

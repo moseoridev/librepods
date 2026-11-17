@@ -256,6 +256,9 @@
     <string name="recommended">권장</string>
     <string name="appearance">화면 스타일</string>
     <string name="material3e">Material 3 Expressive</string>
+    <string name="design_system">디자인 시스템</string>
+    <string name="samsung">삼성</string>
+    <string name="samsung_design">Galaxy Buds Manager</string>
     <string name="update_m3e_description">LibrePods가 새로운 글꼴 스타일과 적응형 색상 테마를 포함한 Material 3 Expressive 기반의 새 디자인을 지원합니다.\n앱 설정에서 Apple 스타일로 다시 전환할 수 있습니다.</string>
     <string name="update_equalizer_description">최신 AirPods 베타 펌웨어에서만 사용할 수 있습니다. 베타 펌웨어를 설치하려면 OS 버전 27이 설치된 Apple 기기가 필요합니다.</string>
     <string name="what_s_new">새로운 기능</string>

@@ -159,8 +159,11 @@ fun DeviceListScreen(
                 val deviceState by device.state.collectAsState()
                 val deviceMetadata by device.metadata.collectAsState()
 
+                // Samsung draws a static squircle per state; the Expressive shape
+                // morph costs a per-frame path rebuild and is not part of the
+                // Manager's device list.
                 fun ConnectionState.shape() =
-                    if (design.system == DesignSystem.Apple) {
+                    if (design.system != DesignSystem.Material) {
                         squirclePolygon
                     } else {
                         when (this) {
@@ -173,7 +176,7 @@ fun DeviceListScreen(
                     }
 
                 val connectingShapes = remember {
-                    if (design.system == DesignSystem.Apple) {
+                    if (design.system != DesignSystem.Material) {
                         listOf(squirclePolygon)
                     } else {
                         listOf(
@@ -413,7 +416,7 @@ fun DeviceListScreen(
                                             size.center - shapePath.getBounds().center
                                         )
 
-                                        val rotation = if (design.system == DesignSystem.Apple) {
+                                        val rotation = if (design.system != DesignSystem.Material) {
                                             45f
                                         } else {
                                             if (connectionState == ConnectionState.CONNECTING) {

@@ -287,6 +287,8 @@
     <string name="light">Light</string>
     <string name="dark">Dark</string>
     <string name="design_system">Design System</string>
+    <string name="samsung">Samsung</string>
+    <string name="samsung_design">Galaxy Buds Manager</string>
     <string name="apple_design">Apple</string>
     <string name="apple">Apple</string>
     <string name="connecting">Connecting</string>

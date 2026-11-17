@@ -120,7 +120,9 @@ fun NoiseControlSettings(
     val design = LocalDesign.current
 
     when (design.system) {
-        DesignSystem.Material -> {
+        // Samsung's noise control is the same three-way segmented selector over the
+        // same mode set, so it shares the Material arm's option list and geometry.
+        DesignSystem.Material, DesignSystem.Samsung -> {
             val options = buildList {
                 if (showOffListeningMode) {
                     add(

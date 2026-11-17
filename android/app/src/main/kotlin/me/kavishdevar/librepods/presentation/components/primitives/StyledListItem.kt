@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.data.app.ColorStyle
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
+import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.presentation.design.sectionHeader
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.icons.richText
@@ -214,6 +215,16 @@ fun StyledListItem(
                             )
                         }
 
+                        // The Manager's row title is 17sp on the surface colour with no
+                        // emphasis weight, so the row text uses the shared row style.
+                        DesignSystem.Samsung -> {
+                            Text(
+                                text = contentText,
+                                style = SettingsStyle.RowTitle,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
                         DesignSystem.Material -> {
                             Text(
                                 text = contentText,
@@ -302,6 +313,16 @@ fun StyledListItem(
                             Text(
                                 text = contentText,
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // The Manager's row title is 17sp on the surface colour with no
+                        // emphasis weight, so the row text uses the shared row style.
+                        DesignSystem.Samsung -> {
+                            Text(
+                                text = contentText,
+                                style = SettingsStyle.RowTitle,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -398,6 +419,16 @@ fun StyledListItem(
                             )
                         }
 
+                        // The Manager's row title is 17sp on the surface colour with no
+                        // emphasis weight, so the row text uses the shared row style.
+                        DesignSystem.Samsung -> {
+                            Text(
+                                text = contentText,
+                                style = SettingsStyle.RowTitle,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
                         DesignSystem.Material -> {
                             Text(
                                 text = contentText,
@@ -479,6 +510,15 @@ fun StyledListScope.styledListItem(
                         Text(
                             text = contentText,
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // The Manager's row title is 17sp on the surface colour.
+                    DesignSystem.Samsung -> {
+                        Text(
+                            text = contentText,
+                            style = SettingsStyle.RowTitle,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -592,6 +632,15 @@ fun StyledListScope.styledListItem(
                         )
                     }
 
+                    // The Manager's row title is 17sp on the surface colour.
+                    DesignSystem.Samsung -> {
+                        Text(
+                            text = contentText,
+                            style = SettingsStyle.RowTitle,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
                     DesignSystem.Material -> {
                         Text(
                             text = contentText,
@@ -652,6 +701,15 @@ fun StyledListScope.styledListItem(
                         Text(
                             text = contentText,
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // The Manager's row title is 17sp on the surface colour.
+                    DesignSystem.Samsung -> {
+                        Text(
+                            text = contentText,
+                            style = SettingsStyle.RowTitle,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -729,7 +787,9 @@ private fun StyledListItemContent(
     val scope = rememberCoroutineScope()
 
     when (design.system) {
-        DesignSystem.Apple -> {
+        // The Manager's row keeps the same pressed-surface feedback and chevron, so
+        // Samsung shares the Apple row rendering.
+        DesignSystem.Apple, DesignSystem.Samsung -> {
             val surfaceColor = colors.containerColor
             val pressedColor = MaterialTheme.colorScheme.surfaceContainerLow
 

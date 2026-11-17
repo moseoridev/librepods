@@ -74,7 +74,9 @@ fun StyledInputField(
             )
         }
 
-        DesignSystem.Apple -> {
+        // Samsung's text entry is the same rounded field, so it shares the
+        // Apple rendering.
+        DesignSystem.Apple, DesignSystem.Samsung -> {
             val minHeight = if (singleLine) 58.dp else 120.dp
             val verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
             val hasText = inputState.text.isNotEmpty()

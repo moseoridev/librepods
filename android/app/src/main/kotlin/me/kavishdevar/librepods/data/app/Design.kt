@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.dp
 import com.materialkolor.PaletteStyle
 
 data class Design(
-    val system: DesignSystem = DesignSystem.Material,
+    val system: DesignSystem = DesignSystem.Samsung,
     val iconStyle: IconStyle = IconStyle.Material,
 
     val blurTopBarInMaterial: Boolean = false,

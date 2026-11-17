@@ -379,7 +379,9 @@ fun StyledSlider(
             }
         }
 
-        DesignSystem.Apple -> {
+        // Samsung's slider is the same rounded track with an independent row
+        // surface, so it shares the Apple rendering.
+        DesignSystem.Apple, DesignSystem.Samsung -> {
             val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
             val trackColor =
                 if (isDarkTheme) Color(0xFF787880).copy(0.36f)

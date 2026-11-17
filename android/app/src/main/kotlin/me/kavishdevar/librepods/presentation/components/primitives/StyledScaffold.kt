@@ -210,7 +210,9 @@ fun StyledScaffold(
                 }
             }
         }
-        DesignSystem.Apple -> {
+        // Samsung's page window is the same rounded, hazed container with a
+        // back slot, so it shares the Apple scaffold.
+        DesignSystem.Apple, DesignSystem.Samsung -> {
             Scaffold(
                 containerColor = if (design.colorStyle == ColorStyle.Custom) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer,
                 snackbarHost = { SnackbarHost(snackbarHostState) },

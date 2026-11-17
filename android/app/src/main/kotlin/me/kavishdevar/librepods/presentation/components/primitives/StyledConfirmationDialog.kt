@@ -127,7 +127,9 @@ fun StyledConfirmationDialog(
                     }
                 }
             }
-            DesignSystem.Apple -> {
+            // Samsung's confirmation is the same rounded dialog with two
+            // actions, so it shares the Apple rendering.
+            DesignSystem.Apple, DesignSystem.Samsung -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

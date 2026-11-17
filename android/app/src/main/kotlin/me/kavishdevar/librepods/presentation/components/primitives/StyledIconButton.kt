@@ -128,7 +128,9 @@ fun StyledIconButton(
                 }
             }
         }
-        DesignSystem.Apple -> {
+        // The Manager's icon action is the same flat, circular, press-feedback control with
+        // no tonal container, so Samsung shares the Apple rendering unchanged.
+        DesignSystem.Apple, DesignSystem.Samsung -> {
             val haptics = LocalHapticFeedback.current
             val scope = rememberCoroutineScope()
             val progressAnimationSpec = spring(0.5f, 300f, 0.001f)

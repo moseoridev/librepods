@@ -23,8 +23,11 @@ data class AppSettingsEntity(
 
     @ColumnInfo(defaultValue = "System")
     val nightMode: NightTheme = NightTheme.System,
+    // The column default is schema metadata only: Room binds every column on insert, so the
+    // effective default is this property's initializer. Keeping the stored default unchanged
+    // avoids a table-recreation migration that would alter no stored value.
     @ColumnInfo(defaultValue = "Material")
-    val designSystem: DesignSystem = DesignSystem.Material,
+    val designSystem: DesignSystem = DesignSystem.Samsung,
 
     @ColumnInfo(defaultValue = "Default")
     val colorStyle: ColorStyle = ColorStyle.Default,

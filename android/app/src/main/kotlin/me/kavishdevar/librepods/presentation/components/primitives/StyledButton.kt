@@ -70,6 +70,8 @@ import com.kyant.backdrop.highlight.Highlight
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
+import me.kavishdevar.librepods.ui.components.SettingsButton
+import me.kavishdevar.librepods.ui.components.SettingsButtonStyle
 import me.kavishdevar.librepods.utils.inspectDragGestures
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -100,6 +102,23 @@ fun StyledButton(
     val design = LocalDesign.current
 
     when (design.system) {
+        DesignSystem.Samsung -> {
+            // The Manager's action is the shared 15sp pill: independently rounded
+            // padding, a 50% smooth corner and no Material ripple.
+            SettingsButton(
+                onClick = onClick,
+                modifier = modifier,
+                enabled = enabled,
+                style = when (materialButtonStyle) {
+                    MaterialButtonStyle.Filled -> SettingsButtonStyle.Filled
+                    MaterialButtonStyle.Tonal,
+                    MaterialButtonStyle.Outlined -> SettingsButtonStyle.Tonal
+                    MaterialButtonStyle.Normal -> SettingsButtonStyle.Text
+                },
+                containerColor = surfaceColor,
+                content = content,
+            )
+        }
         DesignSystem.Material -> {
             when (materialButtonStyle) {
                 MaterialButtonStyle.Filled -> {
