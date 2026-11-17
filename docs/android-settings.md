@@ -263,13 +263,15 @@ Galaxy Buds provides the visual reference; these iOS screenshots provide informa
 
 ## First-run onboarding
 
-The onboarding pages (`presentation/screens/onboarding/`) are Samsung-presentation-only: they do not branch on the DesignSystem setting and always use the shapes, sizes and fills below. The DesignSystem option itself is unchanged. Flow order, permission request order and results, consent persistence and the not-supported decision are upstream's and were not touched.
+The onboarding pages (`presentation/screens/onboarding/`) are Samsung-presentation-only: they do not branch on the DesignSystem setting and always use the shapes, sizes and fills below. Flow order, permission request order and results, consent persistence and the not-supported decision are upstream's and were not touched.
+
+The DesignSystem setting now has a third value, `Samsung`, and it is the default (`DesignSystem.Samsung`, also the `AppSettingsEntity` property initializer). Samsung routes the device surface to the Manager composition (`BudsDeviceSettingsRoute`); `Apple` and `Material` keep the iOS-structured screen. The stored Room column default stays the literal `"Material"` because that value is schema metadata only: Room binds every column on insert, so the property initializer is the effective default, and changing the schema text would force a table-recreation migration that alters no stored value. An install that already holds a stored `Apple` or `Material` row keeps it; only rows created from now on, and the existing `settings` value shared with onboarding, land on Samsung. The appearance picker lists all three and hides the font-family and icon-style groups under Samsung, because the Manager supplies both.
 
 Structure is a forced sequence of flat pages (`AnimatedContent` with the existing `forwardPageTransition`/`popPageTransition`), not a carousel. The previous `HorizontalUncontainedCarousel` with `rememberMaskShape` clipping was removed; it was the measured cost, not the motion.
 
 | Page | Reference | Adopted |
 | --- | --- | --- |
-| Welcome | Galaxy Wearable `wm-01` | Centred body heading block at y=120dp over the 32dp inset: upstream's greeting line in 14sp above the app name as the single 30sp hero; 14sp body; one 52dp centred pill, Wearable monochrome fill `#252528`/`#E9E9EC`. No toolbar, no dots, no artwork. The reference has no greeting line, so the block is anchored at its y and the hero starts one line lower. |
+| Welcome | Galaxy Wearable `wm-01` | Centred body heading block at y=120dp over the 32dp inset: upstream's greeting line in 14sp above the app name as the single 30sp hero; 14sp body; one 52dp centred pill, Wearable monochrome fill `#252528`/`#E9E9EC`. No toolbar, no dots. The artwork slot is source-backed but the images are not: Wearable draws vendor product art, which is not packaged, so the slot is filled with LibrePods' own `airpods_pro_left/right/case_notification` vectors tinted to the heading colour (unverified adaptation). The reference has no greeting line, so the block is anchored at its y and the hero starts one line lower. |
 | Privacy policy | Buds `buds-02` toolbar + `buds-05` consent pill | 24sp left-aligned header title after a 60dp back slot; 14sp document body; one consent pill in the `동의` role (`primary` `#387AFF`). |
 | Permissions | Wearable `wm-10` | Same header; 14sp group labels; flat 16sp/13sp rows, 24dp icon at 32dp inset and text at 74dp, one uniform rhythm with no unlabeled spacers; no cards. |
 | Not supported | Wearable toolbar shape | Same header and flat paragraphs; the bypass control stays gated by `BuildConfig.PLAY_BUILD`. |
@@ -277,3 +279,17 @@ Structure is a forced sequence of flat pages (`AnimatedContent` with the existin
 Two title roles must not be merged: the reference toolbar title is **24sp, left-aligned at x=60dp**; the **30sp** centered title is a body hero heading that LibrePods only uses on the welcome page. Both fills follow the reference that owns the role — Wearable `black_button_background_color` `#252528`/`#E9E9EC` over `black_button_text_color` `#FAFAFF`/`#17171A` for welcome and permissions, Buds `blue_button_background_color` `#387AFF` (the theme `primary`) for the consent. Capture pixels are Display-P3 tagged, so the consent pill's raw bytes read `#4978F6`; it is the same colour.
 
 Measured on the real S25 at 1080x2340/480, dark and light, against the retained upstream APK: cold launch 442/444 → 405/400 ms; privacy→permissions p90 63.3/84.7 → 9.4/9.1 ms and `>33 ms` frames 4 → 2; welcome→privacy p90 34.8/40.1 → 16.6/17.9 ms; Vulkan pipeline creations per transition 23–41 → 1–6; privacy scroll never exceeds 9 ms. p50 rises by 0.7–2.9 ms because the switch now runs its full animated duration instead of stalling. Permission dialogs and their deny/allow results are unchanged. [Evidence and pairs](/Users/moseoridev/programming/android/librepods/evidence/onboarding-samsung-20261116/README.md).
+
+## Design surface selection
+
+`DesignSystem` has three values: `Samsung` (default), `Apple` and `Material`. The choice is a presentation switch only; state, capability checks, commands, routing targets and the permission/consent logic are shared by all three.
+
+| Value | Device surface | Component answer |
+| --- | --- | --- |
+| `Samsung` | `BudsDeviceSettingsRoute` → `BudsDeviceSettings`, the Manager composition built from `:settings-ui` primitives | Every `Styled*` primitive has a deliberate Samsung arm: `SettingsButton`'s 15sp pill, `SettingsStyle.RowTitle` for row text, and the flat scaffold/slider/input/dialog/icon geometry the Manager uses. Summaries stack under their row title. Expressive-only motion stays off: the device list draws a static squircle per connection state instead of the shape morph, so the list costs no per-frame path rebuild. |
+| `Apple` | `AppleSettingsScreen`, the iOS-structured device screen | Squircles, the iOS battery gauge and the shape morph, as before. |
+| `Material` | `AppleSettingsScreen` | Material 3 Expressive: `MaterialShapes` morphing, `displayMedium`-class headings, segmented cards. |
+
+The appearance picker offers all three. Under Samsung the font-family and icon-style groups are hidden because the Manager supplies both; choosing Apple or Material restores them. Onboarding remains Samsung-presentation-only and does not read this setting.
+
+Verified on the S25 at 1080x2340/480, dark and light, in the debug fixture (`SettingsFixtureActivity`): the three surfaces render distinctly and both detail screens match their source structure. The appearance picker, its Samsung row and the hidden groups were verified in the same fixture on the real device. The real app cannot reach either surface today because `AppSettingsScreen` gates the appearance row behind `hasConnectedToAACP` and no accessory is paired; that gate is upstream's and was not changed. [Captures](/Users/moseoridev/programming/android/librepods/evidence/onboarding-samsung-20261116/session4/).
