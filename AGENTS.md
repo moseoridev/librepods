@@ -30,7 +30,7 @@ Use code and configuration as the source of truth. Keep durable working agreemen
 
 ## Git completion
 
-After proportionate verification, finish implementation work with coherent commits and push them to a working branch on the maintainer's fork without asking again, unless the user requests otherwise. Keep unrelated work out of those commits; an investigation alone does not require a commit. Write commit subjects as `type(scope): summary`, for example `fix(settings-ui): use source title inset`. Check the actual destination and triggered workflow before pushing; this standing authorization does not include upstream pushes, merges, releases, or external notifications. See the development guide for current remotes and CI behavior.
+After proportionate verification, finish implementation work with coherent commits and push them to a working branch on the maintainer's fork without asking again, unless the user requests otherwise. Keep unrelated work out of those commits; an investigation alone does not require a commit. Write commit subjects as `type(scope): summary`, for example `fix(settings-ui): use source title inset`. Write the body in short prose paragraphs, not bullet lists. Check the actual destination and triggered workflow before pushing; this standing authorization does not include upstream pushes, merges, releases, or external notifications. See the development guide for current remotes and CI behavior.
 
 ## Verification and boundaries
 
