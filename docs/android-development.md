@@ -160,7 +160,7 @@ adaptive volume, sleep detection and raw gestures round-trip in the UI.
 adb shell am broadcast -a me.kavishdevar.librepods.debug.SIMULATED_AIRPODS \
   -n me.kavishdevar.librepods/me.kavishdevar.librepods.simulation.SimulatedAirPodsReceiver \
   --es command scenarios                      # list scenario keys
-adb shell am broadcast ... --es command add --es scenario pro3
+adb shell am broadcast ... --es command add --es scenario airpods5-wcc
 adb shell am broadcast ... --es command status
 adb shell am broadcast ... --es command remove
 ```
@@ -172,7 +172,11 @@ or force-stopping the app first leaves the device uninstalled from the engine wh
 `AppleEntity` row and `hasConnectedToAACP` stay set. Re-run `add` then `remove` after a force
 stop if that happens.
 
-Scenarios: `pro3` (default), `pro3-low-battery`, `airpods4-anc`, `max2`. `add` binds
+Scenarios: `airpods5-wcc` (default, AirPods 5 with Wireless Charging Case, A3439), `pro3`,
+`pro3-low-battery`, `airpods4-anc`, `max2`. The default mirrors the maintainer's real accessory,
+so its row set is what a real AirPods 5 WCC shows; `pro3` remains the secondary check for
+Pro-only rows such as hearing aid and heart rate. `airpods5-wcc` builds its capabilities from the
+`AIRPODS_5_WCC` spec because the phone held no cached real-device entity when it was written. `add` binds
 `LibrePodsService`, publishes the device and keeps that binding until `remove`, so open the
 device from the list (or let the connected-device route open it). `remove` disconnects, drops
 the map entry, deletes the simulated MAC's `AppleEntity` row and restores `hasConnectedToAACP`

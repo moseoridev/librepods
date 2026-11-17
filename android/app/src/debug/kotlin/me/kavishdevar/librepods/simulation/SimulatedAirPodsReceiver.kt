@@ -13,9 +13,12 @@ import kotlinx.coroutines.launch
  *
  *   adb shell am broadcast -a me.kavishdevar.librepods.debug.SIMULATED_AIRPODS \
  *       -n me.kavishdevar.librepods/me.kavishdevar.librepods.simulation.SimulatedAirPodsReceiver \
- *       --es command add --es scenario pro3
+ *       --es command add --es scenario airpods5-wcc
  *
  * Commands: add, remove, status, scenarios.
+ *
+ * The default scenario is `airpods5-wcc`, the maintainer's real accessory; omit `scenario` to
+ * get it.
  */
 class SimulatedAirPodsReceiver : BroadcastReceiver() {
     companion object {

@@ -95,7 +95,62 @@ object SimulatedAirPods {
         ControlCommandIdentifier.OWNS_CONNECTION to byteArrayOf(0x01),
     )
 
+    /**
+     * AirPods 5 with Wireless Charging Case, from `AirPodsSpecs` for A3439/A3440/A3441.
+     * The real device's stored entity was not available on the verification phone (only the
+     * simulated row existed, because earlier runs cleared the app data), so these capabilities
+     * are the AIRPODS_5_WCC spec's base set mapped onto the AACP capability bytes. The spec has
+     * no HRM, PPE or hearing-aid entry, so those bytes are absent and the rows stay hidden.
+     */
+    private val AIRPODS5_WCC_CAPABILITIES: List<Pair<Int, ByteArray>> = listOf(
+        0x04 to byteArrayOf(0x01, 0x00, 0x00, 0x00), // SELECTIVE_SPEECH_LISTENING (4 bytes)
+        0x21 to byteArrayOf(0x01), // SLEEP_DETECTION
+        0x29 to byteArrayOf(0x01), // DYNAMIC_END_OF_CHARGE
+        0x35 to byteArrayOf(0x01), // SMART_ROUTING_VERSION
+        0x38 to byteArrayOf(0x01), // EXTENDED_CLICK_HOLD
+    )
+
+    /**
+     * Same control-command set as the Pro scenario minus the Pro-only hearing-aid pair: AirPods 5
+     * with Wireless Charging Case has no HEARING_AID base capability, so reporting the command
+     * would surface a row the spec hides.
+     */
+    private val AIRPODS5_WCC_CONTROL_STATES: List<Pair<ControlCommandIdentifier, ByteArray>> = listOf(
+        ControlCommandIdentifier.LISTENING_MODE to byteArrayOf(0x02),
+        ControlCommandIdentifier.LISTENING_MODE_CONFIGS to byteArrayOf(0x0F),
+        ControlCommandIdentifier.ALLOW_OFF_OPTION to byteArrayOf(0x01),
+        ControlCommandIdentifier.CONVERSATION_DETECT_CONFIG to byteArrayOf(0x02),
+        ControlCommandIdentifier.ADAPTIVE_VOLUME_CONFIG to byteArrayOf(0x01),
+        ControlCommandIdentifier.VOLUME_SWIPE_MODE to byteArrayOf(0x01),
+        ControlCommandIdentifier.SLEEP_DETECTION_CONFIG to byteArrayOf(0x02),
+        ControlCommandIdentifier.EAR_DETECTION_CONFIG to byteArrayOf(0x01),
+        ControlCommandIdentifier.RAW_GESTURES_CONFIG to byteArrayOf(0x0F),
+        ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE to byteArrayOf(0x01),
+        ControlCommandIdentifier.ONE_BUD_ANC_MODE to byteArrayOf(0x02),
+        ControlCommandIdentifier.AUTO_ANC_STRENGTH to byteArrayOf(0x32),
+        ControlCommandIdentifier.OWNS_CONNECTION to byteArrayOf(0x01),
+    )
+
     val scenarios: List<SimulatedAirPodsScenario> = listOf(
+        SimulatedAirPodsScenario(
+            key = "airpods5-wcc",
+            description = "AirPods 5 with Wireless Charging Case, both buds in ear, case charging",
+            modelNumber = "A3439",
+            name = "AirPods",
+            serialNumber = "SIMULATEDAIRPODS5",
+            version1 = "61.1868040002000000.2713",
+            version2 = "61.1868040002000000.2713",
+            version3 = "8454371",
+            batteries = listOf(
+                SimulatedAirPodsBattery(LEFT, 96, NOT_CHARGING),
+                SimulatedAirPodsBattery(RIGHT, 95, NOT_CHARGING),
+                // A wireless charging case reports the case component charging.
+                SimulatedAirPodsBattery(CASE, 88, CHARGING),
+            ),
+            earStatuses = listOf(IN_EAR, IN_EAR),
+            capabilities = AIRPODS5_WCC_CAPABILITIES,
+            controlStates = AIRPODS5_WCC_CONTROL_STATES,
+        ),
         SimulatedAirPodsScenario(
             key = "pro3",
             description = "AirPods Pro 3, both buds in ear, healthy batteries",
