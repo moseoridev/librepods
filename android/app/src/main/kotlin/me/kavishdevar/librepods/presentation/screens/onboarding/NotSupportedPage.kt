@@ -1,19 +1,15 @@
 package me.kavishdevar.librepods.presentation.screens.onboarding
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.BuildConfig
@@ -22,34 +18,32 @@ import me.kavishdevar.librepods.presentation.components.common.AppInfoCard
 import me.kavishdevar.librepods.presentation.components.common.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItem
 
+/**
+ * The unsupported-device notice. No Samsung first-run screen corresponds to it, so it keeps the
+ * upstream content and controls and only adopts the flat page container and 14sp body.
+ */
 @Composable
 fun NotSupportedPage(
+    onBack: () -> Unit,
     bypassCompatibilityCheck: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
-    Box(
-        modifier = Modifier.background(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(42.dp)
-            )
-            .clip(RoundedCornerShape(42.dp))
+    OnboardingPageScaffold(
+        title = stringResource(R.string.not_supported),
+        onBack = onBack,
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = OnboardingStyle.Inset)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(modifier = Modifier)
-            Text(
-                text = stringResource(R.string.not_compatible_update),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = stringResource(R.string.not_compatible_description),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            OnboardingBodyText(stringResource(R.string.not_compatible_update))
+            OnboardingBodyText(stringResource(R.string.not_compatible_description))
+            Spacer(Modifier.height(4.dp))
             DeviceInfoCard()
             AppInfoCard()
             if (!BuildConfig.PLAY_BUILD) {
@@ -58,7 +52,6 @@ fun NotSupportedPage(
                     onClick = bypassCompatibilityCheck
                 )
             }
-            Spacer(modifier = Modifier)
         }
     }
 }

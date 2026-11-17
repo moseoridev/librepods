@@ -260,3 +260,20 @@ Before implementing a page, map each listed control to the current upstream stat
 Uncaptured areas include Name editing, Right long-press details, Custom EQ editing, adaptive-mode options, gesture tutorial, spatial-audio demo/enrollment, the remaining translation list, phone Audio & Visual settings, link destinations and confirmation/error/disconnected states. Do not assume these pages are absent in iOS. Obtain only the missing reference needed for the next implementation rather than requiring a complete screenshot collection in advance.
 
 Galaxy Buds provides the visual reference; these iOS screenshots provide information hierarchy, choices and visible explanations. Do not copy iOS chrome or infer One UI spacing from these images. Keep new captures under a separate dated external baseline, update the relevant catalog entries with their source filenames, and retain old provenance. Keep runtime validation in the appropriate topic document rather than turning this catalog into a build diary.
+
+## First-run onboarding
+
+The onboarding pages (`presentation/screens/onboarding/`) are Samsung-presentation-only: they do not branch on the DesignSystem setting and always use the shapes, sizes and fills below. The DesignSystem option itself is unchanged. Flow order, permission request order and results, consent persistence and the not-supported decision are upstream's and were not touched.
+
+Structure is a forced sequence of flat pages (`AnimatedContent` with the existing `forwardPageTransition`/`popPageTransition`), not a carousel. The previous `HorizontalUncontainedCarousel` with `rememberMaskShape` clipping was removed; it was the measured cost, not the motion.
+
+| Page | Reference | Adopted |
+| --- | --- | --- |
+| Welcome | Galaxy Wearable `wm-01` | Centred body heading block at y=120dp over the 32dp inset: upstream's greeting line in 14sp above the app name as the single 30sp hero; 14sp body; one 52dp centred pill, Wearable monochrome fill `#252528`/`#E9E9EC`. No toolbar, no dots, no artwork. The reference has no greeting line, so the block is anchored at its y and the hero starts one line lower. |
+| Privacy policy | Buds `buds-02` toolbar + `buds-05` consent pill | 24sp left-aligned header title after a 60dp back slot; 14sp document body; one consent pill in the `동의` role (`primary` `#387AFF`). |
+| Permissions | Wearable `wm-10` | Same header; 14sp group labels; flat 16sp/13sp rows, 24dp icon at 32dp inset and text at 74dp, one uniform rhythm with no unlabeled spacers; no cards. |
+| Not supported | Wearable toolbar shape | Same header and flat paragraphs; the bypass control stays gated by `BuildConfig.PLAY_BUILD`. |
+
+Two title roles must not be merged: the reference toolbar title is **24sp, left-aligned at x=60dp**; the **30sp** centered title is a body hero heading that LibrePods only uses on the welcome page. Both fills follow the reference that owns the role — Wearable `black_button_background_color` `#252528`/`#E9E9EC` over `black_button_text_color` `#FAFAFF`/`#17171A` for welcome and permissions, Buds `blue_button_background_color` `#387AFF` (the theme `primary`) for the consent. Capture pixels are Display-P3 tagged, so the consent pill's raw bytes read `#4978F6`; it is the same colour.
+
+Measured on the real S25 at 1080x2340/480, dark and light, against the retained upstream APK: cold launch 442/444 → 405/400 ms; privacy→permissions p90 63.3/84.7 → 9.4/9.1 ms and `>33 ms` frames 4 → 2; welcome→privacy p90 34.8/40.1 → 16.6/17.9 ms; Vulkan pipeline creations per transition 23–41 → 1–6; privacy scroll never exceeds 9 ms. p50 rises by 0.7–2.9 ms because the switch now runs its full animated duration instead of stalling. Permission dialogs and their deny/allow results are unchanged. [Evidence and pairs](/Users/moseoridev/programming/android/librepods/evidence/onboarding-samsung-20261116/README.md).
