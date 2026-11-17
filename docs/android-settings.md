@@ -240,16 +240,16 @@ The product's `LibrePods options` page is now limited to model-specific pages. E
 | Overlays | App settings, below Island settings | Device-scoped (`showIslandPopup`, `showBottomSheetPopup`). The row appears only when an Apple device is known and resolves the connected device, else the first known one. No per-model list. |
 | Debug | App settings → Advanced options | Still shown only while debug mode is on, and only with an Apple device to receive raw packets. |
 
-Pending placement — these are absent from the captured menus because that model lacks them; their iOS position is unknown, so they stay on `LibrePods options` with their existing gates:
+Pending placement — settled: the iOS `Settings > AirPods` root documents both sections, so they are no longer Extras entries. The Apple/Material surface already mirrored this hierarchy; the Samsung composition now does too.
 
-| Entry | Gate | Destination | Why undecided |
+| Entry | Gate | Destination | iOS position |
 | --- | --- | --- | --- |
-| Hearing Protection | `PPE` base capability | `HearingProtectionScreen` (loud sound reduction plus PPE toggle) | Model-specific safety section; the catalog has no AirPods model with `PPE`. |
-| Hearing Aid | `HEARING_AID` capability and vendor-ID hook | `HearingAidScreen`, adjustments and hearing test | Model- and hook-specific; no capture for a hearing-aid-capable model. |
-| Heart Rate | `HRM` base capability | `HeartRateRoute` | Sensor capability unique to models outside the capture set. |
-| Recorder | firmware major version 8 or later | `RecordingScreenRoute` | Firmware-gated; the captured firmware has no recording page. |
+| Hearing Protection | `PPE` base capability | `HearingProtectionScreen` (loud sound reduction plus PPE toggle) | `Hearing Health` group, directly after the name row. Apple's Hearing Health section holds Hearing Protection and Hearing Assistance. |
+| Hearing Aid | `HEARING_AID` capability and vendor-ID hook | `HearingAidScreen`, adjustments and hearing test | Same `Hearing Health` group, below Hearing Protection. |
+| Heart Rate | `HRM` base capability | `HeartRateRoute` | A root-level row after the listening-mode strip, mirroring the Apple surface's top-level heart-rate card; on iOS the entry sits behind Privacy inside the AirPods root. |
+| Recorder | firmware major version 8 or later | `RecordingScreenRoute` | No iOS settings row: Apple publishes recording as a capture capability of Camera and Voice Memos. The row stays on `LibrePods options` and is now its only entry, so the page is a single `녹음기` row. |
 
-A model with no such row hides the Home `LibrePods options` row entirely; the condition is computed from capabilities and vendor-ID hook rather than a model list.
+The groups are computed from capabilities and the vendor-ID hook rather than a model list, so a model without them shows neither the `Hearing Health` group nor the heart-rate row, and a model without the recorder firmware hides the Home `LibrePods options` row entirely.
 
 ## Coverage and use during implementation
 

@@ -47,6 +47,7 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.data.StemAction
+import me.kavishdevar.librepods.core.data.apple.BuddyState
 import me.kavishdevar.librepods.core.devices.*
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.navigation.pageTransitionBackground
@@ -231,7 +232,8 @@ private fun DevicePageContent(
             val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
             when (page) {
                 DevicePage.Home -> DeviceHome(ui, go, onRename,
-                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) })
+                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) },
+                    navigateToHearingProtection, navigateToHearingAid, navigateToHeartRate)
                 DevicePage.Audio -> AudioPage(ui, actions, go)
                 DevicePage.Controls -> ControlsPage(ui, go)
                 DevicePage.Accessibility -> AccessibilityPage(ui, actions, navigateToTransparencyCustomization)
@@ -252,17 +254,8 @@ private fun DevicePageContent(
                 }
                 DevicePage.Name -> Unit
                 DevicePage.Extras -> {
-                    val entries = ui.extrasEntries()
-                    if (entries.isNotEmpty()) SettingsList {
-                        entries.forEach { entry ->
-                            SettingsListItem(name = stringResource(entry.label),
-                                onClick = when (entry) {
-                                    ExtrasEntry.HearingProtection -> navigateToHearingProtection
-                                    ExtrasEntry.HearingAid -> navigateToHearingAid
-                                    ExtrasEntry.Recorder -> navigateToRecording
-                                    ExtrasEntry.HeartRate -> navigateToHeartRate
-                                })
-                        }
+                    if (ui.showsRecorder()) SettingsList {
+                        SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
                     }
                 }
             }
@@ -324,23 +317,13 @@ private fun AppleUiState.canCustomizeTransparency(): Boolean {
     return vendorIdHook && !hearingAidEnabled
 }
 
-/** The single source for both the Extras rows and the Home row that opens them. */
-private enum class ExtrasEntry(val label: Int) {
-    HearingProtection(R.string.hearing_protection),
-    HearingAid(R.string.hearing_aid),
-    Recorder(R.string.recorder),
-    HeartRate(R.string.heart_rate),
-}
-
-private fun AppleUiState.extrasEntries(): List<ExtrasEntry> {
-    val cap = AirPodsSpecs.getSpec(metadata.model).baseCapabilities
-    return buildList {
-        if (BaseCapability.PPE in cap) add(ExtrasEntry.HearingProtection)
-        if (BaseCapability.HEARING_AID in cap && vendorIdHook) add(ExtrasEntry.HearingAid)
-        if (firmwareMajor() >= 8) add(ExtrasEntry.Recorder)
-        if (BaseCapability.HRM in cap) add(ExtrasEntry.HeartRate)
-    }
-}
+/**
+ * Apple publishes recording as a capture capability of Camera and Voice Memos, not as an
+ * AirPods settings row, so the recorder has no iOS position to mirror and keeps the
+ * LibrePods options page. Hearing protection, hearing aid and heart rate are documented
+ * under the AirPods settings root, so they live on Home.
+ */
+private fun AppleUiState.showsRecorder(): Boolean = firmwareMajor() >= 8
 private fun AppleUiState.has(capability: BaseCapability) = capability in AirPodsSpecs.getSpec(metadata.model).baseCapabilities
 
 /**
@@ -353,9 +336,18 @@ private fun AppleUiState.allowOffListeningMode(): Boolean =
 
 @Composable
 private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, disconnect: () -> Unit,
-    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit) {
+    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit,
+    navigateToHearingProtection: () -> Unit, navigateToHearingAid: () -> Unit,
+    navigateToHeartRate: () -> Unit) {
     DeviceBatteries(ui)
     SettingsList { SettingsListItem(name = stringResource(R.string.name), description = ui.metadata.displayName, onClick = onRename) }
+    // iOS Settings > AirPods > Hearing Health > Hearing Protection / Hearing Assistance.
+    val hasHearingAid = ui.has(BaseCapability.HEARING_AID) && ui.vendorIdHook
+    val hasHearingProtection = ui.has(BaseCapability.PPE)
+    if (hasHearingProtection || hasHearingAid) SettingsList(title = stringResource(R.string.hearing_health)) {
+        if (hasHearingProtection) SettingsListItem(name = stringResource(R.string.hearing_protection), onClick = navigateToHearingProtection)
+        if (hasHearingAid) SettingsListItem(name = stringResource(R.string.hearing_aid), onClick = navigateToHearingAid)
+    }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
         SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
@@ -380,6 +372,13 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
             leadingContent = { BudsMenuIcon(BudsMenuArtwork.Accessibility) })
     }
     SettingsList { SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }) }
+    // iOS Settings > AirPods > Heart Rate (behind Privacy on newer builds).
+    if (ui.has(BaseCapability.HRM)) SettingsList {
+        val alertsOff = ui.state.hrmState != BuddyState.ACTIVE && ui.settings.hrmAlertEnabled
+        SettingsListItem(name = stringResource(R.string.heart_rate), onClick = navigateToHeartRate,
+            description = if (alertsOff) stringResource(R.string.heart_rate_alerts_disabled_warning)
+            else ui.state.currentHeartRate?.let { "${it.bpm} bpm" })
+    }
     SettingsList(title = stringResource(R.string.about)) {
         SettingsListItem(name = stringResource(R.string.model_name), description = ui.metadata.modelName)
         SettingsListItem(name = stringResource(R.string.model_number), description = ui.metadata.modelNumber)
@@ -387,7 +386,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
         SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3), onClick = { go(DevicePage.Version) })
     }
     SettingsList {
-        if (ui.extrasEntries().isNotEmpty()) SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
+        if (ui.showsRecorder()) SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
         SettingsListItem(name = stringResource(R.string.disconnect), onClick = disconnect)
     }
 }

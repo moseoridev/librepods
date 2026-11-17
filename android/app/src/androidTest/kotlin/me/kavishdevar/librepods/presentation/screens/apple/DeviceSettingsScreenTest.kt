@@ -385,6 +385,39 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithText(text(R.string.disconnect)).performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun hearingHealthAndHeartRateSitOnHomeAndExtrasKeepsTheRecorder() {
+        val fixture = SettingsFixture(model = AirPodsModel.AIRPODS_PRO_3)
+        var protectionOpened = 0
+        var aidOpened = 0
+        var heartOpened = 0
+        compose.setContent {
+            BudsDeviceSettings(fixture.ui, fixture,
+                navigateToHearingProtection = { protectionOpened++ },
+                navigateToHearingAid = { aidOpened++ },
+                navigateToHeartRate = { heartOpened++ },
+                mediaVolume = { FixtureMediaVolume() })
+        }
+        // iOS puts both under Settings > AirPods > Hearing Health and heart rate at the root.
+        compose.onNodeWithText(text(R.string.hearing_protection)).performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(text(R.string.hearing_aid)).performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText(text(R.string.heart_rate)).performScrollTo().assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            assertEquals(1, protectionOpened)
+            assertEquals(1, aidOpened)
+            assertEquals(1, heartOpened)
+            // Navigation entries, not toggles: no setting or command changes.
+            assertTrue(fixture.events.isEmpty())
+        }
+
+        // Apple documents recording as a Camera and Voice Memos capability, so the recorder
+        // is the only remaining model option and the page still opens for it.
+        compose.onNodeWithText(text(R.string.librepods_options)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.recorder)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.hearing_protection)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.hearing_aid)).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.heart_rate)).assertDoesNotExist()
+    }
+
     private fun capture(name: String) {
         val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
         File(directory, "$name.png").outputStream().use {
