@@ -21,6 +21,7 @@ Lead with the result, use plain language and concise paragraphs, and report rele
 - Settings structure, iOS screenshot sources, or One UI redesign: [settings reference](docs/android-settings.md).
 - Android connection lifetime, reconnects, or background resource use: [lifecycle notes](docs/android-background-lifecycle.md).
 - Widget state, rendering, or Samsung parity: [widget notes](docs/android-widgets.md).
+- Device-screen verification without a physical accessory: [simulated AirPods](docs/android-development.md#simulated-airpods-debug).
 - APK/JAR investigation: use ASC for code decompilation; use resource tools for resources. See [local tools and evidence](docs/android-development.md#reverse-engineering-and-local-evidence).
 - Protocol changes: relevant notes in [opcodes](docs/opcodes.md), [control commands](docs/control_commands.md), and [device information](docs/device-info.md), checked against the implementation.
 - Installation and feature availability: [Android README](android/README.md) or [Linux README](linux/README.md).
