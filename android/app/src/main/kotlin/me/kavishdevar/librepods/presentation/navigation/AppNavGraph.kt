@@ -66,16 +66,19 @@ fun AppNavGraph(
         }
     }
 
+    val pop: () -> Unit = {
+        if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+    }
     NavDisplay(
         modifier = Modifier.pageTransitionBackground(),
         backStack = backStack,
-        onBack = {
-            if (backStack.size > 1) {
-                backStack.removeAt(backStack.lastIndex)
-            }
-        },
+        onBack = pop,
         entryProvider = { screen ->
             NavEntry(screen) {
+                if (samsung) OpeningPageBackHandler(
+                    isCurrent = { backStack.size > 1 && backStack.lastOrNull() == screen },
+                    onBack = pop,
+                )
                 RenderScreenContent(
                     screen = screen,
                     backStack = backStack,

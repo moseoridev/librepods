@@ -54,6 +54,7 @@ import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.navigation.pageTransitionBackground
 import me.kavishdevar.librepods.presentation.navigation.rememberPageParallaxPx
 import me.kavishdevar.librepods.presentation.navigation.samsungPredictivePopPageTransition
+import me.kavishdevar.librepods.presentation.navigation.OpeningPageBackHandler
 import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
 import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
@@ -160,6 +161,10 @@ internal fun BudsDeviceSettings(
             onBack = back,
             entryProvider = { page ->
                 NavEntry(page) {
+                    OpeningPageBackHandler(
+                        isCurrent = { pages.size > 1 && pages.lastOrNull() == page },
+                        onBack = back,
+                    )
                     DevicePageContent(uiState, actions, page, pages, back, mediaVolume, navigateBack,
                         navigateToHearingProtection, navigateToHearingAid,
                         navigateToTransparencyCustomization, navigateToRecording, navigateToHeartRate,
