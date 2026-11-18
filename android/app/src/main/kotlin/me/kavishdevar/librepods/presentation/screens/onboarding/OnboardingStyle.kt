@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -36,9 +36,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.presentation.icons.MaterialIcons
 import me.kavishdevar.librepods.ui.components.SettingsButton
 import me.kavishdevar.librepods.ui.components.SettingsButtonStyle
 import me.kavishdevar.librepods.ui.components.SettingsIconButton
@@ -154,34 +156,24 @@ internal object OnboardingStyle {
      * 1109px). [OnboardingGroupLabel] already contributes its own 21dp, so callers add the rest.
      */
     val HeroToGroup = 11.dp
-    /** Buds hero-block→document gap: 38dp (heading box bottom 1058px, body ink 1172px). */
-    val HeroToDocument = 26.dp
-    /**
-     * Buds privacy hero top: 34dp, both declared (`activity_notice` `layout_marginTop 34dp`) and
-     * measured (toolbar bottom 307px → illustration top 409px = 102px). Buds draws a 168dp vendor
-     * illustration there; that artwork is not packaged, so the LibrePods app icon takes the slot at
-     * the Wearable 46dp box size.
-     */
+    /** Buds privacy illustration starts 34dp below the toolbar. */
     val HeroTopBuds = 34.dp
-    /**
-     * Welcome artwork trial: the reference page puts a large product image above the title block
-     * (`wm_welcome_device_page_layout`, image `y 728–1184` = 152dp tall). LibrePods uses its own
-     * left/case/right silhouettes in that slot; the slot keeps the reference's vertical share so the
-     * title block still lands near the reference position.
-     */
-    val WelcomePodHeight = 96.dp
-    val WelcomeCaseHeight = 72.dp
     val WelcomeArtworkGap = 12.dp
-    /** Artwork→greeting clearance; the case sits on the row's bottom edge. */
-    val WelcomeArtworkBottom = 20.dp
-    val WelcomeArtworkTop = 84.dp
-    /** Gap between the greeting line and the 30sp app name, sized like the body's own line rhythm. */
-    val WelcomeGreetingGap = 8.dp
     val RowIconSize = 24.dp
     val RowIconGap = 18.dp
     val RowMinHeight = 62.dp
     val RowVerticalPadding = 10.dp
+    // Wearable's scan-help link colors also keep small action text legible on each page background.
+    val ActionText: Color
+        @Composable get() = if (settingsSurfaceIsDark()) Color(0xFF578FFF) else Color(0xFF376FDE)
+    val PermissionSupportingText: Color
+        @Composable get() = if (settingsSurfaceIsDark()) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            Color(0xFF4D4D52) // Wearable gray_scale_text_color3 on white.
+        }
     val BottomButtonHeight = 52.dp
+    val ConsentButtonHeight = 48.dp
     val BottomButtonWidth = 200.dp
     val BottomButtonGap = 8.dp
     val BottomInset = 20.dp
@@ -226,6 +218,7 @@ internal fun OnboardingPageScaffold(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     bottom: (@Composable () -> Unit)? = null,
+    titleStyle: TextStyle = OnboardingStyle.PageTitle,
     content: @Composable () -> Unit,
 ) {
     Column(
@@ -248,7 +241,11 @@ internal fun OnboardingPageScaffold(
                             contentDescription = stringResource(R.string.back),
                         ) {
                             Icon(
-                                Icons.AutoMirrored.Default.ArrowBack,
+                                imageVector = if (LocalLayoutDirection.current == LayoutDirection.Ltr) {
+                                    MaterialIcons.ChevronLeft
+                                } else {
+                                    MaterialIcons.ChevronRight
+                                },
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -258,7 +255,7 @@ internal fun OnboardingPageScaffold(
                 Text(
                     text = title,
                     modifier = Modifier.weight(1f),
-                    style = OnboardingStyle.PageTitle,
+                    style = titleStyle,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
                 )
@@ -291,6 +288,7 @@ internal fun OnboardingPrimaryButton(
     style: SettingsButtonStyle = SettingsButtonStyle.Filled,
     fill: Color = Color.Unspecified,
     label: Color = Color.Unspecified,
+    height: Dp = OnboardingStyle.BottomButtonHeight,
 ) {
     val filled = style == SettingsButtonStyle.Filled
     val container = when {
@@ -305,7 +303,7 @@ internal fun OnboardingPrimaryButton(
     }
     SettingsButton(
         onClick = onClick,
-        modifier = modifier.height(OnboardingStyle.BottomButtonHeight),
+        modifier = modifier.height(height),
         enabled = enabled,
         style = style,
         containerColor = container,
@@ -323,6 +321,7 @@ internal fun OnboardingCentredPrimaryButton(
     enabled: Boolean = true,
     fill: Color = Color.Unspecified,
     label: Color = Color.Unspecified,
+    height: Dp = OnboardingStyle.BottomButtonHeight,
 ) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         OnboardingPrimaryButton(
@@ -332,6 +331,7 @@ internal fun OnboardingCentredPrimaryButton(
             enabled = enabled,
             fill = fill,
             label = label,
+            height = height,
         )
     }
 }
@@ -353,34 +353,74 @@ internal fun OnboardingPermissionRow(
     title: String,
     summary: String,
     onClick: (() -> Unit)?,
-    icon: @Composable () -> Unit,
+    icon: ImageVector,
 ) {
+    val allow = stringResource(R.string.onboarding_permission_allow)
+    val action = if (onClick != null) {
+        Modifier.clickable(role = Role.Button, onClickLabel = allow, onClick = onClick)
+    } else {
+        Modifier
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = OnboardingStyle.RowMinHeight)
-            .clickable(enabled = onClick != null, role = Role.Button) { onClick?.invoke() }
+            .then(action)
             .padding(
                 horizontal = OnboardingStyle.Inset,
                 vertical = OnboardingStyle.RowVerticalPadding
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier.size(OnboardingStyle.RowIconSize),
-            contentAlignment = Alignment.Center
-        ) { icon() }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(OnboardingStyle.RowIconSize),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.width(OnboardingStyle.RowIconGap))
         Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = OnboardingStyle.RowTitle,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    modifier = Modifier.weight(1f),
+                    style = OnboardingStyle.RowTitle,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (onClick != null) {
+                    Text(
+                        text = allow,
+                        style = OnboardingStyle.RowSummary,
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnboardingStyle.ActionText
+                    )
+                } else {
+                    val statusColor = OnboardingStyle.PermissionSupportingText
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = MaterialIcons.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = statusColor
+                        )
+                        Text(
+                            text = stringResource(R.string.onboarding_permission_allowed),
+                            style = OnboardingStyle.RowSummary,
+                            color = statusColor
+                        )
+                    }
+                }
+            }
             Text(
                 text = summary,
                 style = OnboardingStyle.RowSummary,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = OnboardingStyle.PermissionSupportingText
             )
         }
     }
@@ -448,7 +488,8 @@ internal fun OnboardingHero(
     top: Dp = OnboardingStyle.HeroTop,
     inset: Dp = OnboardingStyle.Inset,
     titleStyle: TextStyle = OnboardingStyle.Title,
-    showIcon: Boolean = true,
+    iconSize: Dp = OnboardingStyle.HeroIconSize,
+    iconTint: Color = OnboardingStyle.HeadingText,
     markGap: Dp = OnboardingStyle.HeroHeadingGap,
 ) {
     Column(
@@ -458,15 +499,13 @@ internal fun OnboardingHero(
             .padding(top = top),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (showIcon) {
-            Icon(
-                painter = painterResource(R.drawable.ic_launcher_monochrome),
-                contentDescription = null,
-                modifier = Modifier.size(OnboardingStyle.HeroIconSize),
-                tint = OnboardingStyle.HeadingText
-            )
-            Spacer(Modifier.height(markGap))
-        }
+        Icon(
+            painter = painterResource(R.drawable.ic_launcher_monochrome),
+            contentDescription = null,
+            modifier = Modifier.size(iconSize),
+            tint = iconTint
+        )
+        Spacer(Modifier.height(markGap))
         Text(
             text = title,
             modifier = Modifier.fillMaxWidth(),

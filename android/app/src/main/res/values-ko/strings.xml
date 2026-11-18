@@ -274,6 +274,11 @@
     <string name="permission_description_phone">머리 제스처로 전화를 받습니다.</string>
     <string name="permission_healthconnect">Health Connect에 심박수 기록</string>
     <string name="permission_description_healthconnect">앱이 Android의 Health Connect 플랫폼에 심박수 데이터를 기록하도록 허용합니다.</string>
+    <string name="onboarding_permission_allow">허용</string>
+    <string name="onboarding_permission_allowed">허용됨</string>
+    <string name="onboarding_permission_heading">AirPods 사용을 위한 접근 권한</string>
+    <string name="onboarding_start">시작</string>
+    <string name="onboarding_done">완료</string>
     <string name="grant_all">모두 허용</string>
     <string name="permission_overlay">다른 앱 위에 표시</string>
     <string name="permission_description_overlay">AirPods가 근처에 있거나 오디오가 AirPods로 전환될 때 팝업을 표시합니다.</string>

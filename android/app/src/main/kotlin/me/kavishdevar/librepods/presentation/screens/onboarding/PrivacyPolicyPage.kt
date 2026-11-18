@@ -2,9 +2,7 @@ package me.kavishdevar.librepods.presentation.screens.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.R
 
@@ -31,12 +30,14 @@ fun PrivacyPolicyPage(
     OnboardingPageScaffold(
         title = stringResource(R.string.privacy_policy),
         onBack = onBack,
+        titleStyle = OnboardingStyle.PageTitle.copy(fontWeight = FontWeight.Normal),
         bottom = {
             // The consent is the Buds `동의` role, so it keeps the theme primary the reference
             // uses, not the monochrome Wearable pill the other pages use.
             OnboardingCentredPrimaryButton(
                 text = stringResource(R.string.i_agree),
                 onClick = onForward,
+                height = OnboardingStyle.ConsentButtonHeight,
             )
         }
     ) {
@@ -45,17 +46,19 @@ fun PrivacyPolicyPage(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = OnboardingStyle.DocumentInset)
-                .padding(top = 8.dp, bottom = 24.dp),
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(OnboardingStyle.DocumentParagraphGap)
         ) {
             OnboardingHero(
                 title = stringResource(R.string.privacy_policy),
+                modifier = Modifier.padding(bottom = 12.dp),
                 top = OnboardingStyle.HeroTopBuds,
                 inset = 0.dp,
                 titleStyle = OnboardingStyle.BudsHeroTitle,
+                iconSize = 144.dp,
+                iconTint = MaterialTheme.colorScheme.primary,
                 markGap = OnboardingStyle.BudsHeroGap
             )
-            Spacer(Modifier.height(OnboardingStyle.HeroToDocument))
             Text(
                 text = "Last updated: 20 June 2026",
                 style = OnboardingStyle.Footnote,

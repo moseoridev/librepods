@@ -2,29 +2,18 @@ package me.kavishdevar.librepods.presentation.screens.onboarding
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -145,7 +134,7 @@ fun PermissionsPage(
                     style = SettingsButtonStyle.Tonal,
                 )
                 OnboardingPrimaryButton(
-                    text = stringResource(R.string.proceed),
+                    text = stringResource(R.string.onboarding_done),
                     onClick = onForward,
                     modifier = Modifier.weight(1f),
                     enabled = bluetoothPermissionsState.allPermissionsGranted,
@@ -161,7 +150,7 @@ fun PermissionsPage(
                 .verticalScroll(scrollState)
                 .padding(bottom = 16.dp)
         ) {
-            OnboardingHero(title = stringResource(R.string.permissions_required))
+            OnboardingHero(title = stringResource(R.string.onboarding_permission_heading))
             Spacer(Modifier.height(OnboardingStyle.HeroToGroup))
             OnboardingGroupLabel(stringResource(R.string.required_permissions))
             OnboardingPermissionRow(
@@ -173,14 +162,8 @@ fun PermissionsPage(
                         bluetoothPermissionsState.launchMultiplePermissionRequest()
                     }
                 } else null,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.Bluetooth,
-                    contentDescription = "bluetooth",
-                    modifier = Modifier.size(OnboardingStyle.RowIconSize),
-                    tint = grantedTint(bluetoothPermissionsState.allPermissionsGranted)
-                )
-            }
+                icon = MaterialIcons.Bluetooth,
+            )
 
             OnboardingGroupLabel(stringResource(R.string.optional_permissions))
             OnboardingPermissionRow(
@@ -192,14 +175,8 @@ fun PermissionsPage(
                         notificationPermissionState.launchPermissionRequest()
                     }
                 } else null,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.Notifications,
-                    contentDescription = "notifications",
-                    modifier = Modifier.size(OnboardingStyle.RowIconSize),
-                    tint = grantedTint(notificationPermissionState.status.isGranted)
-                )
-            }
+                icon = MaterialIcons.Notifications,
+            )
             OnboardingPermissionRow(
                 title = stringResource(R.string.phone),
                 summary = stringResource(R.string.permission_description_phone),
@@ -209,14 +186,8 @@ fun PermissionsPage(
                         phonePermissionState.launchMultiplePermissionRequest()
                     }
                 } else null,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.Call,
-                    contentDescription = "call",
-                    modifier = Modifier.size(OnboardingStyle.RowIconSize),
-                    tint = grantedTint(phonePermissionState.allPermissionsGranted)
-                )
-            }
+                icon = MaterialIcons.Call,
+            )
 
             OnboardingPermissionRow(
                 title = stringResource(R.string.permission_healthconnect),
@@ -227,14 +198,8 @@ fun PermissionsPage(
                         healthPermissions.launchPermissionRequest()
                     }
                 } else null,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.VitalSigns,
-                    contentDescription = "vital signs",
-                    modifier = Modifier.size(OnboardingStyle.RowIconSize),
-                    tint = grantedTint(healthPermissions.status.isGranted)
-                )
-            }
+                icon = MaterialIcons.VitalSigns,
+            )
             OnboardingPermissionRow(
                 title = stringResource(R.string.permission_overlay),
                 summary = stringResource(R.string.permission_description_overlay),
@@ -248,19 +213,8 @@ fun PermissionsPage(
                         context.startActivity(intent)
                     }
                 } else null,
-            ) {
-                Icon(
-                    imageVector = MaterialIcons.Overlay,
-                    contentDescription = "overlay",
-                    modifier = Modifier.size(OnboardingStyle.RowIconSize),
-                    tint = grantedTint(canDrawOverlays.value)
-                )
-            }
+                icon = MaterialIcons.Overlay,
+            )
         }
     }
 }
-
-/** Granted state is shown by tint only, as the reference rows carry no icon container. */
-@Composable
-private fun grantedTint(granted: Boolean): Color =
-    if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
