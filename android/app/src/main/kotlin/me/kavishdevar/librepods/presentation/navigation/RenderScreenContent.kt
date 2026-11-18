@@ -91,7 +91,9 @@ fun RenderScreenContent(
         }
     }
 
-    val navigateBack: (() -> Unit)? = if (backStack.size > 1) {
+    // NavDisplay still draws an outgoing entry after pop. Keep its toolbar geometry
+    // based on the entry while the callback checks whether it can still navigate.
+    val navigateBack: (() -> Unit)? = if (screen != backStack.firstOrNull()) {
         {
             if (backStack.lastOrNull() == screen && backStack.size > 1) {
                 backStack.removeAt(backStack.lastIndex)

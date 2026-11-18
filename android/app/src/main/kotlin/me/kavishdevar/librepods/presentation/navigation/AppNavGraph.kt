@@ -14,6 +14,8 @@ import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.devices.AppleDevice
 import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.devices.Device
+import me.kavishdevar.librepods.data.app.DesignSystem
+import me.kavishdevar.librepods.presentation.design.LocalDesign
 
 @Composable
 fun AppNavGraph(
@@ -26,7 +28,8 @@ fun AppNavGraph(
     val devices by devicesState
     val context = LocalContext.current
     val pageParallaxPx = rememberPageParallaxPx()
-    val predictiveShiftPx = rememberPredictiveBackShiftPx()
+    val samsung = LocalDesign.current.system == DesignSystem.Samsung
+    val predictiveShiftPx = if (samsung) 0f else rememberPredictiveBackShiftPx()
 
     val appDataRepository by lazy { (context.applicationContext as LibrePodsApplication).appDataRepository }
     val recordingRepository by lazy { (context.applicationContext as LibrePodsApplication).recordingRepository }
@@ -87,7 +90,10 @@ fun AppNavGraph(
         transitionSpec = { forwardPageTransition(pageParallaxPx) },
         popTransitionSpec = { popPageTransition(pageParallaxPx) },
         predictivePopTransitionSpec = { swipeEdge ->
-            predictivePopPageTransition(swipeEdge, predictiveShiftPx)
+            // Seek the same opaque slide and underlying-page dim used by the
+            // Samsung activity close transition.
+            if (samsung) popPageTransition(pageParallaxPx)
+            else predictivePopPageTransition(swipeEdge, predictiveShiftPx)
         },
     )
 }

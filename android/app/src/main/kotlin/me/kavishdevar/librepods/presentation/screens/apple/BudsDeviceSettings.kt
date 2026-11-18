@@ -54,8 +54,6 @@ import me.kavishdevar.librepods.presentation.navigation.pageTransitionBackground
 import me.kavishdevar.librepods.presentation.navigation.rememberPageParallaxPx
 import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
-import me.kavishdevar.librepods.presentation.navigation.predictivePopPageTransition
-import me.kavishdevar.librepods.presentation.navigation.rememberPredictiveBackShiftPx
 import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
@@ -147,7 +145,6 @@ internal fun BudsDeviceSettings(
     val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
     val pageParallaxPx = rememberPageParallaxPx()
-    val predictiveShiftPx = rememberPredictiveBackShiftPx()
     // The name editor is the platform text-entry dialog over Home, not a page of its own:
     // a separate destination slides a second copy of Home in behind the dialog, which reads as
     // the whole background refreshing.
@@ -168,11 +165,7 @@ internal fun BudsDeviceSettings(
             },
             transitionSpec = { forwardPageTransition(pageParallaxPx) },
             popTransitionSpec = { popPageTransition(pageParallaxPx) },
-            // Without this, NavDisplay falls back to its own fadeIn + scaleOut(0.7f) preview,
-            // which shrinks the whole screen much further than the design guidance.
-            predictivePopTransitionSpec = { swipeEdge ->
-                predictivePopPageTransition(swipeEdge, predictiveShiftPx)
-            },
+            predictivePopTransitionSpec = { popPageTransition(pageParallaxPx) },
         )
         if (renaming && pages.lastOrNull() == DevicePage.Home) {
             NameEditorDialog(
@@ -225,8 +218,8 @@ private fun DevicePageContent(
         SettingsScaffold(
             title = if (page == DevicePage.Home) ui.metadata.displayName else stringResource(page.title),
             backLabel = stringResource(R.string.back),
-            showBackButton = pages.size > 1 || navigateBack != null,
-            onNavigateBack = back,
+            showBackButton = page != pages.firstOrNull() || navigateBack != null,
+            onNavigateBack = { if (pages.lastOrNull() == page) back() },
             navigationIcon = { BudsBackIcon() },
             scrollState = scroll,
             background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
