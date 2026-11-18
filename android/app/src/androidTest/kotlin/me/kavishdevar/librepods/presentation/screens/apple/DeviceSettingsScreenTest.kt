@@ -436,30 +436,17 @@ class DeviceSettingsScreenTest {
         compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
     }
 
-    @Test fun headMasterHidesGestureOptionsWhileOff() {
+    @Test fun headMasterShowsCurrentStateAndKeepsCallGestureMapping() {
         val fixture = SettingsFixture()
-        compose.setContent {
-            BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Head,
-                mediaVolume = { FixtureMediaVolume() }, navigateToHeadTracking = {})
-        }
-        val nod = compose.onNodeWithText(text(R.string.nod_head))
-        val shake = compose.onNodeWithText(text(R.string.shake_head))
-        val test = compose.onNodeWithText(text(R.string.test_head_gestures))
-        nod.assertIsDisplayed()
-        shake.assertIsDisplayed()
-        test.assertIsDisplayed()
-        capture("interaction-head-on")
-        compose.onNodeWithText(text(R.string.settings_in_use)).performClick()
-        val off = compose.onNodeWithText(text(R.string.settings_not_in_use)).assertIsDisplayed()
-        nod.assertDoesNotExist()
-        shake.assertDoesNotExist()
-        test.assertDoesNotExist()
-        capture("interaction-head-off")
-        compose.runOnIdle { assertFalse(fixture.ui.settings.headGesturesEnabled); assertTrue(fixture.events.isEmpty()) }
-        off.performClick()
-        nod.assertIsDisplayed()
-        shake.assertIsDisplayed()
-        test.assertIsDisplayed()
+        val initial = fixture.ui.settings.headGesturesEnabled
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Head, mediaVolume = { FixtureMediaVolume() }) }
+        capture("interaction-head-${if (initial) "on" else "off"}")
+        compose.onNodeWithText(text(if (initial) R.string.settings_in_use else R.string.settings_not_in_use)).performClick()
+        compose.onNodeWithText(text(if (initial) R.string.settings_not_in_use else R.string.settings_in_use)).assertIsDisplayed()
+        capture("interaction-head-${if (initial) "off" else "on"}")
+        compose.runOnIdle { assertEquals(!initial, fixture.ui.settings.headGesturesEnabled); assertTrue(fixture.events.isEmpty()) }
+        compose.onNodeWithText(text(R.string.nod_head)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.shake_head)).assertIsDisplayed()
     }
 
     @Test fun disconnectWhenNotWearingSitsWithEarDetectionAndExtrasKeepsOnlyModelOptions() {

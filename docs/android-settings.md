@@ -207,7 +207,7 @@ Source: `IMG_0074.PNG`. Observed order:
 | Left — `IMG_0075.PNG` | Listening Mode (selected), Siri. A second Listening Mode group offers Off, Transparency (checked), Adaptive, Noise Cancellation (checked), with an icon and short explanation per row. Footer says holding the stem cycles the selected modes. The Right detail page, Siri-selected view and selection constraints are not captured. |
 | Mute & Unmute — `IMG_0076.PNG` | Press Once (selected), Press Twice. |
 | End Call — `IMG_0077.PNG` | Press Once, Press Twice (selected). Cross-setting coupling is not demonstrated. |
-| Head Gestures — `IMG_0078.PNG` | Illustration and explanatory text about accepting/declining announced calls and interacting with/dismissing announced notifications. Head Gestures switch off. Accept, Reply → Up and Down; Decline, Dismiss → Side to Side; Try Head Gestures… action. The captured off state shows the mapping rows and test link. Per the product requirement, Samsung shows those options only while Head Gestures is on. |
+| Head Gestures — `IMG_0078.PNG` | Illustration and explanatory text about accepting/declining announced calls and interacting with/dismissing announced notifications. Head Gestures switch off. Accept, Reply → Up and Down; Decline, Dismiss → Side to Side; Try Head Gestures… action. The mapping rows and the test link stay visible and look enabled with the switch off, and Samsung follows that. |
 | Accept, Reply — `IMG_0079.PNG` | Up and Down (selected), Side to Side. |
 | Decline, Dismiss — `IMG_0080.PNG` | Up and Down, Side to Side (selected). Relationship between the two selections is not demonstrated. |
 | Camera Remote — `IMG_0081.PNG` | Off (selected), Press Once, Press and Hold. |
