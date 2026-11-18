@@ -91,19 +91,21 @@ class MainActivity: ComponentActivity() {
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             }
 
-            LaunchedEffect(settings.useHighestRefreshRate) {
-                if (settings.useHighestRefreshRate) {
-                    val display = getSystemService(DisplayManager::class.java)
+            LaunchedEffect(window, settings.useHighestRefreshRate) {
+                val refreshRate = if (settings.useHighestRefreshRate) {
+                    getSystemService(DisplayManager::class.java)
                         .getDisplay(Display.DEFAULT_DISPLAY)
+                        ?.supportedModes
+                        ?.maxOfOrNull { it.refreshRate }
+                        ?: 0f
+                } else {
+                    0f
+                }
 
-                    val highest = display.supportedModes
-                        .maxByOrNull { it.refreshRate }
-
-                    highest?.let {
-                        window.attributes = window.attributes.apply {
-                            preferredRefreshRate = it.refreshRate
-                        }
-                    }
+                val attributes = window.attributes
+                if (attributes.preferredRefreshRate != refreshRate) {
+                    attributes.preferredRefreshRate = refreshRate
+                    window.attributes = attributes
                 }
             }
 
