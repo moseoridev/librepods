@@ -86,6 +86,7 @@ import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
+import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
 import kotlin.math.roundToInt
@@ -201,7 +202,7 @@ fun AppleSettingsScreen(
 
     val spec = AirPodsSpecs.getSpec(metadata.model)
 
-    val baseCapabilities = spec.baseCapabilities
+    val baseCapabilities = metadata.visibleBaseCapabilities()
 
     val design = LocalDesign.current
     val debugMode = LocalDebugMode.current

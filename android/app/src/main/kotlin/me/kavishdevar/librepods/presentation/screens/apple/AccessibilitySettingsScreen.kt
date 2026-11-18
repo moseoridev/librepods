@@ -46,7 +46,6 @@ import kotlinx.coroutines.flow.debounce
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
-import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.BaseCapability
 import me.kavishdevar.librepods.presentation.components.primitives.StyledList
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItem
@@ -55,6 +54,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.StyledSlider
 import me.kavishdevar.librepods.presentation.components.primitives.StyledToggle
 import me.kavishdevar.librepods.presentation.components.primitives.styledListItem
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -223,7 +223,7 @@ fun AccessibilitySettingsScreen(
                 }
             )
 
-            if (AirPodsSpecs.getSpec(metadata.model).baseCapabilities.contains(BaseCapability.LOUD_SOUND_REDUCTION) && uiState.vendorIdHook) {
+            if (BaseCapability.LOUD_SOUND_REDUCTION in metadata.visibleBaseCapabilities() && uiState.vendorIdHook) {
                 StyledToggle(
                     label = stringResource(R.string.loud_sound_reduction),
                     description = stringResource(R.string.loud_sound_reduction_description),
@@ -273,7 +273,7 @@ fun AccessibilitySettingsScreen(
                 independent = true
             )
 
-            if (AirPodsSpecs.getSpec(metadata.model).baseCapabilities.contains(BaseCapability.SWIPE_FOR_VOLUME)) {
+            if (BaseCapability.SWIPE_FOR_VOLUME in metadata.visibleBaseCapabilities()) {
                 val volumeSwipeEnabled =
                     state.controlStates[ControlCommandIdentifier.VOLUME_SWIPE_MODE]?.getOrNull(
                         0

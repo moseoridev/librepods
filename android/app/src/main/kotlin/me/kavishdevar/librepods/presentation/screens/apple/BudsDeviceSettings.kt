@@ -56,6 +56,7 @@ import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
 import me.kavishdevar.librepods.presentation.navigation.predictivePopPageTransition
 import me.kavishdevar.librepods.presentation.navigation.rememberPredictiveBackShiftPx
+import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
 import me.kavishdevar.librepods.presentation.viewmodel.AppleUiState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
 import me.kavishdevar.librepods.ui.components.*
@@ -324,7 +325,7 @@ private fun AppleUiState.canCustomizeTransparency(): Boolean {
  * under the AirPods settings root, so they live on Home.
  */
 private fun AppleUiState.showsRecorder(): Boolean = firmwareMajor() >= 8
-private fun AppleUiState.has(capability: BaseCapability) = capability in AirPodsSpecs.getSpec(metadata.model).baseCapabilities
+private fun AppleUiState.has(capability: BaseCapability) = capability in metadata.visibleBaseCapabilities()
 
 /**
  * Control command 0x34 has no query request and some bonds never report it, so fall back to

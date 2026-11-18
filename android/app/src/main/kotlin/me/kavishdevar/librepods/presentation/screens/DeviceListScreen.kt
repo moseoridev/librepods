@@ -81,6 +81,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.styledToggle
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.utils.createAirPodsBatteryRichText
+import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
 import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -506,9 +507,10 @@ fun DeviceListScreen(
                                 val deviceState = deviceState as AppleState
                                 val deviceMetadata = deviceMetadata as AppleMetadata
 
-                                val listeningModeCapability = AirPodsSpecs.getSpec(deviceMetadata.model).baseCapabilities.contains(BaseCapability.LISTENING_MODE)
-                                val conversationAwarenessCapability = AirPodsSpecs.getSpec(deviceMetadata.model).baseCapabilities.contains(BaseCapability.CONVERSATION_AWARENESS)
-                                val hrmCapability = AirPodsSpecs.getSpec(deviceMetadata.model).baseCapabilities.contains(BaseCapability.HRM)
+                                val baseCapabilities = deviceMetadata.visibleBaseCapabilities()
+                                val listeningModeCapability = BaseCapability.LISTENING_MODE in baseCapabilities
+                                val conversationAwarenessCapability = BaseCapability.CONVERSATION_AWARENESS in baseCapabilities
+                                val hrmCapability = BaseCapability.HRM in baseCapabilities
 
                                 if (conversationAwarenessCapability || hrmCapability) {
                                     StyledList {

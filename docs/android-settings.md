@@ -251,6 +251,8 @@ Pending placement — settled: Apple documents both hearing entries and heart ra
 
 The groups are computed from capabilities and the vendor-ID hook rather than a model list, so a model without them shows neither the `Hearing Health` group nor the heart-rate row, and a model without the recorder firmware hides the Home `LibrePods options` row entirely.
 
+Spec-gated settings rows stay hidden while the model number is blank. With a model number, they use the resolved model's capabilities, including the full `UNKNOWN` fallback for unrecognized model numbers.
+
 ## Coverage and use during implementation
 
 All 20 supplied images were visually inspected. This catalog intentionally preserves unavailable/uncaptured entries rather than filling them from memory. It is a baseline for this model/firmware/OS, not an inventory of every AirPods model or state.
