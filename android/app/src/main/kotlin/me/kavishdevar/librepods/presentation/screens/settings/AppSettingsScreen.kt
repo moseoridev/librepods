@@ -25,15 +25,12 @@ import android.os.Process
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
@@ -64,7 +61,7 @@ import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.components.common.AppInfoCard
-import me.kavishdevar.librepods.presentation.components.common.rememberBackgroundConnectionRow
+import me.kavishdevar.librepods.presentation.components.common.BackgroundConnectionSettings
 import me.kavishdevar.librepods.presentation.components.common.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.primitives.StyledBottomSheet
 import me.kavishdevar.librepods.presentation.components.primitives.StyledConfirmationDialog
@@ -99,6 +96,7 @@ fun AppSettingsScreen(
     navigateToProxCardCustomize: () -> Unit
 ) {
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
     val state by viewModel.uiState.collectAsState()
 
     val samsung = LocalDesign.current.system == DesignSystem.Samsung
@@ -110,13 +108,23 @@ fun AppSettingsScreen(
     val subjectFocusRequester = remember { FocusRequester() }
     val descriptionFocusRequester = remember { FocusRequester() }
 
-    // The association launcher and resume effect belong to the page. They need to
-    // stay registered even when the background connection row is off-screen.
-    val backgroundConnectionRow = rememberBackgroundConnectionRow()
-    val groups = buildList<@Composable () -> Unit> {
-        add(backgroundConnectionRow)
-        add {
-            Spacer(Modifier.height(20.dp))
+    StyledScaffold(
+        title = stringResource(R.string.settings),
+        navigateBack = navigateBack
+    ) { topPadding, bottomPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(topPadding))
+            BackgroundConnectionSettings()
+
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             if (state.state.hasConnectedToAACP) {
                 StyledListItem(
                     contentText = stringResource(R.string.appearance),
@@ -178,9 +186,9 @@ fun AppSettingsScreen(
                     )
                 }
             }
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             StyledList(
                 title = stringResource(R.string.advanced_options),
                 description = stringResource(R.string.do_not_change)
@@ -229,9 +237,9 @@ fun AppSettingsScreen(
                     )
                 }
             }
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             StyledList(title = stringResource(R.string.contact)) {
                 styledListItem(
                     contentText =  stringResource(R.string.email),
@@ -300,59 +308,31 @@ fun AppSettingsScreen(
                     },
                 )
             }
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             DeviceInfoCard()
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             AppInfoCard(navigateToReleaseNotesScreen)
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             StyledListItem(
-                contentText = stringResource(R.string.open_source_licenses),
+                contentText =  stringResource(R.string.open_source_licenses),
                 onClick = navigateToOpenSourceLicenses,
             )
-        }
-        add {
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             StyledListItem(
-                contentText = stringResource(R.string.reset_app_settings),
+                contentText =  stringResource(R.string.reset_app_settings),
                 onClick = viewModel::showResetDialog,
             )
-        }
-    }
 
-    StyledScaffold(
-        title = stringResource(R.string.settings),
-        navigateBack = navigateBack,
-    ) { topPadding, bottomPadding ->
-        if (samsung) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = topPadding,
-                    end = 16.dp,
-                    bottom = bottomPadding,
-                ),
-            ) {
-                items(groups) { group -> group() }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .layerBackdrop(requireNotNull(backdrop))
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-            ) {
-                Spacer(Modifier.height(topPadding))
-                groups.forEach { group -> group() }
-                Spacer(Modifier.height(bottomPadding))
-            }
+
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 
