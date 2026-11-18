@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -67,6 +68,7 @@ import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.data.app.ColorStyle
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
+import me.kavishdevar.librepods.ui.components.settingsEdgeBackground
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.presentation.design.sectionHeader
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
@@ -868,7 +870,8 @@ private fun StyledListItemContent(
                     index == count - 1 -> RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
                     else -> RectangleShape
                 }
-                Modifier.background(animatedBackgroundColor, shape)
+                if (groupSurface.isSpecified) Modifier.settingsEdgeBackground(animatedBackgroundColor, shape)
+                else Modifier.background(animatedBackgroundColor, shape)
             }
             Column (
                 modifier = background

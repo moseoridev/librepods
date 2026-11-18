@@ -12,10 +12,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import me.kavishdevar.librepods.ui.theme.rowInteractionFeedback
 
@@ -42,12 +48,25 @@ internal fun settingsRowFeedback(
     }, tween(if (pressed) 100 else 350,
         easing = if (pressed) LinearEasing else CubicBezierEasing(.17f, .17f, .67f, 1f)),
         label = "Settings row feedback")
-    return Modifier.drawWithContent {
-        scale(if (enabled) contentScale else 1f) { this@drawWithContent.drawContent() }
+    val drawRow: ContentDrawScope.(Path?) -> Unit = drawRow@{ edgePath ->
+        scale(if (enabled) contentScale else 1f) { this@drawRow.drawContent() }
         if (enabled && feedbackAlpha > 0f) {
-            if (shape == null) drawRect(color, alpha = feedbackAlpha)
-            else drawOutline(shape.createOutline(size, layoutDirection, this), color,
-                alpha = feedbackAlpha)
+            val paint: DrawScope.() -> Unit = {
+                if (shape == null) drawRect(color, alpha = feedbackAlpha)
+                else drawOutline(shape.createOutline(size, layoutDirection, this), color,
+                    alpha = feedbackAlpha)
+            }
+            if (edgePath == null) paint()
+            else clipRect { clipPath(edgePath, block = paint) }
+        }
+    }
+    val edge = LocalSettingsGroupEdge.current
+    return if (edge == null) {
+        Modifier.drawWithContent { drawRow(null) }
+    } else {
+        Modifier.drawWithCache {
+            val edgePath = edge.path(this)
+            onDrawWithContent { drawRow(edgePath) }
         }
     }
 }

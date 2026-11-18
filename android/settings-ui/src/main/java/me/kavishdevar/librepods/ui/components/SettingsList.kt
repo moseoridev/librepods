@@ -7,17 +7,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.onSizeChanged
@@ -25,15 +33,16 @@ import androidx.compose.ui.unit.IntSize
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 
 /**
- * Enable [clipOnlyEdgeRows] when the first and last items span the full height of the group
- * corners, and each item draws within its own bounds. Keep the complete group clip otherwise.
+ * Enable [clipEdgePaint] for lists whose edge rows span the group corners and whose content
+ * stays inside the outline. Edge backgrounds and interaction feedback must apply the local
+ * group clip through [settingsEdgeBackground] and [settingsRowFeedback].
  */
 @Composable
 fun SettingsList(
     modifier: Modifier = Modifier,
     title: String? = null,
     description: String? = null,
-    clipOnlyEdgeRows: Boolean = false,
+    clipEdgePaint: Boolean = false,
     content: @Composable SettingsListScope.() -> Unit
 ) {
     val scope = SettingsListScope()
@@ -44,7 +53,7 @@ fun SettingsList(
     Column(modifier.then(if (title != null) Modifier.ownLeadingSpace() else Modifier)) {
         title?.let { SettingsSectionLabel(it) }
         val count = scope.items.size
-        val groupSize = if (clipOnlyEdgeRows && count > 1) {
+        val groupSize = if (clipEdgePaint && count > 1) {
             remember { mutableStateOf(IntSize.Zero) }
         } else {
             null
@@ -62,8 +71,12 @@ fun SettingsList(
             scope.items.forEachIndexed { index, item ->
                 if (groupSize != null && (index == 0 || index == count - 1)) {
                     // An item can emit its row and divider as separate children.
-                    Column(Modifier.fillMaxWidth().clipToGroupEdge(groupSize, first = index == 0)) {
-                        item(index, count)
+                    val first = index == 0
+                    val edge = remember(groupSize, first) { SettingsGroupEdge(groupSize, first) }
+                    Column(Modifier.fillMaxWidth()) {
+                        CompositionLocalProvider(LocalSettingsGroupEdge provides edge) {
+                            item(index, count)
+                        }
                     }
                 } else {
                     item(index, count)
@@ -78,26 +91,37 @@ fun SettingsList(
     }
 }
 
-private fun Modifier.clipToGroupEdge(groupSize: State<IntSize>, first: Boolean): Modifier =
-    drawWithCache {
+internal class SettingsGroupEdge(private val groupSize: State<IntSize>, private val first: Boolean) {
+    fun path(scope: CacheDrawScope): Path? = with(scope) {
         val group = groupSize.value
+        // Preserve the outline of the whole group, aligned to this edge row.
         val outline = SettingsStyle.GroupShape.createOutline(
             Size(group.width.toFloat(), group.height.toFloat()), layoutDirection, this
         )
-        // Use the full group's outline so the edge pixels match at any row and window size.
-        val path = (outline as? Outline.Generic)?.let {
+        (outline as? Outline.Generic)?.let {
             Path().apply {
                 addPath(it.path, Offset(0f, if (first) 0f else size.height - group.height))
             }
         }
-        onDrawWithContent {
-            if (path == null) {
-                drawContent()
-            } else {
-                clipRect { clipPath(path) { this@onDrawWithContent.drawContent() } }
-            }
+    }
+}
+
+internal val LocalSettingsGroupEdge = staticCompositionLocalOf<SettingsGroupEdge?> { null }
+
+/** Paints a row background within its containing list's edge clip, when enabled. */
+@Composable
+fun Modifier.settingsEdgeBackground(color: Color, shape: Shape): Modifier {
+    val edge = LocalSettingsGroupEdge.current ?: return background(color, shape)
+    val fill by rememberUpdatedState(color)
+    return drawWithCache {
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val path = edge.path(this)
+        onDrawBehind {
+            if (path == null) drawOutline(outline, fill)
+            else clipRect { clipPath(path) { drawOutline(outline, fill) } }
         }
     }
+}
 
 @Composable
 fun SettingsSectionLabel(text: String) {

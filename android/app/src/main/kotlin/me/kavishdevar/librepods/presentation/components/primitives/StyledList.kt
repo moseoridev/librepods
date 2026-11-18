@@ -33,7 +33,7 @@ import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.design.sectionHeader
 import me.kavishdevar.librepods.ui.components.SettingsList
 
-/** [rowsCoverGroupCorners] is for bounded Samsung rows whose edge rows span the group corners. */
+/** [rowsCoverGroupCorners] is for Samsung rows whose content stays inside the group outline. */
 @Composable
 fun StyledList(
     modifier: Modifier = Modifier,
@@ -62,7 +62,7 @@ fun StyledList(
             modifier = modifier.then(if (scrollEnabled) Modifier.verticalScroll(scrollState) else Modifier),
             title = title,
             description = description,
-            clipOnlyEdgeRows = rowsCoverGroupCorners,
+            clipEdgePaint = rowsCoverGroupCorners,
         ) {
             scope.items.forEach { item(it) }
         }
