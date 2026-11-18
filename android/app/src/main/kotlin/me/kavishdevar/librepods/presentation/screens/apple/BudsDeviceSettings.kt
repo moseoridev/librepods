@@ -168,7 +168,7 @@ internal fun BudsDeviceSettings(
             },
             transitionSpec = { forwardPageTransition(pageParallaxPx) },
             popTransitionSpec = { popPageTransition(pageParallaxPx) },
-            predictivePopTransitionSpec = { samsungPredictivePopPageTransition(backDispatcher) },
+            predictivePopTransitionSpec = { samsungPredictivePopPageTransition(backDispatcher, pages) },
         )
         if (renaming && pages.lastOrNull() == DevicePage.Home) {
             NameEditorDialog(

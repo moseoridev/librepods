@@ -85,16 +85,22 @@ private const val SAMSUNG_BACK_HALF = .5f
 private const val SAMSUNG_BACK_PARALLAX_FRACTION = .33f
 private const val SAMSUNG_BACK_DIM_DURATION_MS = 250
 
-private class SamsungBackMotion(private val dispatcher: NavigationEventDispatcher?) {
+internal class SamsungBackMotion(
+    private val gestureProgress: () -> Float?,
+    private val isOutgoingPageCurrent: () -> Boolean,
+) {
     private var heldProgress = 0f
+    private var canFollowGesture = true
 
     fun easing(follow: (Float) -> Float, complete: Easing = PagePopEasing): Easing = Easing { fraction ->
-        val active = dispatcher?.transitionState?.value as? NavigationEventTransitionState.InProgress
-        if (active != null) heldProgress = active.latestEvent.progress
+        // The dispatcher can already be reporting a new swipe while this page is leaving.
+        if (canFollowGesture) canFollowGesture = isOutgoingPageCurrent()
+        val liveProgress = if (canFollowGesture) gestureProgress() else null
+        if (liveProgress != null) heldProgress = liveProgress
 
         // NavDisplay keeps the predictive spec for the current scene pair. Follow the gesture
         // while seeking (and rewinding on cancellation), and complete from the held position.
-        if (active != null || fraction <= heldProgress) {
+        if (liveProgress != null || fraction <= heldProgress) {
             follow(fraction)
         } else {
             val start = follow(heldProgress)
@@ -112,9 +118,18 @@ private class SamsungBackMotion(private val dispatcher: NavigationEventDispatche
 /** SamsungCrossActivityBackAnimation maps live BackEvent progress directly to page positions. */
 internal fun <S> AnimatedContentTransitionScope<S>.samsungPredictivePopPageTransition(
     dispatcher: NavigationEventDispatcher?,
+    backStack: List<*>,
 ): ContentTransform {
     val direction = pageDirection(forward = false)
-    val motion = SamsungBackMotion(dispatcher)
+    val outgoingPage = backStack.lastOrNull()
+    val depth = backStack.size
+    val motion = SamsungBackMotion(
+        gestureProgress = {
+            (dispatcher?.transitionState?.value as? NavigationEventTransitionState.InProgress)
+                ?.latestEvent?.progress
+        },
+        isOutgoingPageCurrent = { backStack.size == depth && backStack.lastOrNull() == outgoingPage },
+    )
     val exit = motion.easing(follow = { progress ->
         if (progress <= SAMSUNG_BACK_HALF) progress
         else SAMSUNG_BACK_HALF + (progress - SAMSUNG_BACK_HALF) * .2f

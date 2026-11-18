@@ -92,7 +92,7 @@ fun AppNavGraph(
         transitionSpec = { forwardPageTransition(pageParallaxPx) },
         popTransitionSpec = { popPageTransition(pageParallaxPx) },
         predictivePopTransitionSpec = { swipeEdge ->
-            if (samsung) samsungPredictivePopPageTransition(backDispatcher)
+            if (samsung) samsungPredictivePopPageTransition(backDispatcher, backStack)
             else predictivePopPageTransition(swipeEdge, predictiveShiftPx)
         },
     )
