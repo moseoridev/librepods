@@ -396,7 +396,10 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
         SettingsListItem(name = stringResource(R.string.accessibility), onClick = { go(DevicePage.Accessibility) }, homeMenu = true,
             leadingContent = { BudsMenuIcon(BudsMenuArtwork.Accessibility) })
     }
-    SettingsList { SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }) }
+    SettingsList {
+        SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }, homeMenu = true,
+            leadingContent = { BudsMenuIcon(BudsMenuArtwork.Battery) })
+    }
     // iOS Settings > AirPods > Heart Rate (behind Privacy on newer builds).
     if (ui.has(BaseCapability.HRM)) SettingsList {
         val alertsOff = ui.state.hrmState != BuddyState.ACTIVE && ui.settings.hrmAlertEnabled

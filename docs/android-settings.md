@@ -152,6 +152,18 @@ Source: `Picsew_20260921225117.PNG`. Preserve this observed top-to-bottom order 
 
 The Name editor, listening-mode transitions, volume interaction and Disconnect/Forget confirmation dialogs are not captured.
 
+### Home row icons
+
+The iOS home capture determines which Samsung rows carry leading icons. Galaxy Buds4 Manager supplies the 24dp leading slot and 18dp gap before the label. Its `ic_sounds_ui8`, `ic_accessibility_ui8` and `ic_about_earbuds_ui8` resources use 24dp vectors with 1.5-unit outline strokes. LibrePods draws its own outlines with round caps and joins, tinted with `onSurface`. [Manager 9.0.10.1724 Home capture](/Users/moseoridev/programming/android/librepods/evidence/compose-residuals-cold-20261113/shadow-dialog-final-20261115/portrait-480-dark/session-attempt-0/captures/native-Home-scrolled-1080x2340-480-dark.png)
+
+| Samsung home row or group | iOS capture and icon decision |
+| --- | --- |
+| Audio & Routing, Controls & Gestures, Accessibility | `Picsew_20260921225117.PNG` shows leading icons. Keep the Sound, Touch and Accessibility drawings. |
+| Battery | `Picsew_20260921225117.PNG` shows a leading battery glyph. Use the LibrePods battery outline in the same slot as the adjacent menu icons. `IMG_0087.PNG` shows the destination. |
+| Name, About, Disconnect | `Picsew_20260921225117.PNG` shows an iconless Name row, About heading and fields, and Disconnect action. Keep them iconless, including the Version row that opens `IMG_0089.PNG`. |
+| Heart Rate, Hearing Health, Hearing Protection, Hearing Aid | These Pro features are outside the `Picsew_20260921225117.PNG` AirPods 5 capture. Icon presence is unverified. |
+| LibrePods Options | The `Picsew_20260921225117.PNG` capture contains no iOS counterpart for this LibrePods destination. Icon presence is unverified. |
+
 ## Audio & Routing
 
 Source: `Picsew_20260921225304.PNG`. Observed order:

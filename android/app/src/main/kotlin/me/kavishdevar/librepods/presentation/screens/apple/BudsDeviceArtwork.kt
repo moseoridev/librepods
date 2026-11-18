@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -37,7 +38,7 @@ internal fun BudsHomeBackdrop(dark: Boolean) {
         if (dark) R.drawable.home_backdrop_dark else R.drawable.home_backdrop_light))
 }
 
-internal enum class BudsMenuArtwork { Sound, Touch, Accessibility, QuietSound }
+internal enum class BudsMenuArtwork { Sound, Touch, Accessibility, QuietSound, Battery }
 
 /** Own functional line drawings; 24dp and1.5-unit strokes follow native menu resources. */
 @Composable
@@ -63,6 +64,12 @@ internal fun BudsMenuIcon(kind: BudsMenuArtwork) {
                     path { moveTo(9.5f, 9.5f); lineTo(10f, 13f); lineTo(7.5f, 21f) }
                     path { moveTo(14.5f, 9.5f); lineTo(14f, 13f); lineTo(16.5f, 21f) }
                     path { moveTo(10f, 13f); lineTo(14f, 13f) }
+                }
+                BudsMenuArtwork.Battery -> {
+                    drawRoundRect(ink, topLeft = Offset(3f, 7.5f), size = Size(16.5f, 9f),
+                        cornerRadius = CornerRadius(2f), style = stroke)
+                    drawLine(ink, Offset(22f, 10.5f), Offset(22f, 13.5f), strokeWidth = stroke.width,
+                        cap = stroke.cap)
                 }
                 BudsMenuArtwork.Touch -> {
                     drawArc(ink, 140f, 240f, false, Offset(5f, 3f), Size(9f, 9f), style = stroke)
