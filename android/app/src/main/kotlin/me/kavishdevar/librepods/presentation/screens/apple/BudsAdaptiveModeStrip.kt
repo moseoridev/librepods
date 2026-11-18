@@ -54,7 +54,9 @@ internal fun BudsAdaptiveModeStrip(
     val captionStyle = SettingsStyle.RowTitle.copy(fontSize = 12.sp)
     Box(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 20.dp), Alignment.TopCenter) {
         Row(Modifier.widthIn(max = 392.dp).fillMaxWidth()) {
-            modes.forEach { mode ->
+            // The expanded Adaptive control occupies the space of the Off option.
+            for (mode in modes) {
+                if (mode == 1) continue
                 val label = modeLabel(mode)
                 if (mode == 4) {
                     Column(Modifier.weight(3f), horizontalAlignment = Alignment.CenterHorizontally) {

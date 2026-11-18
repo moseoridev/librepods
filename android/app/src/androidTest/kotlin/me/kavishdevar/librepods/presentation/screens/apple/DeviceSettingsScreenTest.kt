@@ -104,15 +104,19 @@ class DeviceSettingsScreenTest {
         val fixture = SettingsFixture()
         compose.setContent { BudsDeviceSettings(fixture.ui, fixture, mediaVolume = { FixtureMediaVolume() }) }
         val slider = compose.onNodeWithContentDescription(text(R.string.customize_adaptive_audio))
+        val off = compose.onNodeWithContentDescription(text(R.string.off))
         slider.assertIsEnabled()
+        off.assertDoesNotExist()
         compose.onNodeWithContentDescription(text(R.string.adaptive)).assertDoesNotExist()
         compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
         slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(75f) }
         compose.waitUntil(5_000) { fixture.events.contains("AUTO_ANC_STRENGTH: 75") }
         compose.onNodeWithContentDescription(text(R.string.transparency)).performScrollTo().performClick()
         slider.assertDoesNotExist()
+        off.assertIsNotSelected()
         compose.onNodeWithContentDescription(text(R.string.adaptive)).assertIsNotSelected().performClick()
         slider.assertIsEnabled()
+        off.assertDoesNotExist()
     }
 
     @Test fun connectedControlsWithMissingReportsUseFallbacksAndStillWrite() {

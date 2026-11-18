@@ -152,7 +152,7 @@ Source: `Picsew_20260921225117.PNG`. Preserve this observed top-to-bottom order 
 
 The Name editor, listening-mode transitions, volume interaction and Disconnect/Forget confirmation dialogs are not captured.
 
-When Adaptive is confirmed, the Samsung device screen uses the Apple-style control structure from LibrePods. The Adaptive glyph moves inside an expanded capsule between the two range marks. The capsule uses the Samsung palette and the other listening modes remain directly selectable. This adaptive-only state is a product adaptation using the existing device command and range.
+When Adaptive is confirmed, the Samsung device screen uses the Apple-style control structure from LibrePods. The Adaptive glyph moves inside an expanded capsule between the two range marks. Transparency and Noise Cancellation flank the capsule. Off returns to the standard strip when the device confirms another mode, if Off is available. This adaptive-only state is a product adaptation using the existing device command and range.
 
 The Disconnect action in each design and the connected AirPods icon in the device list request an all-profile Bluetooth disconnect. Android 17/API 37+ accepts this for apps with Bluetooth Connect and a companion association for the device or the privileged Bluetooth grant. LibrePods closes the control session and suppresses retries once Android accepts the request. When the API is unavailable or rejects it, the action opens Android Bluetooth settings and keeps the control session running. The app preserves bonding and profile policies. Android reports successful initiation asynchronously. [Android BluetoothDevice.disconnect reference](https://developer.android.com/reference/android/bluetooth/BluetoothDevice#disconnect())
 
