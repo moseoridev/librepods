@@ -516,27 +516,27 @@ private fun RoutingPage(ui: AppleUiState, vm: DeviceSettingsActions) {
         onCheckedChange = { enabled -> vm.updateSettings { it.copy(alwaysConnectWhenAccessoryDisconnected = enabled) } })
     SettingsList(title = stringResource(R.string.prox_connect_on_phone),
         description = stringResource(R.string.prox_connect_on_phone_description)) {
-        SettingsChoiceRow(name = stringResource(R.string.prox_disconnected_label),
-            selected = settings.connectOnPhoneWhenAccessoryDisconnected,
-            onClick = { vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryDisconnected = !settings.connectOnPhoneWhenAccessoryDisconnected) } })
-        SettingsChoiceRow(name = stringResource(R.string.prox_idle_label),
-            selected = settings.connectOnPhoneWhenAccessoryIdle,
-            onClick = { vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryIdle = !settings.connectOnPhoneWhenAccessoryIdle) } })
-        SettingsChoiceRow(name = stringResource(R.string.prox_music_label),
-            selected = settings.connectOnPhoneWhenAccessoryMusic,
-            onClick = { vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryMusic = !settings.connectOnPhoneWhenAccessoryMusic) } })
+        SettingsToggle(label = stringResource(R.string.prox_disconnected_label),
+            checked = settings.connectOnPhoneWhenAccessoryDisconnected,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryDisconnected = checked) } })
+        SettingsToggle(label = stringResource(R.string.prox_idle_label),
+            checked = settings.connectOnPhoneWhenAccessoryIdle,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryIdle = checked) } })
+        SettingsToggle(label = stringResource(R.string.prox_music_label),
+            checked = settings.connectOnPhoneWhenAccessoryMusic,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnPhoneWhenAccessoryMusic = checked) } })
     }
     SettingsList(title = stringResource(R.string.prox_connect_on_media),
         description = stringResource(R.string.prox_connect_on_media_description)) {
-        SettingsChoiceRow(name = stringResource(R.string.prox_disconnected_label),
-            selected = settings.connectOnMediaWhenAccessoryDisconnected,
-            onClick = { vm.updateSettings { it.copy(connectOnMediaWhenAccessoryDisconnected = !settings.connectOnMediaWhenAccessoryDisconnected) } })
-        SettingsChoiceRow(name = stringResource(R.string.prox_idle_label),
-            selected = settings.connectOnMediaWhenAccessoryIdle,
-            onClick = { vm.updateSettings { it.copy(connectOnMediaWhenAccessoryIdle = !settings.connectOnMediaWhenAccessoryIdle) } })
-        SettingsChoiceRow(name = stringResource(R.string.prox_music_label),
-            selected = settings.connectOnMediaWhenAccessoryMusic,
-            onClick = { vm.updateSettings { it.copy(connectOnMediaWhenAccessoryMusic = !settings.connectOnMediaWhenAccessoryMusic) } })
+        SettingsToggle(label = stringResource(R.string.prox_disconnected_label),
+            checked = settings.connectOnMediaWhenAccessoryDisconnected,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnMediaWhenAccessoryDisconnected = checked) } })
+        SettingsToggle(label = stringResource(R.string.prox_idle_label),
+            checked = settings.connectOnMediaWhenAccessoryIdle,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnMediaWhenAccessoryIdle = checked) } })
+        SettingsToggle(label = stringResource(R.string.prox_music_label),
+            checked = settings.connectOnMediaWhenAccessoryMusic,
+            onCheckedChange = { checked -> vm.updateSettings { it.copy(connectOnMediaWhenAccessoryMusic = checked) } })
     }
 }
 
