@@ -110,7 +110,8 @@ fun AppSettingsScreen(
 
     StyledScaffold(
         title = stringResource(R.string.settings),
-        navigateBack = navigateBack
+        navigateBack = navigateBack,
+        contentBelowTopFade = true,
     ) { topPadding, bottomPadding ->
         Column(
             modifier = Modifier

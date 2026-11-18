@@ -94,6 +94,7 @@ fun StyledScaffold(
     navigateBack: (() -> Unit)?,
     actionButtons: List<@Composable (hazeInput: HazeInput) -> Unit> = emptyList(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    contentBelowTopFade: Boolean = false,
     content: @Composable BoxScope.(topPadding: Dp, bottomPadding: Dp) -> Unit
 ) {
     val design = LocalDesign.current
@@ -109,6 +110,7 @@ fun StyledScaffold(
             onNavigateBack = { navigateBack?.invoke() },
             actionButtons = actionButtons.map { action -> { action(HazeInput.Content) } },
             snackbarHostState = snackbarHostState,
+            contentBelowTopFade = contentBelowTopFade,
         ) {
             val bottomPadding = WindowInsets.navigationBars
                 .asPaddingValues().calculateBottomPadding()

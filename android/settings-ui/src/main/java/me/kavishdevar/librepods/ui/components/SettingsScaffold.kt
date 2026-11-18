@@ -88,6 +88,8 @@ fun SettingsScaffold(
     scrollState: ScrollState? = null,
     // Source Home supplies a separate backdrop below the scrolling foreground (wm.b2).
     background: (@Composable () -> Unit)? = null,
+    // A caller with a fixed padded viewport can keep all scrolling content below this band.
+    contentBelowTopFade: Boolean = false,
     content: @Composable () -> Unit
 ) {
     // The bottom fading edge is the scaffold's own, not the caller's: the original enables it from
@@ -284,8 +286,13 @@ fun SettingsScaffold(
                         )
                         Box(Modifier.fillMaxSize().padding(backdropPadding).offset { IntOffset(0, backdropOffset()) }) { background() }
                     }
-                    Box(Modifier.then(if (visible) Modifier.settingsContentFade(
-                        sourceScroll?.canScrollForward ?: scrollHolder.canScrollForward) else Modifier)
+                    val contentFade = when {
+                        !visible -> Modifier
+                        contentBelowTopFade -> Modifier.settingsStaticTopFade()
+                        else -> Modifier.settingsContentFade(
+                            sourceScroll?.canScrollForward ?: scrollHolder.canScrollForward)
+                    }
+                    Box(Modifier.then(contentFade)
                         .then(if (visible && sourceScroll == null) Modifier.padding(contentPadding) else Modifier)
                         .fillMaxSize()) {
                         CompositionLocalProvider(LocalSettingsScrollState provides scrollHolder) {

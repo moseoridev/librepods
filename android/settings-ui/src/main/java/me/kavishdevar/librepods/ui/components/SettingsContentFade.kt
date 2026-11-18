@@ -18,10 +18,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
@@ -79,6 +81,38 @@ internal fun Modifier.settingsContentFade(bottomFade: Boolean = false): Modifier
             shared.draw(this, size.width.toInt(), size.height.toInt())
         })
 }
+
+/** Draw the top band directly when the viewport starts below it. */
+@Composable
+internal fun Modifier.settingsStaticTopFade(): Modifier {
+    val background = MaterialTheme.colorScheme.contentFade
+    return drawWithCache {
+        val fadeHeight = TopFadeHeight.toPx()
+        val brush = ShaderBrush(RuntimeShader(EdgeMath + StaticTopMain).apply {
+            setFloatUniform("background", background.red, background.green, background.blue, background.alpha)
+            setFloatUniform("fadeHeight", fadeHeight)
+            setFloatUniform("lowAlpha", TopFadeMinAlpha)
+            setFloatUniform("innerAlpha", 1f)
+            setFloatUniform("curvePoints", .38f, 0f, .54f, 1f)
+            setFloatUniform("ditherStrength", 3f)
+            setIntUniform("customXfer", if (Build.VERSION.SDK_INT >= 36) 1 else 0)
+        })
+        onDrawWithContent {
+            drawContent()
+            drawRect(brush, size = androidx.compose.ui.geometry.Size(size.width, minOf(fadeHeight, size.height)))
+        }
+    }
+}
+
+private const val StaticTopMain = """
+    half4 main(float2 coord) {
+        if (coord.y >= fadeHeight) return half4(0.0);
+        float alpha = clamp(fadeAlpha(coord.y / fadeHeight, lowAlpha, curvePoints) + noise(coord), 0.0, 1.0);
+        half4 faded = mix(half4(0.0), background, 1.0 - alpha);
+        if (customXfer == 0) return half4(faded.rgb * faded.a, faded.a);
+        return half4(faded.rgb, faded.a);
+    }
+"""
 
 private enum class BottomFadeProfile(val height: Dp, val edgeAlpha: Float, val firstX: Float, val secondX: Float) {
     NoOverlap(40.dp, .2f, .35f, .4f),
