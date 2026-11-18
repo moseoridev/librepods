@@ -653,6 +653,7 @@ private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions, navigateToHead
     SettingsToggle(label = stringResource(if (ui.settings.headGesturesEnabled) R.string.settings_in_use else R.string.settings_not_in_use),
         checked = ui.settings.headGesturesEnabled, header = true,
         onCheckedChange = vm::setHeadGesturesEnabled)
+    if (!ui.settings.headGesturesEnabled) return
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
         SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head), descriptionIsState = true)
         SettingsListItem(name = stringResource(R.string.decline_call_label), description = stringResource(R.string.shake_head), descriptionIsState = true)
