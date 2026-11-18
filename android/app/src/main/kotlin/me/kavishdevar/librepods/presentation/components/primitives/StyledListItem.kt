@@ -949,10 +949,8 @@ private fun StyledListItemContent(
                     }
 
                     Box(
-                        modifier = Modifier.onGloballyPositioned { coordinates ->
-                            with (density) {
-                                if (trailingContent != null) trailingContentWidth.value = coordinates.size.width.toDp()
-                            }
+                        modifier = if (trailingContent == null) Modifier else Modifier.onGloballyPositioned { coordinates ->
+                            with(density) { trailingContentWidth.value = coordinates.size.width.toDp() }
                         }
                     ) {
                         trailingContentDefault()
