@@ -85,10 +85,18 @@ fun RenderScreenContent(
     updatesShown: () -> Unit,
     onboardingComplete: () -> Unit
 ) {
-    val navigate: (Screen) -> Unit = { target -> if (target !in backStack) backStack.add(target) } // prevents multiple clicks while transitioning
+    val navigate: (Screen) -> Unit = { target ->
+        if (backStack.lastOrNull() == screen && target !in backStack) {
+            backStack.add(target)
+        }
+    }
 
     val navigateBack: (() -> Unit)? = if (backStack.size > 1) {
-        { backStack.removeAt(backStack.lastIndex) }
+        {
+            if (backStack.lastOrNull() == screen && backStack.size > 1) {
+                backStack.removeAt(backStack.lastIndex)
+            }
+        }
     } else null
 
     when (screen) {

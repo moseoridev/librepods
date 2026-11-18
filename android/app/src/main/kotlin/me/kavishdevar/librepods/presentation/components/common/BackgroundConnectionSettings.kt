@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.bluetooth.CompanionConnection
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItem
+import me.kavishdevar.librepods.presentation.components.primitives.StyledListItemOrientation
 
 @Composable
 fun BackgroundConnectionSettings() {
@@ -34,6 +35,7 @@ fun BackgroundConnectionSettings() {
     StyledListItem(
         contentText = stringResource(if (approved) R.string.background_connection_ready else R.string.background_connection_setup),
         supportingText = stringResource(if (approved) R.string.background_connection_ready_description else R.string.background_connection_setup_description),
+        orientation = StyledListItemOrientation.Vertical,
         onClick = {
             try {
                 val manager = checkNotNull(context.getSystemService(CompanionDeviceManager::class.java))

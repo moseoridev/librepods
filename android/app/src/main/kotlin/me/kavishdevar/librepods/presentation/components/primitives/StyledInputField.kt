@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.ui.components.SettingsInputField
 
 @Composable
 fun StyledInputField(
@@ -47,7 +48,6 @@ fun StyledInputField(
     focusRequester: FocusRequester,
     placeholder: String = "",
     singleLine: Boolean = true,
-    forceApple: Boolean = false,
     colors: ListItemColors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -74,9 +74,14 @@ fun StyledInputField(
             )
         }
 
-        // Samsung's text entry is the same rounded field, so it shares the
-        // Apple rendering.
-        DesignSystem.Apple, DesignSystem.Samsung -> {
+        DesignSystem.Samsung -> SettingsInputField(
+            state = inputState,
+            focusRequester = focusRequester,
+            placeholder = placeholder,
+            singleLine = singleLine,
+            reserveSupportingSpace = false,
+        )
+        DesignSystem.Apple -> {
             val minHeight = if (singleLine) 58.dp else 120.dp
             val verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
             val hasText = inputState.text.isNotEmpty()

@@ -40,8 +40,9 @@ fun NavigationRoot(
 
     val connectedDevice = devices.values.firstOrNull { it.connectionState.collectAsState().value == ConnectionState.CONNECTED }
 
+    // Connection events may open a device from the list without interrupting another page.
     LaunchedEffect(connectedDevice) {
-        if (connectedDevice != null && !showReleaseNotes) {
+        if (connectedDevice != null && !showReleaseNotes && backStack.lastOrNull() == Screen.DeviceList) {
             val targetScreen = when (connectedDevice) {
                 is AppleDevice -> Screen.AppleScreen(connectedDevice.macAddress)
             }

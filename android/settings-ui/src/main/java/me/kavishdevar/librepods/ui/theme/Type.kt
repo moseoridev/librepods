@@ -33,7 +33,7 @@ internal val SettingsFontFamily = FontFamily(listOf(100, 300, 400, 500, 600, 700
     Font(DeviceFontFamilyName("sec"), FontWeight(it), variationSettings = FontVariation.Settings())
 })
 
-internal val SettingsTypography = Typography().run {
+val SettingsTypography = Typography().run {
     val body = TextStyle(fontFamily = SettingsFontFamily, fontSize = 17.sp)
     copy(
         bodyLarge = body, bodyMedium = body,

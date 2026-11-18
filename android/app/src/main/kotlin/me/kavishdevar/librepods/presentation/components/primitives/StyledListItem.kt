@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -439,7 +440,7 @@ fun StyledListItem(
                 },
                 // The Manager stacks the summary under the title, so a long
                 // description never competes with the title for width.
-                supportingContent = if (supportingText != null && (design.system == DesignSystem.Material || orientation == StyledListItemOrientation.Horizontal)) {
+                supportingContent = if (supportingText != null && (design.system != DesignSystem.Apple || orientation == StyledListItemOrientation.Horizontal)) {
                     @Composable {
                         Text(
                             text = supportingText,
@@ -732,7 +733,11 @@ fun StyledListScope.styledListItem(
                    @Composable {
                         Text(
                             text = supportingText,
-                            style = if (design.system == DesignSystem.Apple && orientation == StyledListItemOrientation.Horizontal) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+                            style = when {
+                                design.system == DesignSystem.Samsung -> SettingsStyle.RowSummary
+                                design.system == DesignSystem.Apple && orientation == StyledListItemOrientation.Horizontal -> MaterialTheme.typography.bodyMedium
+                                else -> MaterialTheme.typography.bodySmall
+                            },
                             color = if (design.system == DesignSystem.Material) LocalContentColor.current.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f), // TODO: move to color scheme
                         )
                     }
@@ -740,7 +745,7 @@ fun StyledListScope.styledListItem(
             enabled = enabled,
             index = index,
             count = count,
-            orientation = orientation,
+            orientation = if (design.system == DesignSystem.Samsung && supportingText != null) StyledListItemOrientation.Vertical else orientation,
             modifier = modifier,
             selected = selected,
             leadingContent = leadingContent,
@@ -793,8 +798,8 @@ private fun StyledListItemContent(
     val scope = rememberCoroutineScope()
 
     when (design.system) {
-        // The Manager's row keeps the same pressed-surface feedback and chevron, so
-        // Samsung shares the Apple row rendering.
+        // The slot-based row also hosts caller-supplied device UI and previews.
+        // Samsung uses the reference palette and row typography in those slots.
         DesignSystem.Apple, DesignSystem.Samsung -> {
             val surfaceColor = colors.containerColor
             val pressedColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -844,6 +849,8 @@ private fun StyledListItemContent(
             val leadingContentWidth = remember { mutableStateOf(0.dp) }
             val trailingContentWidth = remember { mutableStateOf(0.dp) }
 
+            val currentClick by rememberUpdatedState(onClick)
+            val currentEnabled by rememberUpdatedState(enabled)
             Column (
                 modifier = Modifier
                     .background(
@@ -876,24 +883,24 @@ private fun StyledListItemContent(
                             }
                         }
                     )
-                    .pointerInput(Unit) {
+                    .pointerInput(onClick != null, surfaceColor, pressedColor) {
                         if (onClick != null) {
                             detectTapGestures(
                                 onPress = {
-                                    if (enabled) {
+                                    if (currentEnabled) {
                                         backgroundColor = pressedColor
                                         tryAwaitRelease()
                                         backgroundColor = surfaceColor
                                     }
                                 },
                                 onTap = {
-                                    if (enabled) {
+                                    if (currentEnabled) {
                                         scope.launch {
                                             haptics.performHapticFeedback(
                                                 HapticFeedbackType.ContextClick
                                             )
                                         }
-                                        onClick.invoke()
+                                        currentClick?.invoke()
                                     }
                                 }
                             )

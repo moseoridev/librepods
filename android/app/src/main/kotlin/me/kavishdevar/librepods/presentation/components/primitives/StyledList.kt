@@ -31,6 +31,7 @@ import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.design.sectionHeader
+import me.kavishdevar.librepods.ui.components.SettingsList
 
 @Composable
 fun StyledList(
@@ -48,6 +49,17 @@ fun StyledList(
     }
 
     val design = LocalDesign.current
+    val scrollState = rememberScrollState()
+    if (design.system == DesignSystem.Samsung) {
+        SettingsList(
+            modifier = modifier.then(if (scrollEnabled) Modifier.verticalScroll(scrollState) else Modifier),
+            title = title,
+            description = description,
+        ) {
+            scope.items.forEach { item(it) }
+        }
+        return
+    }
     val m3eEnabled = design.system == DesignSystem.Material
 
     Column {
@@ -65,7 +77,6 @@ fun StyledList(
                 )
             }
         }
-        val scrollState = rememberScrollState()
         Column(
             modifier = modifier
                 .fillMaxWidth()

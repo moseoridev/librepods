@@ -28,19 +28,19 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -66,10 +66,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -79,10 +79,12 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.app.ColorStyle
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.ui.components.SettingsScaffold
 
 @Composable
 fun StyledScaffold(
@@ -95,6 +97,25 @@ fun StyledScaffold(
     content: @Composable BoxScope.(topPadding: Dp, bottomPadding: Dp) -> Unit
 ) {
     val design = LocalDesign.current
+
+    if (design.system == DesignSystem.Samsung) {
+        val backLabel = stringResource(R.string.back)
+        SettingsScaffold(
+            modifier = modifier,
+            visible = visible,
+            title = title,
+            backLabel = backLabel,
+            showBackButton = navigateBack != null,
+            onNavigateBack = { navigateBack?.invoke() },
+            actionButtons = actionButtons.map { action -> { action(HazeInput.Content) } },
+            snackbarHostState = snackbarHostState,
+        ) {
+            val bottomPadding = WindowInsets.navigationBars
+                .asPaddingValues().calculateBottomPadding()
+            Box(Modifier.fillMaxSize()) { content(0.dp, bottomPadding) }
+        }
+        return
+    }
 
     val hazeState = rememberHazeState()
 
@@ -210,9 +231,8 @@ fun StyledScaffold(
                 }
             }
         }
-        // Samsung's page window is the same rounded, hazed container with a
-        // back slot, so it shares the Apple scaffold.
-        DesignSystem.Apple, DesignSystem.Samsung -> {
+        DesignSystem.Samsung -> Unit
+        DesignSystem.Apple -> {
             Scaffold(
                 containerColor = if (design.colorStyle == ColorStyle.Custom) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -249,21 +269,6 @@ fun StyledScaffold(
                                 .zIndex(3f)
                                 .padding(top = topPadding, start = 8.dp)
                                 .align(Alignment.TopStart)
-                                .pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            awaitFirstDown(requireUnconsumed = false)
-
-                                            do {
-                                                val event = awaitPointerEvent()
-
-                                                event.changes.forEach { change ->
-                                                    change.consume()
-                                                }
-                                            } while (event.changes.any { it.pressed })
-                                        }
-                                    }
-                                }
                         ) {
                             StyledIconButton(
                                 onClick = navigateBack,
@@ -330,21 +335,6 @@ fun StyledScaffold(
                             .zIndex(3f)
                             .padding(top = topPadding, end = 8.dp)
                             .align(Alignment.TopEnd)
-                            .pointerInput(Unit) {
-                                awaitPointerEventScope {
-                                    while (true) {
-                                        awaitFirstDown(requireUnconsumed = false)
-
-                                        do {
-                                            val event = awaitPointerEvent()
-
-                                            event.changes.forEach { change ->
-                                                change.consume()
-                                            }
-                                        } while (event.changes.any { it.pressed })
-                                    }
-                                }
-                            }
                     ) {
                         Row{
                             actionButtons.forEach { actionButton ->

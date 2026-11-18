@@ -99,6 +99,10 @@ import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.ui.components.SettingsList
+import me.kavishdevar.librepods.ui.components.SettingsRowDivider
+import me.kavishdevar.librepods.ui.components.SettingsSeekBar
+import me.kavishdevar.librepods.ui.theme.SettingsStyle
 import me.kavishdevar.librepods.utils.inspectDragGestures
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -379,9 +383,40 @@ fun StyledSlider(
             }
         }
 
-        // Samsung's slider is the same rounded track with an independent row
-        // surface, so it shares the Apple rendering.
-        DesignSystem.Apple, DesignSystem.Samsung -> {
+        DesignSystem.Samsung -> {
+            val control: @Composable () -> Unit = {
+                Column(Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.RowInset, vertical = 8.dp)) {
+                    if (independent && label != null) {
+                        Text(label, style = SettingsStyle.RowTitle)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        startImageVector?.let { Icon(it, contentDescription = null) }
+                        SettingsSeekBar(
+                            value = value,
+                            onValueChange = { onValueChange(snapIfClose(it, snapPoints, snapThreshold)) },
+                            valueRange = valueRange,
+                            modifier = Modifier.weight(1f),
+                            enabled = enabled,
+                        )
+                        endImageVector?.let { Icon(it, contentDescription = null) }
+                    }
+                    if (startLabel != null || endLabel != null) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(startLabel.orEmpty(), style = SettingsStyle.RowSummary)
+                            Text(endLabel.orEmpty(), style = SettingsStyle.RowSummary)
+                        }
+                    }
+                }
+            }
+            if (independent) {
+                SettingsList(description = description) { item { _, _ -> control() } }
+            } else {
+                control()
+                if (index + 1 < count) SettingsRowDivider()
+            }
+        }
+        DesignSystem.Apple -> {
             val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
             val trackColor =
                 if (isDarkTheme) Color(0xFF787880).copy(0.36f)

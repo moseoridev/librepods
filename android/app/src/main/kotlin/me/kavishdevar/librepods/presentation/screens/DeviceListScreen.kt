@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
@@ -127,20 +128,21 @@ fun DeviceListScreen(
                         ) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
-                            contentDescription = "settings",
+                            contentDescription = stringResource(R.string.settings),
                             modifier = Modifier.size(IconButtonDefaults.mediumIconSize),
                         )
                     }
                 } else {
                     StyledIconButton(
                         onClick = navigateToAppSettings,
-                        hazeInput = hazeInput
+                        hazeInput = hazeInput,
+                        contentDescription = stringResource(R.string.settings),
                     ) {
                         Icon(
                             imageVector = LocalIcons.current.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = if (design.system == DesignSystem.Samsung) null else stringResource(R.string.settings),
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(IconButtonDefaults.mediumIconSize)
+                            modifier = if (design.system == DesignSystem.Samsung) Modifier.size(24.dp) else Modifier.size(IconButtonDefaults.mediumIconSize)
                         )
                     }
                 }
@@ -234,7 +236,8 @@ fun DeviceListScreen(
                 val morphProgress = remember { Animatable(0f) }
                 val globalRotation = remember { Animatable(0f) }
 
-                LaunchedEffect(connectionState) {
+                LaunchedEffect(connectionState, design.system) {
+                    if (design.system == DesignSystem.Samsung) return@LaunchedEffect
                     if (connectionState == ConnectionState.CONNECTING) {
                         pressed = false
                         currentMorphIndex = 0
@@ -313,7 +316,7 @@ fun DeviceListScreen(
                     }
                 }
 
-                val iconBackgroundColor by animateColorAsState(
+                val iconBackgroundColor = animateColorAsState(
                     targetValue = when (connectionState) {
                         ConnectionState.CONNECTING,
                         ConnectionState.DISCONNECTING,
@@ -345,6 +348,17 @@ fun DeviceListScreen(
                     label = "iconColor"
                 )
 
+                val samsungIconBackground = remember(squirclePolygon, iconBackgroundColor) {
+                    Modifier.drawWithCache {
+                        val shapePath = Morph(squirclePolygon, squirclePolygon).toPath(0f)
+                        val bounds = shapePath.getBounds()
+                        val scale = min(size.width / bounds.width, size.height / bounds.height) * 0.9f
+                        shapePath.transform(Matrix().apply { scale(scale, scale) })
+                        shapePath.translate(size.center - shapePath.getBounds().center)
+                        onDrawBehind { rotate(45f) { drawPath(shapePath, iconBackgroundColor.value) } }
+                    }
+                }
+
                 val path = remember { Path() }
                 val matrix = remember { Matrix() }
 
@@ -366,7 +380,7 @@ fun DeviceListScreen(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .pointerInput(Unit) {
+                                    .pointerInput(device, connectionState) {
                                         detectTapGestures(
                                             onPress = {
                                                 pressed = true
@@ -384,7 +398,8 @@ fun DeviceListScreen(
                                             }
                                         )
                                     }
-                                    .drawBehind {
+                                    .then(if (design.system == DesignSystem.Samsung) samsungIconBackground
+                                    else Modifier.drawBehind {
                                         val activeMorph: Morph
                                         val activeProgress: Float
 
@@ -432,10 +447,10 @@ fun DeviceListScreen(
                                         rotate(rotation) {
                                             drawPath(
                                                 path = shapePath,
-                                                color = iconBackgroundColor
+                                                color = iconBackgroundColor.value
                                             )
                                         }
-                                    },
+                                    }),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(

@@ -88,6 +88,9 @@ private val SettingsDarkColors = darkColorScheme(
     outlineVariant = Color(0x33FFFFFF),
 )
 
+fun settingsColorScheme(darkTheme: Boolean): ColorScheme =
+    if (darkTheme) SettingsDarkColors else SettingsLightColors
+
 @Composable
 fun SettingsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -95,7 +98,7 @@ fun SettingsTheme(
 ) {
     CompositionLocalProvider(LocalSettingsDarkTheme provides darkTheme) {
         MaterialExpressiveTheme(
-            colorScheme = if (darkTheme) SettingsDarkColors else SettingsLightColors,
+            colorScheme = settingsColorScheme(darkTheme),
             motionScheme = MotionScheme.standard(),
             typography = SettingsTypography,
             content = content

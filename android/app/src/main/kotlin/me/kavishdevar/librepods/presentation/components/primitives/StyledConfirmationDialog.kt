@@ -61,6 +61,7 @@ import androidx.compose.ui.res.stringResource
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
+import me.kavishdevar.librepods.ui.components.SettingsConfirmationDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,9 +73,22 @@ fun StyledConfirmationDialog(
     dismissText: String = stringResource(R.string.cancel),
     onConfirm: () -> Unit,
     onDismiss: () -> Unit = { showDialog.value = false },
-    backdrop: LayerBackdrop,
+    backdrop: LayerBackdrop?,
 ) {
     val design = LocalDesign.current
+
+    if (design.system == DesignSystem.Samsung) {
+        SettingsConfirmationDialog(
+            visible = showDialog.value,
+            title = title,
+            message = message,
+            confirmText = confirmText,
+            dismissText = dismissText,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+        )
+        return
+    }
 
     AnimatedVisibility(
         visible = showDialog.value,
@@ -129,9 +143,8 @@ fun StyledConfirmationDialog(
                     }
                 }
             }
-            // Samsung's confirmation is the same rounded dialog with two
-            // actions, so it shares the Apple rendering.
-            DesignSystem.Apple, DesignSystem.Samsung -> {
+            DesignSystem.Samsung -> Unit
+            DesignSystem.Apple -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -150,7 +163,7 @@ fun StyledConfirmationDialog(
                                 .requiredWidthIn(min = 200.dp, max = 360.dp)
                                 .clip(RoundedCornerShape(48.dp))
                                 .drawBackdrop(
-                                    backdrop = backdrop,
+                                    backdrop = requireNotNull(backdrop),
                                     exportedBackdrop = innerBackdrop,
                                     shape = { RoundedCornerShape(48.dp) },
                                     effects = {

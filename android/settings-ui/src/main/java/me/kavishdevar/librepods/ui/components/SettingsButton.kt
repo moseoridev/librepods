@@ -106,7 +106,7 @@ fun SettingsButton(
 @Composable
 fun SettingsIconButton(
     onClick: () -> Unit,
-    contentDescription: String,
+    contentDescription: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = Color.Unspecified,
@@ -124,7 +124,7 @@ fun SettingsIconButton(
 @Composable
 internal fun SettingsIconButtonContent(
     onClick: () -> Unit,
-    contentDescription: String,
+    contentDescription: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = Color.Unspecified,
@@ -153,7 +153,10 @@ internal fun SettingsIconButtonContent(
     // drawn afterwards with a rounded sum of margins and unrounded translation.
     // Keep caller parent data (align/weight) on the outer layout. Measure the
     // artwork first; the tooltip's interaction anchor then covers that layout.
-    Box(modifier, contentAlignment = Alignment.Center) {
+    val click = Modifier.clickable(interactionSource = interactionSource, indication = null,
+        enabled = enabled, role = Role.Button, onClick = onClick)
+    Box(modifier.then(if (contentDescription == null) click else Modifier),
+        contentAlignment = Alignment.Center) {
         Box(Modifier.padding(contentPadding).size(24.dp)
             .drawWithContent {
                 scale(if (enabled) contentScale else 1f) { this@drawWithContent.drawContent() }
@@ -170,12 +173,11 @@ internal fun SettingsIconButtonContent(
                 Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { content() }
             }
         }
-        Box(Modifier.matchParentSize()) {
+        if (contentDescription != null) Box(Modifier.matchParentSize()) {
             // TooltipBox adds its long-click semantics and input handlers to this
             // same anchor, so accessibility exposes one named button with both actions.
             SettingsIconTooltip(contentDescription, enabled, focused,
-                Modifier.fillMaxSize().clickable(interactionSource = interactionSource, indication = null,
-                    enabled = enabled, role = Role.Button, onClick = onClick)
+                Modifier.fillMaxSize().then(click)
                     .semantics { this.contentDescription = contentDescription })
         }
     }

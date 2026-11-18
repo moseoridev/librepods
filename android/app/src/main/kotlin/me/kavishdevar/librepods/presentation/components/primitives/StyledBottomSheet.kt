@@ -19,11 +19,13 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
+import me.kavishdevar.librepods.data.app.DesignSystem
+import me.kavishdevar.librepods.presentation.design.LocalDesign
+import me.kavishdevar.librepods.ui.components.SettingsBottomSheet
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,10 +33,17 @@ import com.kyant.backdrop.effects.vibrancy
 fun StyledBottomSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
-    backdrop: LayerBackdrop,
-    content: @Composable (innerBackdrop: LayerBackdrop, progress: Float) -> Unit
+    backdrop: LayerBackdrop?,
+    content: @Composable (progress: Float) -> Unit
 ) {
     if (!visible) return
+
+    if (LocalDesign.current.system == DesignSystem.Samsung) {
+        SettingsBottomSheet(visible = true, onDismissRequest = onDismiss) { progress ->
+            content(progress)
+        }
+        return
+    }
 
     val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val sheetState = rememberModalBottomSheetState(false) // move this to parent composable
@@ -57,14 +66,12 @@ fun StyledBottomSheet(
         scrimColor = Color.Transparent,
         modifier = Modifier.padding(4.dp)
     ) {
-        val innerBackdrop = rememberLayerBackdrop()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(animatedCorner))
                 .drawBackdrop(
-                    backdrop = backdrop,
-                    exportedBackdrop = innerBackdrop,
+                    backdrop = requireNotNull(backdrop),
                     shape = { RoundedCornerShape(animatedCorner) },
                     effects = {
                         vibrancy()
@@ -80,7 +87,7 @@ fun StyledBottomSheet(
                 .padding(top = 24.dp)
                 .padding(horizontal = 16.dp)
         ) {
-            content(innerBackdrop, progress)
+            content(progress)
         }
     }
 }

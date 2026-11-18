@@ -44,6 +44,7 @@ import dev.chrisbanes.haze.glass.LocalGlassAccessibilitySettings
 import me.kavishdevar.librepods.data.app.AccessibilitySettings
 import me.kavishdevar.librepods.data.app.ColorStyle
 import me.kavishdevar.librepods.data.app.Design
+import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.data.app.FontFamilyOption
 import me.kavishdevar.librepods.data.app.FontSettings
 import me.kavishdevar.librepods.data.app.IconStyle
@@ -54,6 +55,8 @@ import me.kavishdevar.librepods.presentation.design.typography.RobotoFlexTypogra
 import me.kavishdevar.librepods.presentation.icons.AppleIcons
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.icons.MaterialIcons
+import me.kavishdevar.librepods.ui.theme.SettingsTypography
+import me.kavishdevar.librepods.ui.theme.settingsColorScheme
 
 val ColorScheme.sectionHeader: Color
     get() = onBackground.copy(alpha = 0.6f)
@@ -104,7 +107,8 @@ fun LibrePodsTheme(
     fontSettings: FontSettings = FontSettings(),
     content: @Composable () -> Unit
 ) {
-    val typography = when(fontSettings.fontFamilyOption) {
+    val samsung = design.system == DesignSystem.Samsung
+    val typography = if (samsung) SettingsTypography else when (fontSettings.fontFamilyOption) {
         FontFamilyOption.SystemDefault -> Typography()
         FontFamilyOption.RobotoFlex -> RobotoFlexTypography
         FontFamilyOption.RobotoFlexExpressive -> RobotoFlexExpressiveTypography
@@ -114,7 +118,7 @@ fun LibrePodsTheme(
     CompositionLocalProvider(
         LocalDesign provides design,
         LocalAccessibilitySettings provides accessibilitySettings,
-        LocalIcons provides when (design.iconStyle) {
+        LocalIcons provides if (samsung) MaterialIcons else when (design.iconStyle) {
             IconStyle.Material -> MaterialIcons
             IconStyle.Apple -> AppleIcons
         },
@@ -136,7 +140,11 @@ fun LibrePodsTheme(
                     style = design.paletteStyle,
                 )
             }
-            ColorStyle.Default -> if (darkTheme) DefaultDarkColorScheme else DefaultLightColorScheme
+            ColorStyle.Default -> when {
+                samsung -> settingsColorScheme(darkTheme).let { it.copy(surfaceContainerHigh = it.surface) }
+                darkTheme -> DefaultDarkColorScheme
+                else -> DefaultLightColorScheme
+            }
             ColorStyle.Wallpaper -> if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 

@@ -63,6 +63,9 @@ import me.kavishdevar.librepods.presentation.design.LocalAccessibilitySettings
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.design.sectionHeader
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.ui.components.SettingsRowDivider
+import me.kavishdevar.librepods.ui.components.SettingsToggle
+import me.kavishdevar.librepods.ui.components.SettingsToggleRow
 
 @Composable
 fun StyledToggle(
@@ -84,6 +87,20 @@ fun StyledToggle(
     )
 ) {
     val design = LocalDesign.current
+    if (design.system == DesignSystem.Samsung) {
+        Column(modifier) {
+            SettingsToggle(
+                title = title,
+                label = label,
+                description = description,
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = onCheckedChange,
+                header = header,
+            )
+        }
+        return
+    }
     val m3eEnabled = design.system == DesignSystem.Material
 
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
@@ -202,7 +219,10 @@ private fun StyledToggleContent(
 
     val m3eEnabled = design.system == DesignSystem.Material
 
-    if (m3eEnabled) {
+    if (design.system == DesignSystem.Samsung) {
+        SettingsToggleRow(label, checked, onCheckedChange, modifier, description, enabled = enabled)
+        if (index + 1 < count) SettingsRowDivider()
+    } else if (m3eEnabled) {
         val defaultShape = when {
             count == 1 -> RoundedCornerShape(24.dp)
 

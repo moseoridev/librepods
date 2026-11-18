@@ -71,6 +71,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.styledListIte
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
+import me.kavishdevar.librepods.ui.components.SettingsSeekBar
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -467,6 +468,16 @@ private fun HSLSlider(
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (LocalDesign.current.system == DesignSystem.Samsung) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(4.dp).clip(CircleShape)) {
+                drawRect(brush = Brush.horizontalGradient(gradientColors))
+            }
+            SettingsSeekBar(value, onValueChange, valueRange, Modifier.fillMaxWidth())
+        }
+        return
+    }
+
     val trackHazeState = rememberHazeState()
     var isDragging by remember { mutableStateOf(false) }
 

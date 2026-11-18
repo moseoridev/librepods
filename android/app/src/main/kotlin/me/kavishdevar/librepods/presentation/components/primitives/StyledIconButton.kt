@@ -68,6 +68,7 @@ import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
+import me.kavishdevar.librepods.ui.components.SettingsIconButton
 import me.kavishdevar.librepods.utils.inspectDragGestures
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -83,6 +84,7 @@ fun StyledIconButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
     materialButtonStyle: MaterialButtonStyle = MaterialButtonStyle.Normal,
+    contentDescription: String? = null,
     content: @Composable () -> Unit,
 ) {
     val design = LocalDesign.current
@@ -128,9 +130,17 @@ fun StyledIconButton(
                 }
             }
         }
-        // The Manager's icon action is the same flat, circular, press-feedback control with
-        // no tonal container, so Samsung shares the Apple rendering unchanged.
-        DesignSystem.Apple, DesignSystem.Samsung -> {
+        DesignSystem.Samsung -> {
+            SettingsIconButton(
+                onClick = onClick,
+                contentDescription = contentDescription,
+                modifier = modifier,
+                enabled = enabled,
+                containerColor = if (surfaceColor == Color.Unspecified) Color.Transparent else surfaceColor,
+                content = content,
+            )
+        }
+        DesignSystem.Apple -> {
             val haptics = LocalHapticFeedback.current
             val scope = rememberCoroutineScope()
             val progressAnimationSpec = spring(0.5f, 300f, 0.001f)

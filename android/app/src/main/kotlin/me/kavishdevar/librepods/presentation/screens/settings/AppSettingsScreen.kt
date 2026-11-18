@@ -59,7 +59,9 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeInput
 import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.components.common.AppInfoCard
+import me.kavishdevar.librepods.presentation.components.common.BackgroundConnectionSettings
 import me.kavishdevar.librepods.presentation.components.common.DeviceInfoCard
 import me.kavishdevar.librepods.presentation.components.primitives.StyledBottomSheet
 import me.kavishdevar.librepods.presentation.components.primitives.StyledConfirmationDialog
@@ -71,6 +73,7 @@ import me.kavishdevar.librepods.presentation.components.primitives.StyledListIte
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
 import me.kavishdevar.librepods.presentation.components.primitives.styledListItem
 import me.kavishdevar.librepods.presentation.components.primitives.styledToggle
+import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.utils.LocalDebugMode
 import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
@@ -96,7 +99,8 @@ fun AppSettingsScreen(
     val scrollState = rememberScrollState()
     val state by viewModel.uiState.collectAsState()
 
-    val backdrop = rememberLayerBackdrop()
+    val samsung = LocalDesign.current.system == DesignSystem.Samsung
+    val backdrop = if (samsung) null else rememberLayerBackdrop()
 
     val contactBottomSheet = remember { mutableStateOf(false) }
     val subjectState = remember { TextFieldState() }
@@ -111,12 +115,12 @@ fun AppSettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .layerBackdrop(backdrop)
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(topPadding))
-            me.kavishdevar.librepods.presentation.components.common.BackgroundConnectionSettings()
+            BackgroundConnectionSettings()
 
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -419,7 +423,7 @@ fun AppSettingsScreen(
         visible = contactBottomSheet.value,
         onDismiss = { contactBottomSheet.value = false },
         backdrop = backdrop
-    ) { innerBackdrop, progress ->
+    ) { progress ->
         val animatedPadding = lerp(16.dp, 2.dp, progress)
 
         Column(
@@ -449,6 +453,7 @@ fun AppSettingsScreen(
                    text = stringResource(R.string.describe_your_issue),
                    style = MaterialTheme.typography.labelLargeEmphasized,
                    textAlign = TextAlign.Center,
+                   modifier = Modifier.weight(1f),
                    color = MaterialTheme.colorScheme.onBackground
                )
                StyledIconButton(
@@ -496,8 +501,7 @@ fun AppSettingsScreen(
            StyledInputField(
                inputState = subjectState,
                focusRequester = subjectFocusRequester,
-               placeholder = stringResource(R.string.subject),
-               forceApple = true
+               placeholder = stringResource(R.string.subject)
            )
 
            Spacer(modifier = Modifier.height(12.dp))
@@ -506,8 +510,7 @@ fun AppSettingsScreen(
                inputState = descriptionState,
                focusRequester = descriptionFocusRequester,
                placeholder = stringResource(R.string.describe_your_issue),
-               singleLine = false,
-               forceApple = true
+               singleLine = false
            )
         }
     }

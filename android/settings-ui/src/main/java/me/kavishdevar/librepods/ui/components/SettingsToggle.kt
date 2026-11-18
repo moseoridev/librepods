@@ -98,38 +98,56 @@ fun SettingsListScope.SettingsToggle(
     homeMenu: Boolean = false,
 ) {
     item { index, count ->
-        val interactionSource = remember { MutableInteractionSource() }
-        // wm.k1.c/d: only the text column has vertical padding. Padding the
-        // entire row lets a taller switch grow the row at small font sizes.
-        val rowPadding = Modifier.padding(horizontal = SettingsStyle.RowInset)
-        val textPadding = Modifier.padding(vertical = SettingsStyle.RowVerticalPadding)
-        Row(Modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, SettingsStyle.RowMinHeight))
-            .toggleable(value = checked, interactionSource = interactionSource, indication = null,
-                enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            // wm.k1.c dims the finished row once, including the trailing control.
-            .graphicsLayer { alpha = if (enabled) 1f else .4f }
-            .then(settingsRowFeedback(enabled, interactionSource))
-            .then(rowPadding),
-            verticalAlignment = Alignment.CenterVertically) {
-            // wm.k1.d applies the text-column minimum before its vertical insets.
-            Column(Modifier.weight(1f).heightIn(min = SettingsStyle.RowMinHeight).then(textPadding),
-                verticalArrangement = if (homeMenu) Arrangement.Center else Arrangement.Top) {
-                Text(label, style = SettingsStyle.RowTitle,
-                    color = MaterialTheme.colorScheme.onSurface)
-                description?.let {
-                    Text(it, style = SettingsStyle.RowSummary, color = SettingsStyle.summaryColor(descriptionIsState, canClick = true, enabled = true))
-                }
-            }
-            // wm.y0 selects its rule by the caller's switch presentation style,
-            // independently of checked/enabled state, then adds one 8dp gap.
-            if (trailingDivider) {
-                val outline = MaterialTheme.colorScheme.outlineVariant
-                VerticalDivider(Modifier.height(22.dp), thickness = 1.dp,
-                    color = outline)
-            }
-            Spacer(Modifier.width(8.dp))
-            SettingsRowSwitch(checked, enabled, onCheckedChange)
-        }
+        SettingsToggleRow(label, checked, onCheckedChange, description = description,
+            descriptionIsState = descriptionIsState, enabled = enabled,
+            trailingDivider = trailingDivider, minHeight = minHeight, homeMenu = homeMenu)
         if (index + 1 < count) SettingsRowDivider()
+    }
+}
+/** The Manager toggle row for callers that already own a group surface. */
+@Composable
+fun SettingsToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    descriptionIsState: Boolean = false,
+    enabled: Boolean = true,
+    trailingDivider: Boolean = false,
+    minHeight: Dp = SettingsStyle.RowMinHeight,
+    homeMenu: Boolean = false,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    // wm.k1.c/d: only the text column has vertical padding. Padding the
+    // entire row lets a taller switch grow the row at small font sizes.
+    val rowPadding = Modifier.padding(horizontal = SettingsStyle.RowInset)
+    val textPadding = Modifier.padding(vertical = SettingsStyle.RowVerticalPadding)
+    Row(modifier.fillMaxWidth().heightIn(min = maxOf(minHeight, SettingsStyle.RowMinHeight))
+        .toggleable(value = checked, interactionSource = interactionSource, indication = null,
+            enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+        // wm.k1.c dims the finished row once, including the trailing control.
+        .graphicsLayer { alpha = if (enabled) 1f else .4f }
+        .then(settingsRowFeedback(enabled, interactionSource))
+        .then(rowPadding),
+        verticalAlignment = Alignment.CenterVertically) {
+        // wm.k1.d applies the text-column minimum before its vertical insets.
+        Column(Modifier.weight(1f).heightIn(min = SettingsStyle.RowMinHeight).then(textPadding),
+            verticalArrangement = if (homeMenu) Arrangement.Center else Arrangement.Top) {
+            Text(label, style = SettingsStyle.RowTitle,
+                color = MaterialTheme.colorScheme.onSurface)
+            description?.let {
+                Text(it, style = SettingsStyle.RowSummary, color = SettingsStyle.summaryColor(descriptionIsState, canClick = true, enabled = true))
+            }
+        }
+        // wm.y0 selects its rule by the caller's switch presentation style,
+        // independently of checked/enabled state, then adds one 8dp gap.
+        if (trailingDivider) {
+            val outline = MaterialTheme.colorScheme.outlineVariant
+            VerticalDivider(Modifier.height(22.dp), thickness = 1.dp,
+                color = outline)
+        }
+        Spacer(Modifier.width(8.dp))
+        SettingsRowSwitch(checked, enabled, onCheckedChange)
     }
 }
