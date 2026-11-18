@@ -12,7 +12,9 @@ internal interface DeviceSettingsActions {
     fun setControlCommand(command: ControlCommandIdentifier, value: Int) = setControlCommand(command, byteArrayOf(value.toByte()))
     fun setControlCommand(command: ControlCommandIdentifier, value: Boolean) = setControlCommand(command, if (value) 1 else 2)
     fun updateSettings(transform: (AppleSettings) -> AppleSettings)
-    fun disconnect()
+    fun canRequestBluetoothDisconnect(): Boolean
+    fun requestBluetoothDisconnect(): Boolean
+    fun openBluetoothSettings()
     fun renameDevice(name: String)
     fun setLongPressAction(side: String, action: StemAction)
     fun setHeadGesturesEnabled(enabled: Boolean)
@@ -21,13 +23,18 @@ internal interface DeviceSettingsActions {
     fun setCustomEq(low: Int, mid: Int, high: Int)
 }
 
-internal class ViewModelSettingsActions(private val vm: AppleViewModel) : DeviceSettingsActions {
+internal class ViewModelSettingsActions(
+    private val vm: AppleViewModel,
+    private val openSystemBluetoothSettings: () -> Unit,
+) : DeviceSettingsActions {
     override fun setControlCommand(command: ControlCommandIdentifier, value: ByteArray) { vm.setControlCommand(command, value) }
     // Keep upstream's overload semantics, including its Boolean encoding.
     override fun setControlCommand(command: ControlCommandIdentifier, value: Int) { vm.setControlCommand(command, value) }
     override fun setControlCommand(command: ControlCommandIdentifier, value: Boolean) { vm.setControlCommand(command, value) }
     override fun updateSettings(transform: (AppleSettings) -> AppleSettings) { vm.updateSettings(transform) }
-    override fun disconnect() { vm.disconnect() }
+    override fun canRequestBluetoothDisconnect() = vm.canRequestBluetoothDisconnect()
+    override fun requestBluetoothDisconnect() = vm.requestBluetoothDisconnect()
+    override fun openBluetoothSettings() = openSystemBluetoothSettings()
     override fun renameDevice(name: String) { vm.renameDevice(name) }
     override fun setLongPressAction(side: String, action: StemAction) { vm.setLongPressAction(side, action) }
     override fun setHeadGesturesEnabled(enabled: Boolean) { vm.setHeadGesturesEnabled(enabled) }

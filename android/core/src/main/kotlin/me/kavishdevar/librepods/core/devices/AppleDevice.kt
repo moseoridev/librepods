@@ -3,6 +3,7 @@ package me.kavishdevar.librepods.core.devices
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.os.Build
 import android.util.Log
@@ -253,6 +254,27 @@ class AppleDevice(
     private val recoveryScope = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun disconnect() {
+        if (!requestBluetoothDisconnect()) disconnectControl()
+    }
+
+    /** A rejected platform request leaves the control session and its recovery policy intact. */
+    fun requestBluetoothDisconnect(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.CINNAMON_BUN) return false
+        val result = try {
+            bluetoothDevice.disconnect()
+        } catch (error: RuntimeException) {
+            Log.w(TAG, "Bluetooth disconnect request failed", error)
+            return false
+        }
+        if (result != BluetoothStatusCodes.SUCCESS) {
+            Log.w(TAG, "Bluetooth disconnect request rejected with status $result")
+            return false
+        }
+        disconnectControl()
+        return true
+    }
+
+    private fun disconnectControl() {
         recoveryScope.launch {
             requestRevision++
             nearbyOwner.handoff()
@@ -261,13 +283,6 @@ class AppleDevice(
             retry?.cancel()
             _state.update { it.copy(lastDisconnected = System.currentTimeMillis()) }
             aacp.disconnect()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
-                try {
-                    bluetoothDevice.disconnect()
-                } catch (e: Exception) {
-                    Log.e(TAG, "couldn't disconnect bluetooth device", e)
-                }
-            }
             _connectionState.value = ConnectionState.DISCONNECTED
         }
     }

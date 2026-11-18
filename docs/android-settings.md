@@ -152,6 +152,8 @@ Source: `Picsew_20260921225117.PNG`. Preserve this observed top-to-bottom order 
 
 The Name editor, listening-mode transitions, volume interaction and Disconnect/Forget confirmation dialogs are not captured.
 
+Samsung's Disconnect action requests an all-profile Bluetooth disconnect on Android 17/API 37+ when LibrePods has Bluetooth Connect and a companion association for the device or the privileged Bluetooth grant. It closes the control session and suppresses retries once Android accepts the request. When the API is unavailable or rejects the request, the action opens Android Bluetooth settings and leaves the control session running. The app preserves bonding and profile policies. Android reports successful initiation asynchronously. [Android BluetoothDevice.disconnect reference](https://developer.android.com/reference/android/bluetooth/BluetoothDevice#disconnect())
+
 ### Home row icons
 
 The iOS home capture determines which Samsung rows carry leading icons. Galaxy Buds4 Manager supplies the 24dp leading slot and 18dp gap before the label. Its `ic_sounds_ui8`, `ic_accessibility_ui8` and `ic_about_earbuds_ui8` resources use 24dp vectors with 1.5-unit outline strokes. LibrePods draws its own outlines with round caps and joins, tinted with `onSurface`. [Manager 9.0.10.1724 Home capture](/Users/moseoridev/programming/android/librepods/evidence/compose-residuals-cold-20261113/shadow-dialog-final-20261115/portrait-480-dark/session-attempt-0/captures/native-Home-scrolled-1080x2340-480-dark.png)

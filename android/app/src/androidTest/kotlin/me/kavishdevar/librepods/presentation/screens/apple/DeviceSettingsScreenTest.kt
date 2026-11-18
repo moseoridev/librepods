@@ -21,6 +21,7 @@ import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.platform.app.InstrumentationRegistry
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.devices.AirPodsModel
+import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.Capability
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.CapabilityEntry
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
@@ -510,6 +511,24 @@ class DeviceSettingsScreenTest {
                 controlStates = ui.state.controlStates + (Command.HEARING_AID to byteArrayOf(1, 1))))
         }
         compose.onNodeWithText(text(R.string.iphone_audio_visual_settings)).assertDoesNotExist()
+    }
+
+    @Test fun rejectedBluetoothDisconnectOpensSettingsWithoutClosingTheControlSession() {
+        val fixture = SettingsFixture()
+        val actions = object : DeviceSettingsActions by fixture {
+            override fun requestBluetoothDisconnect(): Boolean {
+                fixture.events += "Bluetooth disconnect rejected"
+                return false
+            }
+        }
+        compose.setContent { BudsDeviceSettings(fixture.ui, actions, mediaVolume = { FixtureMediaVolume() }) }
+        compose.onNodeWithText(text(R.string.disconnect)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.open_bluetooth_settings)).performScrollTo().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("Bluetooth disconnect rejected", "bluetooth settings", "bluetooth settings"),
+                fixture.events.toList())
+            assertEquals(ConnectionState.CONNECTED, fixture.ui.connectionState)
+        }
     }
 
     @Test fun extrasDisappearsFromHomeWhenNoModelOptionApplies() {

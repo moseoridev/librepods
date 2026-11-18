@@ -18,6 +18,9 @@
 
 package me.kavishdevar.librepods.presentation.viewmodel
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import me.kavishdevar.librepods.bluetooth.CompanionConnection
 import me.kavishdevar.librepods.core.devices.ConnectionState
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -139,6 +143,18 @@ class AppleViewModel(
     )
 
     fun disconnect() = device.disconnect()
+
+    fun canRequestBluetoothDisconnect(): Boolean {
+        val context = device.context
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+            (context.checkSelfPermission(Manifest.permission.BLUETOOTH_PRIVILEGED) == PackageManager.PERMISSION_GRANTED ||
+                CompanionConnection.associations(context).any {
+                    it.deviceMacAddress?.toString().equals(device.macAddress.value, ignoreCase = true)
+                })
+    }
+
+    fun requestBluetoothDisconnect(): Boolean = device.requestBluetoothDisconnect()
     fun recordings(): List<Recording> = recordingRepository.recordings()
 
     fun setControlCommand(identifier: ControlCommandIdentifier, value: ByteArray): Boolean =

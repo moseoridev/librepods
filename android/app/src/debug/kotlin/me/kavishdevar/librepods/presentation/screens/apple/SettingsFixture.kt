@@ -28,7 +28,10 @@ internal class SettingsFixture(
         ))
     }
     override fun updateSettings(transform: (AppleSettings) -> AppleSettings) { ui = ui.copy(settings = transform(ui.settings)) }
-    override fun disconnect() { events += "disconnect"; ui = ui.copy(connectionState = ConnectionState.DISCONNECTED, state = ui.state.copy(confirmedControlStates = emptyMap())) }
+    fun disconnect() { events += "disconnect"; ui = ui.copy(connectionState = ConnectionState.DISCONNECTED, state = ui.state.copy(confirmedControlStates = emptyMap())) }
+    override fun canRequestBluetoothDisconnect() = true
+    override fun requestBluetoothDisconnect(): Boolean { disconnect(); return true }
+    override fun openBluetoothSettings() { events += "bluetooth settings" }
     override fun renameDevice(name: String) { events += "rename: $name"; ui = ui.copy(metadata = ui.metadata.copy(name = name)) }
     override fun setLongPressAction(side: String, action: StemAction) {
         events += "longPress: $side $action"

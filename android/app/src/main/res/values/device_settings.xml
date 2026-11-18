@@ -12,4 +12,5 @@
     <string name="shorter_label">Shorter</string>
     <string name="shortest_label">Shortest</string>
     <string name="reconnect_audio">Reconnect Audio</string>
+    <string name="open_bluetooth_settings">Open Bluetooth settings</string>
 </resources>
