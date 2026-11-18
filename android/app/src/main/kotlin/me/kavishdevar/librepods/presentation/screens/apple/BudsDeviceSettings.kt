@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.PathFillType
@@ -52,6 +53,7 @@ import me.kavishdevar.librepods.core.devices.*
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import me.kavishdevar.librepods.presentation.navigation.pageTransitionBackground
 import me.kavishdevar.librepods.presentation.navigation.rememberPageParallaxPx
+import me.kavishdevar.librepods.presentation.navigation.samsungPredictivePopPageTransition
 import me.kavishdevar.librepods.presentation.navigation.forwardPageTransition
 import me.kavishdevar.librepods.presentation.navigation.popPageTransition
 import me.kavishdevar.librepods.presentation.utils.visibleBaseCapabilities
@@ -145,6 +147,7 @@ internal fun BudsDeviceSettings(
     val uiState = rememberUpdatedState(ui)
     val keyboard = LocalSoftwareKeyboardController.current
     val pageParallaxPx = rememberPageParallaxPx()
+    val backDispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
     // The name editor is the platform text-entry dialog over Home, not a page of its own:
     // a separate destination slides a second copy of Home in behind the dialog, which reads as
     // the whole background refreshing.
@@ -165,7 +168,7 @@ internal fun BudsDeviceSettings(
             },
             transitionSpec = { forwardPageTransition(pageParallaxPx) },
             popTransitionSpec = { popPageTransition(pageParallaxPx) },
-            predictivePopTransitionSpec = { popPageTransition(pageParallaxPx) },
+            predictivePopTransitionSpec = { samsungPredictivePopPageTransition(backDispatcher) },
         )
         if (renaming && pages.lastOrNull() == DevicePage.Home) {
             NameEditorDialog(

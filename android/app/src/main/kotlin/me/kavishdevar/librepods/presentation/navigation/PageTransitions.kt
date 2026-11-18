@@ -5,6 +5,7 @@ import android.view.View
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.keyframes
@@ -24,6 +25,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEvent
+import androidx.navigationevent.NavigationEventDispatcher
+import androidx.navigationevent.NavigationEventTransitionState
 import kotlin.math.roundToInt
 
 internal const val PAGE_TRANSITION_DURATION_MS = 450
@@ -77,6 +80,66 @@ internal fun <S> AnimatedContentTransitionScope<S>.popPageTransition(parallaxPx:
         pageDirection(forward = false),
         tween(POP_PAGE_TRANSITION_DURATION_MS, easing = PagePopEasing)
     )
+
+private const val SAMSUNG_BACK_HALF = .5f
+private const val SAMSUNG_BACK_PARALLAX_FRACTION = .33f
+private const val SAMSUNG_BACK_DIM_DURATION_MS = 250
+
+private class SamsungBackMotion(private val dispatcher: NavigationEventDispatcher?) {
+    private var heldProgress = 0f
+
+    fun easing(follow: (Float) -> Float, complete: Easing = PagePopEasing): Easing = Easing { fraction ->
+        val active = dispatcher?.transitionState?.value as? NavigationEventTransitionState.InProgress
+        if (active != null) heldProgress = active.latestEvent.progress
+
+        // NavDisplay keeps the predictive spec for the current scene pair. Follow the gesture
+        // while seeking (and rewinding on cancellation), and complete from the held position.
+        if (active != null || fraction <= heldProgress) {
+            follow(fraction)
+        } else {
+            val start = follow(heldProgress)
+            val remaining = 1f - heldProgress
+            val elapsed = fraction - heldProgress
+            val completion = elapsed / remaining
+            // Navigation3 plays only the unseeked time. Start at the normal close rate and
+            // cover the rest progressively so a long drag does not jump on release.
+            val tail = (1f - complete.transform(remaining)) * completion * completion
+            start + (1f - start) * (complete.transform(elapsed) + tail)
+        }
+    }
+}
+
+/** SamsungCrossActivityBackAnimation maps live BackEvent progress directly to page positions. */
+internal fun <S> AnimatedContentTransitionScope<S>.samsungPredictivePopPageTransition(
+    dispatcher: NavigationEventDispatcher?,
+): ContentTransform {
+    val direction = pageDirection(forward = false)
+    val motion = SamsungBackMotion(dispatcher)
+    val exit = motion.easing(follow = { progress ->
+        if (progress <= SAMSUNG_BACK_HALF) progress
+        else SAMSUNG_BACK_HALF + (progress - SAMSUNG_BACK_HALF) * .2f
+    })
+    val enter = motion.easing(follow = { progress ->
+        val offsetFraction = if (progress <= SAMSUNG_BACK_HALF) {
+            SAMSUNG_BACK_PARALLAX_FRACTION - progress * .16f
+        } else {
+            .25f - (progress - SAMSUNG_BACK_HALF) * .05f
+        }
+        1f - offsetFraction / SAMSUNG_BACK_PARALLAX_FRACTION
+    })
+    val dim = motion.easing(follow = { 0f }, complete = Easing { completion ->
+        (completion * POP_PAGE_TRANSITION_DURATION_MS / SAMSUNG_BACK_DIM_DURATION_MS).coerceAtMost(1f)
+    })
+    return (slideIntoContainer(
+        direction,
+        tween(POP_PAGE_TRANSITION_DURATION_MS, easing = enter),
+        initialOffset = { full -> (full * SAMSUNG_BACK_PARALLAX_FRACTION).roundToInt() },
+    ) + fadeIn(tween(POP_PAGE_TRANSITION_DURATION_MS, easing = dim), initialAlpha = DIMMED_PAGE_ALPHA)
+    ) togetherWith slideOutOfContainer(
+        direction,
+        tween(POP_PAGE_TRANSITION_DURATION_MS, easing = exit),
+    )
+}
 
 // Predictive back preview, following the Android predictive back design guidance:
 // the current page scales 100% -> 90% and shifts away from the edge the gesture started on, the
