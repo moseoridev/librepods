@@ -125,6 +125,7 @@ fun AppleSettingsRoute(
             navigateToTransparencyCustomization = navigateToTransparencyCustomization,
             navigateToRecording = navigateToRecordingScreen,
             navigateToHeartRate = navigateToHeartRateScreen,
+            navigateToHeadTracking = navigateToHeadTracking,
         )
         return
     }
@@ -205,47 +206,11 @@ fun AppleSettingsScreen(
     val baseCapabilities = metadata.visibleBaseCapabilities()
 
     val design = LocalDesign.current
-    val debugMode = LocalDebugMode.current
 
     StyledScaffold(
         title = uiState.metadata.displayName,
         navigateBack = navigateBack
     ) { topPadding, bottomPadding ->
-        if (debugMode) {
-            var offset by remember { mutableStateOf(Offset.Zero) }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxWidth(0.35f)
-                    .zIndex(999f)
-                    .offset {
-                        IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
-                    }
-                    .background(MaterialTheme.colorScheme.surfaceDim.copy(0.4f))
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            offset += dragAmount
-                        }
-                    }
-            ) {
-                Text(
-                    text = "[debug]" +
-                        "\n${state.aacpPackets.size} aacp packets" +
-                        "\nstate: ${state.state}" +
-                        "\ncase lid: ${state.caseLidOpen}" +
-                        "\nbattery: ${state.battery.format()}" +
-                        "\nconnectedDevices: ${state.connectedDevices.joinToString(separator = ",") { it.macAddress.value }}" +
-                        "\naudioSource: ${state.audioSource.mac} (${state.audioSource.type})" +
-                        "\nprimary: ${state.primaryComponent}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .padding(8.dp)
-                )
-            }
-        }
 
         LazyColumn(
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -591,6 +556,45 @@ fun AppleSettingsScreen(
 
             item(key = "bottom_padding") { Spacer(modifier = Modifier.height(bottomPadding)) }
         }
+        DeviceDebugOverlay(uiState, Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+@Composable
+internal fun DeviceDebugOverlay(ui: AppleUiState, modifier: Modifier = Modifier) {
+    if (!LocalDebugMode.current) return
+    val state = ui.state
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth(0.35f)
+            .zIndex(999f)
+            .offset {
+                IntOffset(offset.x.roundToInt(), offset.y.roundToInt())
+            }
+            .background(MaterialTheme.colorScheme.surfaceDim.copy(0.4f))
+            .pointerInput(Unit) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    offset += dragAmount
+                }
+            }
+    ) {
+        Text(
+            text = "[debug]" +
+                "\n${state.aacpPackets.size} aacp packets" +
+                "\nstate: ${state.state}" +
+                "\ncase lid: ${state.caseLidOpen}" +
+                "\nbattery: ${state.battery.format()}" +
+                "\nconnectedDevices: ${state.connectedDevices.joinToString(separator = ",") { it.macAddress.value }}" +
+                "\naudioSource: ${state.audioSource.mac} (${state.audioSource.type})" +
+                "\nprimary: ${state.primaryComponent}",
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .padding(8.dp)
+        )
     }
 }
 

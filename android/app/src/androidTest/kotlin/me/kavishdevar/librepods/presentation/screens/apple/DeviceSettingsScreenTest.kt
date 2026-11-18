@@ -97,6 +97,82 @@ class DeviceSettingsScreenTest {
         compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
     }
 
+    @Test fun adaptiveSegmentBecomesASliderForConfirmedMode() {
+        val fixture = SettingsFixture()
+        compose.setContent { BudsDeviceSettings(fixture.ui, fixture, mediaVolume = { FixtureMediaVolume() }) }
+        val slider = compose.onNodeWithContentDescription(text(R.string.customize_adaptive_audio))
+        slider.assertIsEnabled()
+        compose.onNodeWithContentDescription(text(R.string.adaptive)).assertDoesNotExist()
+        compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
+        slider.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(75f) }
+        compose.waitUntil(5_000) { fixture.events.contains("AUTO_ANC_STRENGTH: 75") }
+        compose.onNodeWithContentDescription(text(R.string.transparency)).performScrollTo().performClick()
+        slider.assertDoesNotExist()
+        compose.onNodeWithContentDescription(text(R.string.adaptive)).assertIsNotSelected().performClick()
+        slider.assertIsEnabled()
+    }
+
+    @Test fun connectedControlsWithMissingReportsUseFallbacksAndStillWrite() {
+        val fixture = SettingsFixture()
+        val missing = setOf(Command.MIC_MODE, Command.SMART_ROUTING_MODE, Command.EAR_DETECTION_CONFIG)
+        var page by mutableStateOf(DevicePage.Audio)
+        compose.setContent {
+            key(page) {
+                val ui = fixture.ui
+                BudsDeviceSettings(
+                    ui.copy(state = ui.state.copy(controlStates = ui.state.controlStates - missing)),
+                    fixture, initialPage = page, mediaVolume = { FixtureMediaVolume() },
+                )
+            }
+        }
+
+        compose.onNodeWithText(text(R.string.ear_detection)).performScrollTo()
+            .assertIsOn().performClick().assertIsOff()
+        compose.runOnIdle {
+            assertTrue(fixture.events.contains("EAR_DETECTION_CONFIG: 2"))
+            page = DevicePage.Microphone
+        }
+        compose.onNodeWithText(text(R.string.microphone_automatic)).assertIsSelected()
+        compose.onNodeWithText(text(R.string.microphone_always_left)).performClick()
+        compose.runOnIdle {
+            assertTrue(fixture.events.contains("MIC_MODE: 2"))
+            page = DevicePage.Routing
+        }
+        compose.onNode(hasText(text(R.string.off)) and isSelectable()).assertIsSelected()
+        compose.onNode(hasText(text(R.string.on)) and isSelectable()).performClick()
+        compose.runOnIdle { assertTrue(fixture.events.contains("SMART_ROUTING_MODE: 1")) }
+        compose.runOnIdle { fixture.disconnect() }
+        compose.onNode(hasText(text(R.string.on)) and isSelectable()).assertIsNotEnabled()
+    }
+
+    @Test fun connectionRuleSwitchesLeaveTheirSiblingsAlone() {
+        val fixture = SettingsFixture()
+        compose.setContent {
+            BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Routing, mediaVolume = { FixtureMediaVolume() })
+        }
+        val idleRules = compose.onAllNodes(hasText(text(R.string.prox_idle_label)) and isToggleable())
+        idleRules[0].performScrollTo().assertIsOn().performClick().assertIsOff()
+        idleRules[1].performScrollTo().assertIsOn()
+        compose.runOnIdle {
+            assertFalse(fixture.ui.settings.connectOnPhoneWhenAccessoryIdle)
+            assertTrue(fixture.ui.settings.connectOnMediaWhenAccessoryIdle)
+            assertTrue(fixture.events.isEmpty())
+        }
+    }
+
+    @Test fun volumeSwipeIntervalZeroHasADefaultAndReportedChangesSelectAnOption() {
+        val fixture = SettingsFixture().apply { setControlCommand(Command.VOLUME_SWIPE_INTERVAL, 0); events.clear() }
+        compose.setContent {
+            BudsDeviceSettings(fixture.ui, fixture, initialPage = DevicePage.Accessibility, mediaVolume = { FixtureMediaVolume() })
+        }
+        // The other accessibility choice lists also use the word “Default”.
+        compose.onAllNodes(hasText(text(R.string.default_option)) and isSelectable()).onLast()
+            .performScrollTo().assertIsSelected()
+        compose.onNode(hasText(text(R.string.longest)) and isSelectable()).performScrollTo()
+            .performClick().assertIsSelected()
+        compose.runOnIdle { assertEquals(listOf("VOLUME_SWIPE_INTERVAL: 3"), fixture.events.toList()) }
+    }
+
     @Test fun callChoicesRemainCoupledAcrossBothPages() {
         val fixture = SettingsFixture()
         var page by mutableStateOf(DevicePage.Mute)
@@ -284,7 +360,10 @@ class DeviceSettingsScreenTest {
     @Test fun scrollingDoesNotActivateRowsAndTouchOpensTheIntendedChoice() {
         val fixture = SettingsFixture()
         compose.setContent { BudsDeviceSettings(fixture.ui, fixture, mediaVolume = { FixtureMediaVolume() }) }
-        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+        compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput {
+            // Keep the menu under the touch viewport after the scroll, below the floating toolbar.
+            swipeUp(startY = height * .76f, endY = height * .52f, durationMillis = 450)
+        }
         compose.onNodeWithTag("device-page-Home").assertIsDisplayed()
         compose.runOnIdle { assertTrue(fixture.events.isEmpty()) }
         compose.onNodeWithText(text(R.string.audio_routing)).performScrollTo().performTouchInput { click() }

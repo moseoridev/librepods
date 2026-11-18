@@ -109,12 +109,14 @@ fun BudsDeviceSettingsRoute(
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecording: () -> Unit,
     navigateToHeartRate: () -> Unit,
+    navigateToHeadTracking: () -> Unit,
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val actions = remember(viewModel) { ViewModelSettingsActions(viewModel) }
     BudsDeviceSettings(ui, actions, navigateBack, navigateToHearingProtection,
         navigateToHearingAid, navigateToTransparencyCustomization,
-        navigateToRecording, navigateToHeartRate, mediaVolume = { PhoneMediaVolume() })
+        navigateToRecording, navigateToHeartRate, mediaVolume = { PhoneMediaVolume() },
+        navigateToHeadTracking = navigateToHeadTracking)
 }
 
 /** The product composition, independent of Bluetooth, repositories and system volume. */
@@ -131,6 +133,7 @@ internal fun BudsDeviceSettings(
     initialPage: DevicePage = DevicePage.Home,
     darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
     mediaVolume: @Composable () -> Unit,
+    navigateToHeadTracking: (() -> Unit)? = null,
 ) {
     // Nested pages are real navigation destinations so the platform's predictive back gesture
     // (Navigation3 -> navigationevent) drives them, instead of a local BackHandler animation.
@@ -160,7 +163,7 @@ internal fun BudsDeviceSettings(
                     DevicePageContent(uiState, actions, page, pages, back, mediaVolume, navigateBack,
                         navigateToHearingProtection, navigateToHearingAid,
                         navigateToTransparencyCustomization, navigateToRecording, navigateToHeartRate,
-                        darkTheme, onRename = { renaming = true })
+                        navigateToHeadTracking, darkTheme, onRename = { renaming = true })
                 }
             },
             transitionSpec = { forwardPageTransition(pageParallaxPx) },
@@ -212,68 +215,72 @@ private fun DevicePageContent(
     navigateToTransparencyCustomization: () -> Unit,
     navigateToRecording: () -> Unit,
     navigateToHeartRate: () -> Unit,
+    navigateToHeadTracking: (() -> Unit)?,
     darkTheme: Boolean,
     onRename: () -> Unit,
 ) {
     val ui = uiState.value
     val scroll = rememberScrollState()
-    SettingsScaffold(
-        title = if (page == DevicePage.Home) ui.metadata.displayName else stringResource(page.title),
-        backLabel = stringResource(R.string.back),
-        showBackButton = pages.size > 1 || navigateBack != null,
-        onNavigateBack = back,
-        navigationIcon = { BudsBackIcon() },
-        scrollState = scroll,
-        background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
-    ) {
-        // Groups do not share one gap: a titled group and a section label bring
-        // their own 16dp lead, and the battery row brings its own 14dp trail.
-        val groups: @Composable () -> Unit = {
-            // Repeated taps must not stack the same destination twice.
-            val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
-            when (page) {
-                DevicePage.Home -> DeviceHome(ui, go, onRename,
-                    actions::disconnect, mediaVolume, { actions.setControlCommand(Command.LISTENING_MODE, it) },
-                    navigateToHearingProtection, navigateToHearingAid, navigateToHeartRate)
-                DevicePage.Audio -> AudioPage(ui, actions, go)
-                DevicePage.Controls -> ControlsPage(ui, go)
-                DevicePage.Accessibility -> AccessibilityPage(ui, actions, navigateToTransparencyCustomization)
-                DevicePage.Battery -> BatteryPage(ui, actions)
-                DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
-                    listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right),
-                    fallback = 0)
-                DevicePage.Equalizer -> EqualizerPage(ui, actions)
-                DevicePage.Routing -> RoutingPage(ui, actions)
-                DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
-                DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, actions, page == DevicePage.Mute)
-                DevicePage.Head -> HeadPage(ui, actions)
-                DevicePage.Version -> SettingsList {
-                    SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3))
-                    SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
-                    SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
-                    if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
-                        SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
-                }
-                DevicePage.Name -> Unit
-                DevicePage.Extras -> {
-                    if (ui.showsRecorder()) SettingsList {
-                        SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
+    Box(Modifier.fillMaxSize()) {
+        SettingsScaffold(
+            title = if (page == DevicePage.Home) ui.metadata.displayName else stringResource(page.title),
+            backLabel = stringResource(R.string.back),
+            showBackButton = pages.size > 1 || navigateBack != null,
+            onNavigateBack = back,
+            navigationIcon = { BudsBackIcon() },
+            scrollState = scroll,
+            background = if (page == DevicePage.Home) ({ BudsHomeBackdrop(darkTheme) }) else null,
+        ) {
+            // Groups do not share one gap: a titled group and a section label bring
+            // their own 16dp lead, and the battery row brings its own 14dp trail.
+            val groups: @Composable () -> Unit = {
+                // Repeated taps must not stack the same destination twice.
+                val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
+                when (page) {
+                    DevicePage.Home -> DeviceHome(ui, go, onRename,
+                        actions, mediaVolume, darkTheme,
+                        navigateToHearingProtection, navigateToHearingAid, navigateToHeartRate)
+                    DevicePage.Audio -> AudioPage(ui, actions, go)
+                    DevicePage.Controls -> ControlsPage(ui, go)
+                    DevicePage.Accessibility -> AccessibilityPage(ui, actions, navigateToTransparencyCustomization)
+                    DevicePage.Battery -> BatteryPage(ui, actions)
+                    DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
+                        listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right),
+                        fallback = 0)
+                    DevicePage.Equalizer -> EqualizerPage(ui, actions)
+                    DevicePage.Routing -> RoutingPage(ui, actions)
+                    DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
+                    DevicePage.Mute, DevicePage.EndCall -> CallPage(ui, actions, page == DevicePage.Mute)
+                    DevicePage.Head -> HeadPage(ui, actions, navigateToHeadTracking)
+                    DevicePage.Version -> SettingsList {
+                        SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3))
+                        SettingsListItem(name = stringResource(R.string.version) + " 1", description = ui.metadata.version1)
+                        SettingsListItem(name = stringResource(R.string.version) + " 2", description = ui.metadata.version2)
+                        if (firmwareDisplayVersion(ui.metadata.version3) != ui.metadata.version3)
+                            SettingsListItem(name = stringResource(R.string.version) + " 3", description = ui.metadata.version3)
+                    }
+                    DevicePage.Name -> Unit
+                    DevicePage.Extras -> {
+                        if (ui.showsRecorder()) SettingsList {
+                            SettingsListItem(name = stringResource(R.string.recorder), onClick = navigateToRecording)
+                        }
                     }
                 }
+                Spacer(Modifier.height(16.dp))
             }
-            Spacer(Modifier.height(16.dp))
-        }
-        val pageModifier = Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
-            .testTag("device-page-${page.name}")
-        if (page == DevicePage.Home) {
-            // Native Home has a zero-gap outer column containing an internally
-            // spaced body. Only that outer column reserves the header.
-            SettingsGroupColumn(pageModifier, spacing = 0.dp) {
-                SettingsGroupColumn(content = groups)
+            val pageModifier = Modifier.fillMaxWidth().padding(horizontal = SettingsStyle.pageInset())
+                .testTag("device-page-${page.name}")
+            if (page == DevicePage.Home) {
+                // Native Home has a zero-gap outer column containing an internally
+                // spaced body. Only that outer column reserves the header.
+                SettingsGroupColumn(pageModifier, spacing = 0.dp) {
+                    SettingsGroupColumn(content = groups)
+                }
+            } else {
+                SettingsGroupColumn(pageModifier, content = groups)
             }
-        } else {
-            SettingsGroupColumn(pageModifier, content = groups)
         }
+        if (page == DevicePage.Home) DeviceDebugOverlay(ui, Modifier.align(Alignment.CenterEnd))
     }
 }
 
@@ -337,8 +344,8 @@ private fun AppleUiState.allowOffListeningMode(): Boolean =
         ?: settings.allowOffListeningMode
 
 @Composable
-private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, disconnect: () -> Unit,
-    mediaVolume: @Composable () -> Unit, selectMode: (Int) -> Unit,
+private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, actions: DeviceSettingsActions,
+    mediaVolume: @Composable () -> Unit, darkTheme: Boolean,
     navigateToHearingProtection: () -> Unit, navigateToHearingAid: () -> Unit,
     navigateToHeartRate: () -> Unit) {
     DeviceBatteries(ui)
@@ -351,6 +358,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
         if (hasHearingAid) SettingsListItem(name = stringResource(R.string.hearing_aid), onClick = navigateToHearingAid)
     }
     if (ui.has(BaseCapability.LISTENING_MODE)) {
+        val confirmedMode = ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt()
         SettingsList(title = stringResource(R.string.listening_mode)) {
             val modes = buildList {
                 if (ui.allowOffListeningMode()) add(1)
@@ -358,10 +366,25 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
                 if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) add(4)
                 add(2)
             }
+            val connected = ui.connectionState == ConnectionState.CONNECTED
+            val selectMode: (Int) -> Unit = { mode ->
+                if (connected) actions.setControlCommand(Command.LISTENING_MODE, mode)
+            }
             // A requested or persisted control value is not an acknowledgement from this session.
-            item { _, _ -> SettingsModeStrip(modes, ui.state.confirmedControlStates[Command.LISTENING_MODE]?.firstOrNull()?.toInt(),
-                onSelect = { mode -> if (ui.connectionState == ConnectionState.CONNECTED) selectMode(mode) },
-                label = { modeLabel(it) }, artwork = { mode, selected -> BudsModeArtwork(mode, selected) }) }
+            item { _, _ ->
+                if (confirmedMode == 4 && 4 in modes) {
+                    CommandSliderValue(
+                        remote = (ui.value(Command.AUTO_ANC_STRENGTH) ?: 50).coerceIn(0, 100),
+                        enabled = connected,
+                        send = { actions.setControlCommand(Command.AUTO_ANC_STRENGTH, it) },
+                    ) { strength, changeStrength ->
+                        BudsAdaptiveModeStrip(modes, strength, connected, darkTheme, selectMode, changeStrength)
+                    }
+                } else {
+                    SettingsModeStrip(modes, confirmedMode, onSelect = selectMode,
+                        label = { modeLabel(it) }, artwork = { mode, selected -> BudsModeArtwork(mode, selected) })
+                }
+            }
         }
     }
     mediaVolume()
@@ -384,13 +407,28 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
     SettingsList(title = stringResource(R.string.about)) {
         SettingsListItem(name = stringResource(R.string.model_name), description = ui.metadata.modelName)
         SettingsListItem(name = stringResource(R.string.model_number), description = ui.metadata.modelNumber)
-        SettingsListItem(name = stringResource(R.string.serial_number), description = ui.metadata.serialNumber)
+        SerialNumberRow(ui.metadata)
         SettingsListItem(name = stringResource(R.string.version), description = firmwareDisplayVersion(ui.metadata.version3), onClick = { go(DevicePage.Version) })
     }
     SettingsList {
         if (ui.showsRecorder()) SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
-        SettingsListItem(name = stringResource(R.string.disconnect), onClick = disconnect)
+        SettingsListItem(name = stringResource(R.string.disconnect), onClick = actions::disconnect)
     }
+}
+
+@Composable
+private fun SettingsListScope.SerialNumberRow(metadata: AppleMetadata) {
+    val serialNumbers = buildList {
+        if (metadata.serialNumber.isNotBlank()) add(metadata.serialNumber)
+        if (metadata.leftSerialNumber.isNotBlank()) add("${stringResource(R.string.left)} · ${metadata.leftSerialNumber}")
+        if (metadata.rightSerialNumber.isNotBlank()) add("${stringResource(R.string.right)} · ${metadata.rightSerialNumber}")
+    }
+    var index by rememberSaveable(metadata.modelNumber) { mutableIntStateOf(0) }
+    SettingsListItem(
+        name = stringResource(R.string.serial_number),
+        description = serialNumbers.getOrNull(index) ?: serialNumbers.firstOrNull(),
+        onClick = if (serialNumbers.size > 1) ({ index = (index + 1) % serialNumbers.size }) else null,
+    )
 }
 
 @Composable
@@ -463,7 +501,7 @@ private fun DeviceBatteries(ui: AppleUiState) {
 }
 
 @Composable
-private fun modeLabel(mode: Int): String = stringResource(when (mode) {
+internal fun modeLabel(mode: Int): String = stringResource(when (mode) {
     1 -> R.string.off; 2 -> R.string.noise_cancellation; 4 -> R.string.adaptive; else -> R.string.transparency
 })
 
@@ -473,7 +511,8 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
         R.string.personalized_volume, R.string.personalized_volume_description)
     if (ui.has(BaseCapability.CONVERSATION_AWARENESS)) CommandToggle(ui, vm, Command.CONVERSATION_DETECT_CONFIG,
         R.string.conversation_awareness, R.string.conversation_awareness_description)
-    if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 9)
+    LoudSoundReductionToggle(ui, vm)
+    if (ui.firmwareMajor() >= 9)
         SettingsList { SettingsListItem(name = stringResource(R.string.equalizer), onClick = { go(DevicePage.Equalizer) }) }
     SettingsList {
         SettingsToggle(label = stringResource(R.string.ear_detection),
@@ -498,10 +537,6 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
             1 -> R.string.microphone_always_right
             else -> R.string.microphone_automatic
         })) }
-    if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) CommandSlider(stringResource(R.string.customize_adaptive_audio),
-        ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED) {
-        vm.setControlCommand(Command.AUTO_ANC_STRENGTH, it)
-    }
     if (ui.has(BaseCapability.SLEEP_DETECTION)) CommandToggle(ui, vm, Command.SLEEP_DETECTION_CONFIG, R.string.sleep_detection)
 }
 
@@ -602,7 +637,7 @@ private fun LongPressPage(ui: AppleUiState, vm: DeviceSettingsActions, left: Boo
 private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean) {
     val bytes = ui.state.controlStates[Command.CALL_MANAGEMENT_CONFIG]
     val flipped = bytes?.getOrNull(1)?.toInt() == 2
-    SettingsList {
+    SettingsList(description = if (mute) stringResource(R.string.mute_unmute_notice) else null) {
         listOf(false, true).forEach { double ->
             val desiredFlipped = if (mute) double else !double
             SettingsChoiceRow(name = stringResource(if (double) R.string.press_twice else R.string.press_once),
@@ -614,13 +649,18 @@ private fun CallPage(ui: AppleUiState, vm: DeviceSettingsActions, mute: Boolean)
 }
 
 @Composable
-private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions) {
+private fun HeadPage(ui: AppleUiState, vm: DeviceSettingsActions, navigateToHeadTracking: (() -> Unit)?) {
     SettingsToggle(label = stringResource(if (ui.settings.headGesturesEnabled) R.string.settings_in_use else R.string.settings_not_in_use),
         checked = ui.settings.headGesturesEnabled, header = true,
         onCheckedChange = vm::setHeadGesturesEnabled)
     SettingsList(description = stringResource(R.string.head_gestures_details)) {
         SettingsListItem(name = stringResource(R.string.answer_call), description = stringResource(R.string.nod_head), descriptionIsState = true)
         SettingsListItem(name = stringResource(R.string.decline_call_label), description = stringResource(R.string.shake_head), descriptionIsState = true)
+    }
+    navigateToHeadTracking?.let { open ->
+        SettingsList {
+            SettingsListItem(name = stringResource(R.string.test_head_gestures), onClick = open)
+        }
     }
 }
 
@@ -640,8 +680,11 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions, custo
         name = stringResource(R.string.iphone_audio_visual_settings),
         description = stringResource(R.string.customize_transparency_mode_description),
         onClick = customizeTransparency)
-    CommandSlider(stringResource(R.string.tone_volume), ui.value(Command.CHIME_VOLUME),
-        enabled = ui.connectionState == ConnectionState.CONNECTED, description = stringResource(R.string.tone_volume_description)) {
+    CommandSlider(stringResource(R.string.tone_volume), (ui.value(Command.CHIME_VOLUME) ?: 75).coerceIn(15, 100),
+        enabled = ui.connectionState == ConnectionState.CONNECTED, valueRange = 15f..100f,
+        description = { volume -> stringResource(
+            if (volume > 80) R.string.tone_volume_above_recommended_description else R.string.tone_volume_description
+        ) }) {
         vm.setControlCommand(Command.CHIME_VOLUME, it)
     }
     if (ui.has(BaseCapability.SWIPE_FOR_VOLUME)) {
@@ -664,8 +707,15 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions, custo
             vm.setControlCommand(Command.ALLOW_OFF_OPTION, checked)
             vm.updateSettings { it.copy(allowOffListeningMode = checked) }
         })
+    LoudSoundReductionToggle(ui, vm)
+}
+
+@Composable
+private fun LoudSoundReductionToggle(ui: AppleUiState, vm: DeviceSettingsActions) {
     if (ui.has(BaseCapability.LOUD_SOUND_REDUCTION) && ui.vendorIdHook)
-        SettingsToggle(label = stringResource(R.string.loud_sound_reduction), checked = ui.state.loudSoundReductionEnabled,
+        SettingsToggle(label = stringResource(R.string.loud_sound_reduction),
+            description = stringResource(R.string.loud_sound_reduction_description),
+            checked = ui.state.loudSoundReductionEnabled,
             enabled = ui.connectionState == ConnectionState.CONNECTED,
             onCheckedChange = { vm.writeATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION, byteArrayOf(if (it) 1 else 0)) })
 }
@@ -703,26 +753,45 @@ private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command:
 }
 
 @Composable
-private fun CommandSlider(label: String, remote: Int?, enabled: Boolean, description: String? = null, send: (Int) -> Unit) {
-    var value by remember { mutableIntStateOf(remote ?: 0) }
+private fun CommandSlider(label: String, remote: Int, enabled: Boolean,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..100f,
+    description: @Composable (Int) -> String, send: (Int) -> Unit) {
+    CommandSliderValue(remote, enabled, send) { value, onValueChange ->
+        Column {
+            SettingsCard {
+                SettingsSeekBarRow(label, value.toFloat(), { onValueChange(it.roundToInt()) }, valueRange,
+                    startLabel = "", endLabel = "$value%",
+                    enabled = enabled,
+                    activeTrackColor = androidx.compose.ui.graphics.Color.Unspecified)
+            }
+            SettingsDescription(description(value), Modifier.padding(top = SettingsStyle.FooterTop))
+        }
+    }
+}
+
+/** Debounce user edits without sending a command when a control first appears. */
+@Composable
+private fun CommandSliderValue(
+    remote: Int,
+    enabled: Boolean,
+    send: (Int) -> Unit,
+    content: @Composable (value: Int, onValueChange: (Int) -> Unit) -> Unit,
+) {
+    var value by remember { mutableIntStateOf(remote) }
     var pending by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(remote) { if (pending == null) value = remote ?: 0 }
+    LaunchedEffect(remote) { if (pending == null) value = remote }
     val sendLatest by rememberUpdatedState(send)
-    DisposableEffect(Unit) { onDispose { pending?.let(sendLatest) } }
+    val canSend by rememberUpdatedState(enabled)
+    DisposableEffect(Unit) { onDispose { if (canSend) pending?.let(sendLatest) } }
     LaunchedEffect(pending) {
         val next = pending ?: return@LaunchedEffect
         delay(100)
-        sendLatest(next)
+        if (canSend) sendLatest(next)
         pending = null
     }
-    Column {
-        SettingsCard {
-            SettingsSeekBarRow(label, value.toFloat(), { value = it.roundToInt(); pending = value }, 0f..100f,
-                startLabel = "", endLabel = remote?.let { "$value%" } ?: "—",
-                enabled = enabled && remote != null,
-                activeTrackColor = androidx.compose.ui.graphics.Color.Unspecified)
-        }
-        description?.let { SettingsDescription(it, Modifier.padding(top = SettingsStyle.FooterTop)) }
+    content(value) {
+        value = it
+        pending = it
     }
 }
 
