@@ -651,7 +651,8 @@ private fun AccessibilityPage(ui: AppleUiState, vm: DeviceSettingsActions, custo
         }
         // Keep the existing firmware-facing mapping until the conflicting 0/1-based documentation is resolved.
         CommandChoices(ui, vm, Command.VOLUME_SWIPE_INTERVAL,
-            listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest), R.string.volume_swipe_speed, R.string.volume_swipe_speed_description)
+            listOf(1 to R.string.default_option, 2 to R.string.longer, 3 to R.string.longest),
+            R.string.volume_swipe_speed, R.string.volume_swipe_speed_description, fallback = 1)
     }
     if (ui.has(BaseCapability.LISTENING_MODE)) SettingsToggle(label = stringResource(R.string.off_listening_mode),
         description = stringResource(R.string.off_listening_mode_description),
