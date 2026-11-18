@@ -213,6 +213,7 @@ private fun DevicePageContent(
     onRename: () -> Unit,
 ) {
     val ui = uiState.value
+    val batteryControls = batteryControls(ui, actions)
     val scroll = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
         SettingsScaffold(
@@ -231,12 +232,15 @@ private fun DevicePageContent(
                 val go: (DevicePage) -> Unit = { if (pages.lastOrNull() != it) pages.add(it) }
                 when (page) {
                     DevicePage.Home -> DeviceHome(ui, go, onRename,
-                        actions, mediaVolume, darkTheme,
+                        actions, mediaVolume, darkTheme, hasBatteryControls = batteryControls != null,
                         navigateToHearingProtection, navigateToHearingAid, navigateToHeartRate)
                     DevicePage.Audio -> AudioPage(ui, actions, go)
                     DevicePage.Controls -> ControlsPage(ui, go)
                     DevicePage.Accessibility -> AccessibilityPage(ui, actions, navigateToTransparencyCustomization)
-                    DevicePage.Battery -> BatteryPage(ui, actions)
+                    DevicePage.Battery -> batteryControls?.let { controls ->
+                        SettingsDescription(stringResource(R.string.airpods_battery_lifespan))
+                        controls()
+                    }
                     DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
                         listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right),
                         fallback = 0)
@@ -338,7 +342,7 @@ private fun AppleUiState.allowOffListeningMode(): Boolean =
 
 @Composable
 private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () -> Unit, actions: DeviceSettingsActions,
-    mediaVolume: @Composable () -> Unit, darkTheme: Boolean,
+    mediaVolume: @Composable () -> Unit, darkTheme: Boolean, hasBatteryControls: Boolean,
     navigateToHearingProtection: () -> Unit, navigateToHearingAid: () -> Unit,
     navigateToHeartRate: () -> Unit) {
     DeviceBatteries(ui)
@@ -389,7 +393,7 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
         SettingsListItem(name = stringResource(R.string.accessibility), onClick = { go(DevicePage.Accessibility) }, homeMenu = true,
             leadingContent = { BudsMenuIcon(BudsMenuArtwork.Accessibility) })
     }
-    SettingsList {
+    if (hasBatteryControls) SettingsList {
         SettingsListItem(name = stringResource(R.string.battery), onClick = { go(DevicePage.Battery) }, homeMenu = true,
             leadingContent = { BudsMenuIcon(BudsMenuArtwork.Battery) })
     }
@@ -716,12 +720,9 @@ private fun LoudSoundReductionToggle(ui: AppleUiState, vm: DeviceSettingsActions
             onCheckedChange = { vm.writeATTCharacteristic(ATTHandle.LOUD_SOUND_REDUCTION, byteArrayOf(if (it) 1 else 0)) })
 }
 
-@Composable
-private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    SettingsDescription(stringResource(R.string.airpods_battery_lifespan))
-    if (ui.state.supportsOptimizedChargeLimit()) {
-        CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
-    }
+private fun batteryControls(ui: AppleUiState, actions: DeviceSettingsActions): (@Composable () -> Unit)? {
+    if (!ui.state.supportsOptimizedChargeLimit()) return null
+    return { CommandToggle(ui, actions, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description) }
 }
 
 @Composable

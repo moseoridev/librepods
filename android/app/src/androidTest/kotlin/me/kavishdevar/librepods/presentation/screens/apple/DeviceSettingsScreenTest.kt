@@ -201,6 +201,22 @@ class DeviceSettingsScreenTest {
         compose.runOnIdle { assertEquals(listOf("DYNAMIC_END_OF_CHARGE: 2"), fixture.events.toList()) }
     }
 
+    @Test fun batteryHomeRowTracksWhetherTheDestinationHasControls() {
+        val fixture = SettingsFixture()
+        var supportsChargeLimit by mutableStateOf(false)
+        compose.setContent {
+            val ui = fixture.ui
+            val controls = if (supportsChargeLimit) ui.state.controlStates else ui.state.controlStates - Command.DYNAMIC_END_OF_CHARGE
+            BudsDeviceSettings(ui.copy(state = ui.state.copy(controlStates = controls)),
+                fixture, mediaVolume = { FixtureMediaVolume() })
+        }
+        val battery = compose.onNodeWithText(text(R.string.battery))
+        battery.assertDoesNotExist()
+        compose.runOnIdle { supportsChargeLimit = true }
+        battery.performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.optimized_charging)).assertIsDisplayed()
+    }
+
     @Test fun callChoicesRemainCoupledAcrossBothPages() {
         val fixture = SettingsFixture()
         var page by mutableStateOf(DevicePage.Mute)
