@@ -175,6 +175,7 @@ fun AppSettingsScreen(
 
                 StyledList(
                     title = stringResource(R.string.proximity_card),
+                    rowsCoverGroupCorners = true,
                     description = stringResource(R.string.proximity_card_description)
                 ) {
                     styledListItem(
@@ -192,6 +193,7 @@ fun AppSettingsScreen(
 
             StyledList(
                 title = stringResource(R.string.advanced_options),
+                rowsCoverGroupCorners = true,
                 description = stringResource(R.string.do_not_change)
             ) {
                 if (XposedState.isAvailable && XposedState.bluetoothScopeEnabled) {
@@ -241,7 +243,10 @@ fun AppSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            StyledList(title = stringResource(R.string.contact)) {
+            StyledList(
+                title = stringResource(R.string.contact),
+                rowsCoverGroupCorners = true,
+            ) {
                 styledListItem(
                     contentText =  stringResource(R.string.email),
                     supportingText = stringResource(R.string.contact_email_supporting_text),
@@ -312,11 +317,11 @@ fun AppSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            DeviceInfoCard()
+            DeviceInfoCard(rowsCoverGroupCorners = true)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            AppInfoCard(navigateToReleaseNotesScreen)
+            AppInfoCard(navigateToReleaseNotesScreen, rowsCoverGroupCorners = true)
 
             Spacer(modifier = Modifier.height(16.dp))
 

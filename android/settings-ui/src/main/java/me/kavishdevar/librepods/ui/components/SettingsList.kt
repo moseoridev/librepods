@@ -7,15 +7,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
 
+/**
+ * Enable [clipOnlyEdgeRows] when the first and last items span the full height of the group
+ * corners, and each item draws within its own bounds. Keep the complete group clip otherwise.
+ */
 @Composable
 fun SettingsList(
     modifier: Modifier = Modifier,
     title: String? = null,
     description: String? = null,
+    clipOnlyEdgeRows: Boolean = false,
     content: @Composable SettingsListScope.() -> Unit
 ) {
     val scope = SettingsListScope()
@@ -25,9 +43,32 @@ fun SettingsList(
     // Parent data is inert under any other parent.
     Column(modifier.then(if (title != null) Modifier.ownLeadingSpace() else Modifier)) {
         title?.let { SettingsSectionLabel(it) }
-        Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, SettingsStyle.GroupShape)
-            .clip(SettingsStyle.GroupShape)) {
-            scope.items.forEachIndexed { index, item -> item(index, scope.items.size) }
+        val count = scope.items.size
+        val groupSize = if (clipOnlyEdgeRows && count > 1) {
+            remember { mutableStateOf(IntSize.Zero) }
+        } else {
+            null
+        }
+        val groupClip = if (groupSize == null) {
+            Modifier.clip(SettingsStyle.GroupShape)
+        } else {
+            Modifier.clipToBounds().onSizeChanged { groupSize.value = it }
+        }
+        Column(
+            Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, SettingsStyle.GroupShape)
+                .then(groupClip)
+        ) {
+            scope.items.forEachIndexed { index, item ->
+                if (groupSize != null && (index == 0 || index == count - 1)) {
+                    // An item can emit its row and divider as separate children.
+                    Column(Modifier.fillMaxWidth().clipToGroupEdge(groupSize, first = index == 0)) {
+                        item(index, count)
+                    }
+                } else {
+                    item(index, count)
+                }
+            }
         }
         description?.let {
             Text(it, style = SettingsStyle.RowSummary,
@@ -36,6 +77,27 @@ fun SettingsList(
         }
     }
 }
+
+private fun Modifier.clipToGroupEdge(groupSize: State<IntSize>, first: Boolean): Modifier =
+    drawWithCache {
+        val group = groupSize.value
+        val outline = SettingsStyle.GroupShape.createOutline(
+            Size(group.width.toFloat(), group.height.toFloat()), layoutDirection, this
+        )
+        // Use the full group's outline so the edge pixels match at any row and window size.
+        val path = (outline as? Outline.Generic)?.let {
+            Path().apply {
+                addPath(it.path, Offset(0f, if (first) 0f else size.height - group.height))
+            }
+        }
+        onDrawWithContent {
+            if (path == null) {
+                drawContent()
+            } else {
+                clipRect { clipPath(path) { this@onDrawWithContent.drawContent() } }
+            }
+        }
+    }
 
 @Composable
 fun SettingsSectionLabel(text: String) {

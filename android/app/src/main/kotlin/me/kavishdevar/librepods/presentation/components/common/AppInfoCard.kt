@@ -28,8 +28,12 @@ import me.kavishdevar.librepods.presentation.components.primitives.styledListIte
 @Composable
 fun AppInfoCard(
     navigateToReleaseNotesScreen: (() -> Unit)? = null,
+    rowsCoverGroupCorners: Boolean = false,
 ) {
-    StyledList(title = stringResource(R.string.about)) {
+    StyledList(
+        title = stringResource(R.string.about),
+        rowsCoverGroupCorners = rowsCoverGroupCorners,
+    ) {
         styledListItem(
             contentText = stringResource(R.string.version),
             supportingText = BuildConfig.VERSION_NAME,

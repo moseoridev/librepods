@@ -9,8 +9,11 @@ import me.kavishdevar.librepods.presentation.components.primitives.styledListIte
 import me.kavishdevar.librepods.utils.XposedState
 
 @Composable
-fun DeviceInfoCard() {
-    StyledList(title = stringResource(R.string.device_info)) {
+fun DeviceInfoCard(rowsCoverGroupCorners: Boolean = false) {
+    StyledList(
+        title = stringResource(R.string.device_info),
+        rowsCoverGroupCorners = rowsCoverGroupCorners,
+    ) {
         styledListItem(
             contentText = stringResource(R.string.manufacturer),
             supportingText = Build.MANUFACTURER,

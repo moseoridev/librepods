@@ -33,6 +33,7 @@ import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.design.sectionHeader
 import me.kavishdevar.librepods.ui.components.SettingsList
 
+/** [rowsCoverGroupCorners] is for bounded Samsung rows whose edge rows span the group corners. */
 @Composable
 fun StyledList(
     modifier: Modifier = Modifier,
@@ -41,20 +42,27 @@ fun StyledList(
     description: String? = null,
     key: Any? = null,
     surfaceColor: Color = Color.Unspecified,
+    rowsCoverGroupCorners: Boolean = false,
     content: @Composable StyledListScope.() -> Unit
 ) {
-    val scope = StyledListScope()
+    val design = LocalDesign.current
+    val groupSurface = if (rowsCoverGroupCorners && design.system == DesignSystem.Samsung) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        Color.Unspecified
+    }
+    val scope = StyledListScope(groupSurface)
     key(key) {
         scope.content()
     }
 
-    val design = LocalDesign.current
     val scrollState = rememberScrollState()
     if (design.system == DesignSystem.Samsung) {
         SettingsList(
             modifier = modifier.then(if (scrollEnabled) Modifier.verticalScroll(scrollState) else Modifier),
             title = title,
             description = description,
+            clipOnlyEdgeRows = rowsCoverGroupCorners,
         ) {
             scope.items.forEach { item(it) }
         }
@@ -118,7 +126,9 @@ fun StyledList(
     }
 }
 
-class StyledListScope {
+class StyledListScope internal constructor(
+    internal val groupSurface: Color,
+) {
     internal val items =
         mutableListOf<@Composable (Int, Int) -> Unit>()
 

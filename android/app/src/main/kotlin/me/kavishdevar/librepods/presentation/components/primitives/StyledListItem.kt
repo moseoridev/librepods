@@ -541,6 +541,7 @@ fun StyledListScope.styledListItem(
             enabled = enabled,
             index = index,
             count = count,
+            groupSurface = groupSurface,
             orientation = orientation,
             modifier = modifier,
             selected = selected,
@@ -587,6 +588,7 @@ fun StyledListScope.styledListItem(
             enabled = enabled,
             index = index,
             count = count,
+            groupSurface = groupSurface,
             orientation = orientation,
             modifier = modifier,
             selected = selected,
@@ -660,6 +662,7 @@ fun StyledListScope.styledListItem(
             enabled = enabled,
             index = index,
             count = count,
+            groupSurface = groupSurface,
             orientation = orientation,
             modifier = modifier,
             selected = selected,
@@ -745,6 +748,7 @@ fun StyledListScope.styledListItem(
             enabled = enabled,
             index = index,
             count = count,
+            groupSurface = groupSurface,
             orientation = if (design.system == DesignSystem.Samsung && supportingText != null) StyledListItemOrientation.Vertical else orientation,
             modifier = modifier,
             selected = selected,
@@ -771,6 +775,7 @@ private fun StyledListItemContent(
     enabled: Boolean = true,
     index: Int,
     count: Int,
+    groupSurface: Color = Color.Unspecified,
     orientation: StyledListItemOrientation = StyledListItemOrientation.Horizontal,
     selected: Boolean? = null,
     leadingContent: (@Composable () -> Unit)? = null,
@@ -851,38 +856,22 @@ private fun StyledListItemContent(
 
             val currentClick by rememberUpdatedState(onClick)
             val currentEnabled by rememberUpdatedState(enabled)
+            // Keep the original edge fills where they meet the antialiased group outline.
+            val usesGroupBackground = index > 0 && index < count - 1 &&
+                groupSurface == animatedBackgroundColor && groupSurface.alpha == 1f
+            val background = if (usesGroupBackground) {
+                Modifier
+            } else {
+                val shape = when {
+                    index == 0 && count == 1 -> RoundedCornerShape(28.dp)
+                    index == 0 -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                    index == count - 1 -> RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+                    else -> RectangleShape
+                }
+                Modifier.background(animatedBackgroundColor, shape)
+            }
             Column (
-                modifier = Modifier
-                    .background(
-                        animatedBackgroundColor,
-                        when {
-                            (index == 0 && count == 1) -> {
-                                RoundedCornerShape(28.dp)
-                            }
-
-                            (index == 0) -> {
-                                RoundedCornerShape(
-                                    topStart = 28.dp,
-                                    topEnd = 28.dp,
-                                    bottomStart = 0.dp,
-                                    bottomEnd = 0.dp
-                                )
-                            }
-
-                            (index + 1 == count) -> {
-                                RoundedCornerShape(
-                                    topStart = 0.dp,
-                                    topEnd = 0.dp,
-                                    bottomStart = 28.dp,
-                                    bottomEnd = 28.dp
-                                )
-                            }
-
-                            else -> {
-                                RectangleShape
-                            }
-                        }
-                    )
+                modifier = background
                     .pointerInput(onClick != null, surfaceColor, pressedColor) {
                         if (onClick != null) {
                             detectTapGestures(
