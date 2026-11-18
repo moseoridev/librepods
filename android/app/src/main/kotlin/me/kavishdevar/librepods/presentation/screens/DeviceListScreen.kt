@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
+import me.kavishdevar.librepods.core.devices.AirPodsModel
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.AppleDevice
 import me.kavishdevar.librepods.core.devices.AppleMetadata
@@ -453,9 +454,15 @@ fun DeviceListScreen(
                                     }),
                                 contentAlignment = Alignment.Center
                             ) {
+                                val icons = LocalIcons.current
+                                val appleMetadata = deviceMetadata as? AppleMetadata
+                                val deviceIcon = if (appleMetadata?.model == AirPodsModel.UNKNOWN) {
+                                    icons.Bluetooth
+                                } else {
+                                    icons.fromName(deviceMetadata.iconName) ?: icons.Headphones
+                                }
                                 Icon(
-                                    imageVector = LocalIcons.current.fromName(deviceMetadata.iconName)
-                                        ?: LocalIcons.current.Headphones,
+                                    imageVector = deviceIcon,
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                     tint = iconColor
