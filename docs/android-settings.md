@@ -306,4 +306,6 @@ The appearance picker offers all three. Under Samsung the font-family and icon-s
 
 The device list opens App settings on the main navigation stack. Toolbar Back and system Back use that stack, and an automatic connection can open a device while the list is foregrounded. App-settings entry points retain their existing availability checks, including the successful AACP connection check for Appearance.
 
+Samsung App settings composes groups as they approach the viewport. The background-connection association launcher and resume observer stay registered at the page level while the row scrolls. In matched S25 debug runs, the slowest opening frame took 137.56 ms with eager groups and 108.02 ms with lazy groups. FrameTimeline p99 improved and p95 increased. [Perfetto traces and deadline counts](/Users/moseoridev/programming/android/librepods/evidence/app-settings-predictive-20261118/README.md).
+
 The background-connection title has a full text column, with the summary below it in the Samsung and Material rows and in the Apple row footer. The Galaxy S25 with paired AirPods 5 rendered all three styles and returned from App settings and Accessibility using their Back actions. [Earlier design fixture captures](/Users/moseoridev/programming/android/librepods/evidence/onboarding-samsung-20261116/session4/).
