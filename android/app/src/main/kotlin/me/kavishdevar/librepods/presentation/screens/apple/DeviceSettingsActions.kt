@@ -1,10 +1,47 @@
 package me.kavishdevar.librepods.presentation.screens.apple
 
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
 import me.kavishdevar.librepods.core.bluetooth.att.ATTHandle
 import me.kavishdevar.librepods.core.data.StemAction
 import me.kavishdevar.librepods.core.devices.AppleSettings
+import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
+
+@Composable
+internal fun rememberDeviceSettingsActions(viewModel: AppleViewModel): DeviceSettingsActions {
+    val context = LocalContext.current
+    return remember(viewModel, context) {
+        ViewModelSettingsActions(viewModel) {
+            context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+        }
+    }
+}
+
+@Composable
+internal fun BluetoothDisconnectAction(
+    actions: DeviceSettingsActions,
+    connectionState: ConnectionState,
+    content: @Composable (label: Int, onClick: () -> Unit) -> Unit,
+) {
+    var canDisconnect by remember(actions, connectionState) {
+        mutableStateOf(actions.canRequestBluetoothDisconnect())
+    }
+    content(if (canDisconnect) R.string.disconnect else R.string.open_bluetooth_settings) {
+        if (!canDisconnect || !actions.requestBluetoothDisconnect()) {
+            canDisconnect = false
+            actions.openBluetoothSettings()
+        }
+    }
+}
 
 /** UI intent boundary. Only the production adapter reaches the real device. */
 internal interface DeviceSettingsActions {

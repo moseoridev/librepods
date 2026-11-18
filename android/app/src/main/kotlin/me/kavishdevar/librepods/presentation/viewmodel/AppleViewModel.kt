@@ -142,8 +142,6 @@ class AppleViewModel(
         )
     )
 
-    fun disconnect() = device.disconnect()
-
     fun canRequestBluetoothDisconnect(): Boolean {
         val context = device.context
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&

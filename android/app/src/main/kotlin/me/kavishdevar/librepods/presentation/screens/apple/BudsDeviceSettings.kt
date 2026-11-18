@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
-import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.foundation.layout.*
@@ -111,12 +110,7 @@ fun BudsDeviceSettingsRoute(
     navigateToHeadTracking: () -> Unit,
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val actions = remember(viewModel, context) {
-        ViewModelSettingsActions(viewModel) {
-            context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
-        }
-    }
+    val actions = rememberDeviceSettingsActions(viewModel)
     BudsDeviceSettings(ui, actions, navigateBack, navigateToHearingProtection,
         navigateToHearingAid, navigateToTransparencyCustomization,
         navigateToRecording, navigateToHeartRate, mediaVolume = { PhoneMediaVolume() },
@@ -418,18 +412,9 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
     }
     SettingsList {
         if (ui.showsRecorder()) SettingsListItem(name = stringResource(R.string.librepods_options), onClick = { go(DevicePage.Extras) })
-        var canDisconnectDirectly by remember(actions, ui.connectionState) {
-            mutableStateOf(actions.canRequestBluetoothDisconnect())
+        BluetoothDisconnectAction(actions, ui.connectionState) { label, onClick ->
+            SettingsListItem(name = stringResource(label), onClick = onClick)
         }
-        SettingsListItem(
-            name = stringResource(if (canDisconnectDirectly) R.string.disconnect else R.string.open_bluetooth_settings),
-            onClick = {
-                if (!canDisconnectDirectly || !actions.requestBluetoothDisconnect()) {
-                    canDisconnectDirectly = false
-                    actions.openBluetoothSettings()
-                }
-            },
-        )
     }
 }
 

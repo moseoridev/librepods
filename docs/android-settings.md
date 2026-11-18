@@ -152,7 +152,7 @@ Source: `Picsew_20260921225117.PNG`. Preserve this observed top-to-bottom order 
 
 The Name editor, listening-mode transitions, volume interaction and Disconnect/Forget confirmation dialogs are not captured.
 
-Samsung's Disconnect action requests an all-profile Bluetooth disconnect on Android 17/API 37+ when LibrePods has Bluetooth Connect and a companion association for the device or the privileged Bluetooth grant. It closes the control session and suppresses retries once Android accepts the request. When the API is unavailable or rejects the request, the action opens Android Bluetooth settings and leaves the control session running. The app preserves bonding and profile policies. Android reports successful initiation asynchronously. [Android BluetoothDevice.disconnect reference](https://developer.android.com/reference/android/bluetooth/BluetoothDevice#disconnect())
+The Disconnect action in each design and the connected AirPods icon in the device list request an all-profile Bluetooth disconnect. Android 17/API 37+ accepts this for apps with Bluetooth Connect and a companion association for the device or the privileged Bluetooth grant. LibrePods closes the control session and suppresses retries once Android accepts the request. When the API is unavailable or rejects it, the action opens Android Bluetooth settings and keeps the control session running. The app preserves bonding and profile policies. Android reports successful initiation asynchronously. [Android BluetoothDevice.disconnect reference](https://developer.android.com/reference/android/bluetooth/BluetoothDevice#disconnect())
 
 ### Home row icons
 

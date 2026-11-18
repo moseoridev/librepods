@@ -1,5 +1,7 @@
 package me.kavishdevar.librepods.presentation.screens
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -37,6 +39,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +50,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,6 +64,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier
@@ -96,6 +101,8 @@ fun DeviceListScreen(
 ) {
     val design = LocalDesign.current
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
 
     val density = LocalDensity.current
@@ -381,7 +388,7 @@ fun DeviceListScreen(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .pointerInput(device, connectionState) {
+                                    .pointerInput(device, connectionState, context) {
                                         detectTapGestures(
                                             onPress = {
                                                 pressed = true
@@ -389,12 +396,22 @@ fun DeviceListScreen(
                                                 pressed = false
                                             },
                                             onTap = {
-                                                CoroutineScope(Dispatchers.IO).launch {
-                                                    when (connectionState) {
-                                                        ConnectionState.CONNECTED -> device.disconnect()
-                                                        ConnectionState.AVAILABLE -> device.connect()
-                                                        else -> {}
+                                                when (connectionState) {
+                                                    ConnectionState.CONNECTED -> scope.launch {
+                                                        val disconnected = withContext(Dispatchers.IO) {
+                                                            if (device is AppleDevice) {
+                                                                device.requestBluetoothDisconnect()
+                                                            } else {
+                                                                device.disconnect()
+                                                                true
+                                                            }
+                                                        }
+                                                        if (!disconnected) {
+                                                            context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                                                        }
                                                     }
+                                                    ConnectionState.AVAILABLE -> scope.launch(Dispatchers.IO) { device.connect() }
+                                                    else -> Unit
                                                 }
                                             }
                                         )
@@ -509,7 +526,10 @@ fun DeviceListScreen(
                                                     )
                                                 } else {
                                                     Text(
-                                                        text = stringResource(R.string.not_connected),
+                                                        text = stringResource(
+                                                            if (connectionState == ConnectionState.CONNECTED) R.string.connected
+                                                            else R.string.not_connected
+                                                        ),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )

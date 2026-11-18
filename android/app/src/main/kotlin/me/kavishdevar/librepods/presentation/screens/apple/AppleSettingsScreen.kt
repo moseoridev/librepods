@@ -132,35 +132,39 @@ fun AppleSettingsRoute(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val actions = rememberDeviceSettingsActions(viewModel)
 
-    AppleSettingsScreen(
-        uiState = uiState,
+    BluetoothDisconnectAction(actions, uiState.connectionState) { disconnectLabel, disconnect ->
+        AppleSettingsScreen(
+            uiState = uiState,
 
-        setControlCommandInt = { id, value -> viewModel.setControlCommand(id, value) },
-        setControlCommandBoolean = { id, value -> viewModel.setControlCommand(id, value) },
+            setControlCommandInt = { id, value -> viewModel.setControlCommand(id, value) },
+            setControlCommandBoolean = { id, value -> viewModel.setControlCommand(id, value) },
 
-        writeATTCharacteristic = viewModel::writeATTCharacteristic,
+            writeATTCharacteristic = viewModel::writeATTCharacteristic,
 
-        updateSettings = viewModel::updateSettings,
+            updateSettings = viewModel::updateSettings,
 
-        disconnect = viewModel::disconnect,
+            disconnect = disconnect,
+            disconnectLabel = disconnectLabel,
 
-        navigateBack = navigateBack,
-        navigateToRename = navigateToRename,
-        navigateToHearingProtection = navigateToHearingProtection,
-        navigateToHearingAid = navigateToHearingAid,
-        navigateToLeftLongPress = navigateToLeftLongPress,
-        navigateToRightLongPress = navigateToRightLongPress,
-        navigateToEqualizer = navigateToEqualizer,
-        navigateToHeadTracking = navigateToHeadTracking,
-        navigateToAccessibility = navigateToAccessibility,
-        navigateToVersion = navigateToVersion,
-        navigateToCallControlScreen = navigateToCallControlScreen,
-        navigateToMicrophoneSettings = navigateToMicrophoneSettings,
-        navigateToRecordingScreen = navigateToRecordingScreen,
-        navigateToHeartRateScreen = navigateToHeartRateScreen,
-        navigateToProxConnectSettings = navigateToProxConnectSettings
-    )
+            navigateBack = navigateBack,
+            navigateToRename = navigateToRename,
+            navigateToHearingProtection = navigateToHearingProtection,
+            navigateToHearingAid = navigateToHearingAid,
+            navigateToLeftLongPress = navigateToLeftLongPress,
+            navigateToRightLongPress = navigateToRightLongPress,
+            navigateToEqualizer = navigateToEqualizer,
+            navigateToHeadTracking = navigateToHeadTracking,
+            navigateToAccessibility = navigateToAccessibility,
+            navigateToVersion = navigateToVersion,
+            navigateToCallControlScreen = navigateToCallControlScreen,
+            navigateToMicrophoneSettings = navigateToMicrophoneSettings,
+            navigateToRecordingScreen = navigateToRecordingScreen,
+            navigateToHeartRateScreen = navigateToHeartRateScreen,
+            navigateToProxConnectSettings = navigateToProxConnectSettings
+        )
+    }
 }
 
 @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
@@ -181,6 +185,7 @@ fun AppleSettingsScreen(
 //    onAutomaticConnectionChanged: (Boolean) -> Unit,
 
     disconnect: () -> Unit,
+    disconnectLabel: Int = R.string.disconnect,
 
     navigateBack: (() -> Unit)?,
     navigateToRename: () -> Unit,
@@ -551,7 +556,7 @@ fun AppleSettingsScreen(
                         .heightIn(min = 56.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.disconnect),
+                        text = stringResource(disconnectLabel),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.fillMaxWidth()
