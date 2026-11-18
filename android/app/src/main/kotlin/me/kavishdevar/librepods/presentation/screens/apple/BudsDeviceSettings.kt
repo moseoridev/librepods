@@ -240,7 +240,8 @@ private fun DevicePageContent(
                 DevicePage.Accessibility -> AccessibilityPage(ui, actions, navigateToTransparencyCustomization)
                 DevicePage.Battery -> BatteryPage(ui, actions)
                 DevicePage.Microphone -> CommandChoices(ui, actions, Command.MIC_MODE,
-                    listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right))
+                    listOf(0 to R.string.microphone_automatic, 2 to R.string.microphone_always_left, 1 to R.string.microphone_always_right),
+                    fallback = 0)
                 DevicePage.Equalizer -> EqualizerPage(ui, actions)
                 DevicePage.Routing -> RoutingPage(ui, actions)
                 DevicePage.Left, DevicePage.Right -> LongPressPage(ui, actions, page == DevicePage.Left)
@@ -475,8 +476,9 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
     if ((ui.metadata.version3.firstOrNull()?.digitToIntOrNull() ?: 0) >= 9)
         SettingsList { SettingsListItem(name = stringResource(R.string.equalizer), onClick = { go(DevicePage.Equalizer) }) }
     SettingsList {
-        SettingsToggle(label = stringResource(R.string.ear_detection), checked = ui.value(Command.EAR_DETECTION_CONFIG) == 1,
-            enabled = ui.connectionState == ConnectionState.CONNECTED && ui.value(Command.EAR_DETECTION_CONFIG) != null,
+        SettingsToggle(label = stringResource(R.string.ear_detection),
+            checked = ui.value(Command.EAR_DETECTION_CONFIG)?.let { it == 1 } ?: ui.settings.earDetectionEnabled,
+            enabled = ui.connectionState == ConnectionState.CONNECTED,
             onCheckedChange = { enabled ->
                 vm.setControlCommand(Command.EAR_DETECTION_CONFIG, enabled)
                 vm.updateSettings { it.copy(earDetectionEnabled = enabled) }
@@ -487,11 +489,15 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
             onCheckedChange = { enabled -> vm.updateSettings { it.copy(disconnectWhenNotWearing = enabled) } })
         SettingsListItem(name = stringResource(R.string.automatic_connection), onClick = { go(DevicePage.Routing) },
             descriptionIsState = true,
-            description = ui.value(Command.SMART_ROUTING_MODE)?.let { stringResource(if (it == 1) R.string.on else R.string.off) })
+            description = stringResource(if (ui.value(Command.SMART_ROUTING_MODE) == 1) R.string.on else R.string.off))
     }
     SettingsList { SettingsListItem(name = stringResource(R.string.microphone_mode), onClick = { go(DevicePage.Microphone) },
         descriptionIsState = true,
-        description = ui.value(Command.MIC_MODE)?.let { stringResource(when(it) { 2 -> R.string.microphone_always_left; 1 -> R.string.microphone_always_right; else -> R.string.microphone_automatic }) }) }
+        description = stringResource(when (ui.value(Command.MIC_MODE)) {
+            2 -> R.string.microphone_always_left
+            1 -> R.string.microphone_always_right
+            else -> R.string.microphone_automatic
+        })) }
     if (ui.has(BaseCapability.ADAPTIVE_AUDIO)) CommandSlider(stringResource(R.string.customize_adaptive_audio),
         ui.value(Command.AUTO_ANC_STRENGTH), enabled = ui.connectionState == ConnectionState.CONNECTED) {
         vm.setControlCommand(Command.AUTO_ANC_STRENGTH, it)
@@ -502,7 +508,7 @@ private fun AudioPage(ui: AppleUiState, vm: DeviceSettingsActions, go: (DevicePa
 /** "Connect to This iPhone" holds the automatic-connection rules, including their extras. */
 @Composable
 private fun RoutingPage(ui: AppleUiState, vm: DeviceSettingsActions) {
-    CommandChoices(ui, vm, Command.SMART_ROUTING_MODE, listOf(1 to R.string.on, 2 to R.string.off))
+    CommandChoices(ui, vm, Command.SMART_ROUTING_MODE, listOf(1 to R.string.on, 2 to R.string.off), fallback = 2)
     val settings = ui.settings
     SettingsToggle(label = stringResource(R.string.always_connect_when_disconnected),
         description = stringResource(R.string.always_connect_when_disconnected_description),
@@ -681,11 +687,15 @@ private fun CommandToggle(ui: AppleUiState, vm: DeviceSettingsActions, command: 
 }
 
 @Composable
-private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command, options: List<Pair<Int, Int>>, title: Int? = null, description: Int? = null) {
+private fun CommandChoices(ui: AppleUiState, vm: DeviceSettingsActions, command: Command,
+    options: List<Pair<Int, Int>>, title: Int? = null, description: Int? = null, fallback: Int? = null) {
+    // controlStates includes values restored from the existing per-device cache.
+    val reported = ui.value(command)
+    val selection = reported?.takeIf { value -> options.any { it.first == value } } ?: fallback
     SettingsList(title = title?.let { stringResource(it) }, description = description?.let { stringResource(it) }) {
         options.forEach { (value, label) ->
-            SettingsChoiceRow(name = stringResource(label), selected = ui.value(command) == value,
-                enabled = (ui.connectionState == ConnectionState.CONNECTED) && ui.value(command) != null,
+            SettingsChoiceRow(name = stringResource(label), selected = selection == value,
+                enabled = ui.connectionState == ConnectionState.CONNECTED && (reported != null || fallback != null),
                 onClick = { vm.setControlCommand(command, value) })
         }
     }
