@@ -726,7 +726,9 @@ private fun LoudSoundReductionToggle(ui: AppleUiState, vm: DeviceSettingsActions
 @Composable
 private fun BatteryPage(ui: AppleUiState, vm: DeviceSettingsActions) {
     SettingsDescription(stringResource(R.string.airpods_battery_lifespan))
-    CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
+    if (ui.state.supportsOptimizedChargeLimit()) {
+        CommandToggle(ui, vm, Command.DYNAMIC_END_OF_CHARGE, R.string.optimized_charging, R.string.optimized_charging_description)
+    }
 }
 
 @Composable

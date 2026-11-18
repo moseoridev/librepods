@@ -65,6 +65,7 @@ import me.kavishdevar.librepods.core.data.apple.BuddyState
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.AppleSettings
 import me.kavishdevar.librepods.core.devices.BaseCapability
+import me.kavishdevar.librepods.core.devices.ConnectionState
 import me.kavishdevar.librepods.core.devices.format
 import me.kavishdevar.librepods.data.app.Design
 import me.kavishdevar.librepods.data.app.DesignSystem
@@ -494,14 +495,18 @@ fun AppleSettingsScreen(
                 }
             }
 
-            item(key = "spacer_dynamic_end_of_charge") { Spacer(modifier = Modifier.height(16.dp)) }
-            item(key = "dynamic_end_of_charge") {
-                StyledToggle(
-                    label = stringResource(R.string.optimized_charging),
-                    description = stringResource(R.string.optimized_charging_description),
-                    checked = state.controlStates[ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE]?.getOrNull(0) == 0x01.toByte(),
-                    onCheckedChange = { setControlCommandBoolean(ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE, it) }
-                )
+            if (state.supportsOptimizedChargeLimit()) {
+                item(key = "spacer_dynamic_end_of_charge") { Spacer(modifier = Modifier.height(16.dp)) }
+                item(key = "dynamic_end_of_charge") {
+                    val chargeLimit = state.controlStates[ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE]?.firstOrNull()
+                    StyledToggle(
+                        label = stringResource(R.string.optimized_charging),
+                        description = stringResource(R.string.optimized_charging_description),
+                        checked = chargeLimit == 0x01.toByte(),
+                        enabled = chargeLimit != null && uiState.connectionState == ConnectionState.CONNECTED,
+                        onCheckedChange = { setControlCommandBoolean(ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE, it) }
+                    )
+                }
             }
 
             item(key = "spacer_accessibility") { Spacer(modifier = Modifier.height(16.dp)) }

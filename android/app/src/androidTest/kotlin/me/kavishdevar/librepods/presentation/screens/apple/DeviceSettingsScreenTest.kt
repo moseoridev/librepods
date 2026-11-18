@@ -21,6 +21,8 @@ import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.platform.app.InstrumentationRegistry
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.devices.AirPodsModel
+import me.kavishdevar.librepods.core.bluetooth.aacp.types.Capability
+import me.kavishdevar.librepods.core.bluetooth.aacp.types.CapabilityEntry
 import me.kavishdevar.librepods.core.bluetooth.aacp.types.ControlCommandIdentifier as Command
 import org.junit.Assert.*
 import org.junit.Rule
@@ -171,6 +173,32 @@ class DeviceSettingsScreenTest {
         compose.onNode(hasText(text(R.string.longest)) and isSelectable()).performScrollTo()
             .performClick().assertIsSelected()
         compose.runOnIdle { assertEquals(listOf("VOLUME_SWIPE_INTERVAL: 3"), fixture.events.toList()) }
+    }
+
+    @Test fun optimizedChargeLimitRequiresSupportEvidenceAndAValueToWrite() {
+        val fixture = SettingsFixture()
+        var advertisesCapability by mutableStateOf(false)
+        var reportsValue by mutableStateOf(false)
+        compose.setContent {
+            val ui = fixture.ui
+            val state = ui.state
+            val capabilities = if (advertisesCapability) {
+                setOf(CapabilityEntry(Capability.DYNAMIC_END_OF_CHARGE, byteArrayOf(1)))
+            } else emptySet()
+            val controls = if (reportsValue) state.controlStates else state.controlStates - Command.DYNAMIC_END_OF_CHARGE
+            BudsDeviceSettings(ui.copy(state = state.copy(capabilities = capabilities, controlStates = controls)),
+                fixture, initialPage = DevicePage.Battery, mediaVolume = { FixtureMediaVolume() })
+        }
+        val chargeLimit = compose.onNodeWithText(text(R.string.optimized_charging))
+        chargeLimit.assertDoesNotExist()
+        compose.runOnIdle { advertisesCapability = true }
+        chargeLimit.assertIsNotEnabled()
+        compose.runOnIdle {
+            advertisesCapability = false
+            reportsValue = true
+        }
+        chargeLimit.assertIsOn().performClick().assertIsOff()
+        compose.runOnIdle { assertEquals(listOf("DYNAMIC_END_OF_CHARGE: 2"), fixture.events.toList()) }
     }
 
     @Test fun callChoicesRemainCoupledAcrossBothPages() {

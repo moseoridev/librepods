@@ -96,9 +96,8 @@ class SimulatedAirPodsProtocolTest {
     }
 
     /**
-     * The scenario decides which rows appear: reporting a capability the spec lacks would show a
-     * control for hardware that does not have it, and hiding one the spec has would drop a
-     * supported row. Only the capabilities the spec claims are asserted here.
+     * Keep the AirPods 5 scenario aligned with the expected settings rows and observed
+     * charge-limit support.
      */
     @Test fun airPods5CapabilitiesMatchItsSpecRowSet() {
         val scenario = SimulatedAirPods.scenario("airpods5-wcc")
@@ -109,7 +108,8 @@ class SimulatedAirPodsProtocolTest {
         assertTrue(BaseCapability.SLEEP_DETECTION in spec)
         assertTrue("sleep detection", 0x21 in reported)
         assertTrue("selective speech listening", 0x04 in reported)
-        assertTrue("dynamic end of charge", 0x29 in reported)
+        assertFalse("the WCC firmware did not advertise Dynamic End of Charge", 0x29 in reported)
+        assertFalse(scenario.controlStates.any { it.first == ControlCommandIdentifier.DYNAMIC_END_OF_CHARGE })
         assertFalse("hearing aid is not in the WCC spec", 0x22 in reported)
         assertFalse("heart rate is not in the WCC spec", 0x26 in reported)
         assertFalse(BaseCapability.HEARING_AID in spec)

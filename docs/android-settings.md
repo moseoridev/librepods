@@ -240,6 +240,8 @@ Source: `Picsew_20260921225516.PNG`. Observed order:
 | Version — `IMG_0089.PNG` | Version 9A350, Case Version 9A350; firmware-details link to support.apple.com. |
 | Limited Warranty — `Picsew_20260921225559.PNG` | Device card (AirPods 5, serial field), Limited Warranty, expiry field, Hardware Service and Chat & Phone Support coverage, benefits link. Need Help? section with Apple Support app card/Get button, explanatory text and Get Support on Web action. Coverage/legal explanatory text includes further links. This is an external service flow, not an AirPods configuration command. |
 
+AirPods 5 shows Optimized Battery Charging in `IMG_0087.PNG`. Apple documents Optimized Charge Limit separately for AirPods Pro 3. LibrePods shows the charge-limit switch when AACP reports the Dynamic End of Charge capability or the command has a value. AirPods 5 with Wireless Charging Case (A3439, firmware build 9442784) reported neither after a clean app setup. [Apple AirPods User Guide](https://support.apple.com/en-lamr/guide/airpods/devde25a4bbe/27/web/27)
+
 ## LibrePods option placement
 
 The product's `LibrePods options` page is now limited to model-specific pages. Entries with an iOS position moved to it; app-owned features moved to app settings.
