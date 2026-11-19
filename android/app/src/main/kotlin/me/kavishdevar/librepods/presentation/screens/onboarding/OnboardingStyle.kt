@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -151,11 +150,6 @@ internal object OnboardingStyle {
      * launcher monochrome stands in for it; only the gap is source-backed.
      */
     val BudsHeroGap = 11.dp
-    /**
-     * Reference heading→first-group gap: 32dp (heading box bottom 1013px, `필수 권한` ink top
-     * 1109px). [OnboardingGroupLabel] already contributes its own 21dp, so callers add the rest.
-     */
-    val HeroToGroup = 11.dp
     /** Buds privacy illustration starts 34dp below the toolbar. */
     val HeroTopBuds = 34.dp
     val WelcomeArtworkGap = 12.dp
@@ -175,7 +169,6 @@ internal object OnboardingStyle {
     val BottomButtonHeight = 52.dp
     val ConsentButtonHeight = 48.dp
     val BottomButtonWidth = 200.dp
-    val BottomButtonGap = 8.dp
     val BottomInset = 20.dp
 
     /**
@@ -334,17 +327,6 @@ internal fun OnboardingCentredPrimaryButton(
             height = height,
         )
     }
-}
-
-/** Horizontal action row, as in the Buds consent bottom bar. */
-@Composable
-internal fun OnboardingBottomButtonRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(OnboardingStyle.BottomButtonGap),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
 }
 
 /** Flat permission row: 24dp icon, 16sp/13sp text, no card, divider or icon container. */

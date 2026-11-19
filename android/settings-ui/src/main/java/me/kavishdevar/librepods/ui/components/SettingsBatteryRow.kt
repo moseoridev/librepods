@@ -22,10 +22,12 @@ fun SettingsBatteryRow(
     primaryMeters: List<@Composable () -> Unit>,
     modifier: Modifier = Modifier,
     secondaryMeter: (@Composable () -> Unit)? = null,
+    balanceGroups: Boolean = false,
 ) {
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Row(Modifier.widthIn(max = 280.dp).fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            Row(Modifier.weight(primaryMeters.size.coerceAtLeast(1).toFloat()),
+            val primaryWeight = if (balanceGroups) 1f else primaryMeters.size.coerceAtLeast(1).toFloat()
+            Row(Modifier.weight(primaryWeight),
                 horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Top) {
                 primaryMeters.forEach { meter ->
                     // Preserve the weighted width through the slot. Wrapping a

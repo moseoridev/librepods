@@ -318,6 +318,7 @@
     <string name="permission_description_notification">Show battery status, alerts for high heart rate (on supported models), and more.</string>
     <string name="permission_description_phone">Respond to phone calls with head gestures.</string>
     <string name="onboarding_permission_allow">Allow</string>
+    <string name="onboarding_allow_bluetooth">Allow Bluetooth</string>
     <string name="onboarding_permission_allowed">Allowed</string>
     <string name="onboarding_permission_heading">Allow access for your AirPods</string>
     <string name="onboarding_start">Start</string>

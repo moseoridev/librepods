@@ -56,6 +56,7 @@ fun <T> SettingsModeStrip(
     modifier: Modifier = Modifier,
     stripWidth: Dp? = null,
     captionWidth: Dp? = null,
+    enabled: Boolean = true,
 ) {
     if (modes.isEmpty()) return
     val track = if (settingsIsDarkTheme()) Color(0xFF3E3E3E) else Color(0xFFEDEDED)
@@ -196,6 +197,7 @@ fun <T> SettingsModeStrip(
                     // rl.q1 passes a null indication for both the disc and caption.
                     // Keep selection/focus input without a rectangular default ripple.
                     }.selectable(isSelected,
+                        enabled = enabled,
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null, role = Role.RadioButton,
                         onClick = { if (!isSelected) onSelect(mode) })

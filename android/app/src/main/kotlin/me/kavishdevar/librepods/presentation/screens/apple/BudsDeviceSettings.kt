@@ -5,6 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.foundation.layout.*
@@ -37,6 +45,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -377,17 +386,38 @@ private fun DeviceHome(ui: AppleUiState, go: (DevicePage) -> Unit, onRename: () 
             }
             // A requested or persisted control value is not an acknowledgement from this session.
             item { _, _ ->
-                if (confirmedMode == 4 && 4 in modes) {
-                    CommandSliderValue(
-                        remote = (ui.value(Command.AUTO_ANC_STRENGTH) ?: 50).coerceIn(0, 100),
-                        enabled = connected,
-                        send = { actions.setControlCommand(Command.AUTO_ANC_STRENGTH, it) },
-                    ) { strength, changeStrength ->
-                        BudsAdaptiveModeStrip(modes, strength, connected, darkTheme, selectMode, changeStrength)
+                val expanded = confirmedMode == 4 && 4 in modes
+                AnimatedContent(
+                    targetState = expanded,
+                    contentAlignment = Alignment.TopCenter,
+                    transitionSpec = {
+                        // The Manager keeps a fixed strip in Adaptive. Use its
+                        // selection easing for the LibrePods-only size change.
+                        val easing = CubicBezierEasing(.33f, 0f, .67f, 1f)
+                        ((fadeIn(tween(180, delayMillis = 80)) +
+                            scaleIn(tween(260, easing = easing), initialScale = .96f))
+                            togetherWith fadeOut(tween(100)))
+                            .using(SizeTransform { _, _ -> tween(300, easing = easing) })
+                    },
+                    label = "Adaptive noise control",
+                ) { showSlider ->
+                    val current = showSlider == expanded
+                    Box(if (current) Modifier else Modifier.clearAndSetSemantics {}) {
+                        if (showSlider) {
+                            CommandSliderValue(
+                                remote = (ui.value(Command.AUTO_ANC_STRENGTH) ?: 50).coerceIn(0, 100),
+                                enabled = connected,
+                                send = { actions.setControlCommand(Command.AUTO_ANC_STRENGTH, it) },
+                            ) { strength, changeStrength ->
+                                BudsAdaptiveModeStrip(modes, strength, current && connected, darkTheme,
+                                    selectMode, changeStrength)
+                            }
+                        } else {
+                            SettingsModeStrip(modes, confirmedMode, onSelect = selectMode,
+                                label = { modeLabel(it) }, artwork = { mode, selected -> BudsModeArtwork(mode, selected) },
+                                enabled = current && connected)
+                        }
                     }
-                } else {
-                    SettingsModeStrip(modes, confirmedMode, onSelect = selectMode,
-                        label = { modeLabel(it) }, artwork = { mode, selected -> BudsModeArtwork(mode, selected) })
                 }
             }
         }
@@ -491,12 +521,12 @@ private fun DeviceBatteries(ui: AppleUiState) {
     // starts right after it, so this block supplies the whole gap below the meters.
     Column(Modifier.fillMaxWidth().ownTrailingSpace(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(6.dp))
-        // AirPods art has different proportions from the Buds hero. Bound it to
-        // the source's 92dp hero region, sharing the battery row's group weights.
+        // The Manager supplies the hero height. AirPods use two equally wide
+        // artwork groups as in iOS, even when the earbuds report separate levels.
         Row(Modifier.widthIn(max = 280.dp).fillMaxWidth().height(92.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(spec.primaryImageRes), null,
-                Modifier.weight(primary.size.toFloat()).fillMaxHeight().padding(top = 12.dp).testTag("battery-primary-art"),
+                Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp).testTag("battery-primary-art"),
                 contentScale = ContentScale.Fit)
             caseImage?.let { image ->
                 Box(Modifier.weight(1f).fillMaxHeight().padding(start = 3.dp, top = 12.dp)) {
@@ -506,7 +536,8 @@ private fun DeviceBatteries(ui: AppleUiState) {
         }
         SettingsBatteryRow(primaryMeters = primary.map { component -> @Composable { meter(component) } },
             modifier = Modifier.padding(vertical = 14.dp),
-            secondaryMeter = if (caseImage != null) ({ meter(BatteryComponent.CASE) }) else null)
+            secondaryMeter = if (caseImage != null) ({ meter(BatteryComponent.CASE) }) else null,
+            balanceGroups = true)
     }
 }
 

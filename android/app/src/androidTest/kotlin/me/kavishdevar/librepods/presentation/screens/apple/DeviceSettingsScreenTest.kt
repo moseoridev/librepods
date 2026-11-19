@@ -62,6 +62,7 @@ class DeviceSettingsScreenTest {
             assertTrue("art overlaps ring at $viewport", primaryArt.bottom < left.top && caseArt.bottom < case.top)
             assertEquals(primaryArt.center.x, (left.center.x + right.center.x) / 2, 1.5f)
             assertEquals(caseArt.center.x, case.center.x, 1.5f)
+            assertEquals("artwork columns at $viewport", primaryArt.width, caseArt.width, primaryArt.width * .04f)
             assertTrue(left.right <= right.left && right.right <= case.left)
             capture("charging-${width}-${if (dark) "dark-font150" else "light"}")
         }
