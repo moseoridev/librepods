@@ -1,7 +1,6 @@
 package me.kavishdevar.librepods.presentation.screens.onboarding
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +42,8 @@ import me.kavishdevar.librepods.presentation.icons.MaterialIcons
 import me.kavishdevar.librepods.ui.components.SettingsButton
 import me.kavishdevar.librepods.ui.components.SettingsButtonStyle
 import me.kavishdevar.librepods.ui.components.SettingsIconButton
+import me.kavishdevar.librepods.ui.components.SettingsListItem
+import me.kavishdevar.librepods.ui.components.SettingsListScope
 
 /**
  * Samsung first-run values shared by every onboarding page. Anchors are the reference captures
@@ -153,19 +154,6 @@ internal object OnboardingStyle {
     /** Buds privacy illustration starts 34dp below the toolbar. */
     val HeroTopBuds = 34.dp
     val WelcomeArtworkGap = 12.dp
-    val RowIconSize = 24.dp
-    val RowIconGap = 18.dp
-    val RowMinHeight = 62.dp
-    val RowVerticalPadding = 10.dp
-    // Wearable's scan-help link colors also keep small action text legible on each page background.
-    val ActionText: Color
-        @Composable get() = if (settingsSurfaceIsDark()) Color(0xFF578FFF) else Color(0xFF376FDE)
-    val PermissionSupportingText: Color
-        @Composable get() = if (settingsSurfaceIsDark()) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            Color(0xFF4D4D52) // Wearable gray_scale_text_color3 on white.
-        }
     val BottomButtonHeight = 52.dp
     val ConsentButtonHeight = 48.dp
     val BottomButtonWidth = 200.dp
@@ -212,12 +200,13 @@ internal fun OnboardingPageScaffold(
     onBack: (() -> Unit)? = null,
     bottom: (@Composable () -> Unit)? = null,
     titleStyle: TextStyle = OnboardingStyle.PageTitle,
+    background: Color = OnboardingStyle.PageBackground,
     content: @Composable () -> Unit,
 ) {
     Column(
         modifier
             .fillMaxSize()
-            .background(OnboardingStyle.PageBackground)
+            .background(background)
     ) {
         if (title != null) {
             Row(
@@ -329,99 +318,48 @@ internal fun OnboardingCentredPrimaryButton(
     }
 }
 
-/** Flat permission row: 24dp icon, 16sp/13sp text, no card, divider or icon container. */
 @Composable
-internal fun OnboardingPermissionRow(
+internal fun SettingsListScope.OnboardingPermissionRow(
     title: String,
     summary: String,
     onClick: (() -> Unit)?,
     icon: ImageVector,
 ) {
-    val allow = stringResource(R.string.onboarding_permission_allow)
-    val action = if (onClick != null) {
-        Modifier.clickable(role = Role.Button, onClickLabel = allow, onClick = onClick)
-    } else {
-        Modifier
-    }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = OnboardingStyle.RowMinHeight)
-            .then(action)
-            .padding(
-                horizontal = OnboardingStyle.Inset,
-                vertical = OnboardingStyle.RowVerticalPadding
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(OnboardingStyle.RowIconSize),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.width(OnboardingStyle.RowIconGap))
-        Column(Modifier.weight(1f)) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+    val colors = MaterialTheme.colorScheme
+    val granted = onClick == null
+    SettingsListItem(
+        name = title,
+        description = summary,
+        onClick = onClick,
+        leadingContent = {
+            Box(
+                Modifier.size(40.dp).background(
+                    if (granted) colors.primary.copy(alpha = .13f) else colors.onSurface.copy(alpha = .08f),
+                    CircleShape,
+                ),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = title,
-                    modifier = Modifier.weight(1f),
-                    style = OnboardingStyle.RowTitle,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (onClick != null) {
-                    Text(
-                        text = allow,
-                        style = OnboardingStyle.RowSummary,
-                        fontWeight = FontWeight.SemiBold,
-                        color = OnboardingStyle.ActionText
-                    )
-                } else {
-                    val statusColor = OnboardingStyle.PermissionSupportingText
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = MaterialIcons.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = statusColor
-                        )
-                        Text(
-                            text = stringResource(R.string.onboarding_permission_allowed),
-                            style = OnboardingStyle.RowSummary,
-                            color = statusColor
-                        )
-                    }
-                }
+                Icon(icon, null, Modifier.size(24.dp),
+                    tint = if (granted) colors.primary else colors.onSurfaceVariant)
             }
-            Text(
-                text = summary,
-                style = OnboardingStyle.RowSummary,
-                color = OnboardingStyle.PermissionSupportingText
-            )
-        }
-    }
-}
-
-/** Group label above a flat row run: 14sp with the reference 21dp/8dp vertical space. */
-@Composable
-internal fun OnboardingGroupLabel(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier
-            .padding(horizontal = OnboardingStyle.Inset)
-            .padding(top = 21.dp, bottom = 8.dp),
-        style = OnboardingStyle.GroupLabel,
-        color = MaterialTheme.colorScheme.onSurface
+        },
+        trailingContent = {
+            if (granted) {
+                Icon(MaterialIcons.Check, stringResource(R.string.onboarding_permission_allowed),
+                    Modifier.size(22.dp), tint = colors.primary)
+            } else {
+                Text(
+                    stringResource(R.string.onboarding_permission_allow),
+                    Modifier.background(colors.primary.copy(alpha = .13f), CircleShape).padding(horizontal = 12.dp, vertical = 7.dp),
+                    color = colors.primary,
+                    style = OnboardingStyle.RowSummary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
     )
 }
 
-/** Page-body paragraph at the reference 14sp body size. */
 @Composable
 internal fun OnboardingBodyText(
     text: String,

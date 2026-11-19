@@ -152,9 +152,9 @@ Source: `Picsew_20260921225117.PNG`. Preserve this observed top-to-bottom order 
 
 The Name editor, listening-mode transitions, volume interaction and Disconnect/Forget confirmation dialogs are not captured.
 
-The Samsung device screen uses the Manager's 92dp hero slot and the two equal artwork groups shown in the iOS capture. Separate left and right readings share the earbuds' half of the row so that the artwork stays centred over its group.
+The Samsung device screen uses the Manager's 92dp hero slot. For AirPods with a case, the two artwork groups are evenly spaced and centred over their battery readings. The case image is larger than the earbuds, following the relative scale in the iOS capture.
 
-When Adaptive is confirmed, the Samsung device screen expands the Adaptive glyph into a slider between Transparency and Noise Cancellation. Off returns to the standard strip when the device confirms another mode, if Off is available. The Manager keeps the standard strip in Adaptive. LibrePods uses the Manager's selection easing for the size change between the strip and its own Adaptive capsule, with the outgoing control disabled during the transition.
+When Adaptive is confirmed, the Samsung device screen expands its existing Adaptive slot into a slider. Transparency moves outwards, Off fades if present, and the same Adaptive thumb moves to the current strength. The Manager keeps a fixed strip in Adaptive. The width and position animation follows LibrePods' Apple control while retaining Samsung artwork and labels.
 
 The Disconnect action in each design and the connected AirPods icon in the device list request an all-profile Bluetooth disconnect. Android 17/API 37+ accepts this for apps with Bluetooth Connect and a companion association for the device or the privileged Bluetooth grant. LibrePods closes the control session and suppresses retries once Android accepts the request. When the API is unavailable or rejects it, the action opens Android Bluetooth settings and keeps the control session running. The app preserves bonding and profile policies. Android reports successful initiation asynchronously. [Android BluetoothDevice.disconnect reference](https://developer.android.com/reference/android/bluetooth/BluetoothDevice#disconnect())
 
@@ -291,7 +291,7 @@ Onboarding always uses the Samsung presentation. The button-driven sequence uses
 | --- | --- | --- |
 | Welcome | Galaxy Wearable `wm-01` | Centered 30sp app name above the artwork, 14sp description and a 200×52dp monochrome Start pill. The artwork uses the AirPods silhouettes already shipped by LibrePods. |
 | Privacy policy | Buds `buds-02` notice and `buds-04` consent | Regular 24sp toolbar title after the 60dp back slot, blue app mark and bold 27sp body title, followed by the scrollable policy and a 48dp blue consent pill. |
-| Permissions | Wearable `wm-10` | Required and optional groups with flat 16sp/13sp rows and 24dp icons. LibrePods uses a compact heading and a single centred button. It requests Bluetooth first and becomes Done after the required grants. Each optional row has its own Allow action and granted status. |
+| Permissions | Wearable `wm-10` and upstream LibrePods onboarding | Required and optional Samsung cards. Each row pairs a permission icon and purpose with an Allow chip or a granted check. Grant all runs the outstanding requests in order. Done is available once Bluetooth has been granted. |
 | Compatibility notice | Wearable toolbar shape | The shared header frames the notice. The bypass control remains available in the FOSS build. |
 
 The toolbar title starts at 60dp. Welcome and permissions use Wearable's monochrome pill colors, and privacy consent uses the Buds blue `#387AFF`. The page-by-page comparison records which other choices are adapted for LibrePods. [Onboarding comparison](/Users/moseoridev/programming/android/librepods/evidence/onboarding-polish-20261118/gaps.md).

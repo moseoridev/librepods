@@ -278,7 +278,6 @@
     <string name="permission_healthconnect">Health Connect에 심박수 기록</string>
     <string name="permission_description_healthconnect">앱이 Android의 Health Connect 플랫폼에 심박수 데이터를 기록하도록 허용합니다.</string>
     <string name="onboarding_permission_allow">허용</string>
-    <string name="onboarding_allow_bluetooth">블루투스 허용</string>
     <string name="onboarding_permission_allowed">허용됨</string>
     <string name="onboarding_permission_heading">AirPods 사용을 위한 접근 권한</string>
     <string name="onboarding_start">시작</string>

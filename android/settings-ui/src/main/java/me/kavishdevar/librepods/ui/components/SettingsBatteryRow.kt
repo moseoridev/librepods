@@ -25,7 +25,11 @@ fun SettingsBatteryRow(
     balanceGroups: Boolean = false,
 ) {
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Row(Modifier.widthIn(max = 280.dp).fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Row(
+            Modifier.widthIn(max = 280.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(if (balanceGroups) 3.dp else 0.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
             val primaryWeight = if (balanceGroups) 1f else primaryMeters.size.coerceAtLeast(1).toFloat()
             Row(Modifier.weight(primaryWeight),
                 horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Top) {
@@ -36,7 +40,7 @@ fun SettingsBatteryRow(
                 }
             }
             if (secondaryMeter != null) Row(Modifier.weight(1f), verticalAlignment = Alignment.Top) {
-                Spacer(Modifier.width(3.dp))
+                if (!balanceGroups) Spacer(Modifier.width(3.dp))
                 Box(Modifier.weight(1f), propagateMinConstraints = true) { secondaryMeter() }
             }
         }

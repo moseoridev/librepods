@@ -115,9 +115,25 @@ class DeviceSettingsScreenTest {
         compose.onNodeWithContentDescription(text(R.string.transparency)).performScrollTo().performClick()
         slider.assertDoesNotExist()
         off.assertIsNotSelected()
-        compose.onNodeWithContentDescription(text(R.string.adaptive)).assertIsNotSelected().performClick()
+        val transparency = compose.onNodeWithContentDescription(text(R.string.transparency))
+        val collapsedCenter = transparency.fetchSemanticsNode().boundsInRoot.center.x
+        var movingCenter = collapsedCenter
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.onNodeWithContentDescription(text(R.string.adaptive)).assertIsNotSelected().performClick()
+            compose.mainClock.advanceTimeBy(96)
+            movingCenter = transparency.fetchSemanticsNode().boundsInRoot.center.x
+            capture("adaptive-opening")
+            compose.mainClock.advanceTimeBy(1000)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        val expandedCenter = transparency.fetchSemanticsNode().boundsInRoot.center.x
+        assertTrue("Transparency must move continuously", movingCenter > minOf(collapsedCenter, expandedCenter) &&
+            movingCenter < maxOf(collapsedCenter, expandedCenter))
         slider.assertIsEnabled()
         off.assertDoesNotExist()
+        capture("adaptive-expanded")
     }
 
     @Test fun connectedControlsWithMissingReportsUseFallbacksAndStillWrite() {

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -137,15 +138,7 @@ fun <T> SettingsModeStrip(
                         val direction = if (selectedIndex > movingFrom) 1f else -1f
                         val start = radius + step * movingFrom + direction * radius
                         val end = radius + step * selectedIndex - direction * radius
-                        val distance = kotlin.math.abs(end - start)
-                        val travelDirection = if (end >= start) 1f else -1f
-                        val maximumLength = 2 * distance / 3
-                        val travelled = (distance + maximumLength) * movement.value
-                        val head = start + travelDirection * minOf(travelled, distance)
-                        val length = if (travelled >= distance) maximumLength - (travelled - distance)
-                            else minOf(travelled, maximumLength)
-                        drawLine(movingColor, Offset(head - travelDirection * length, size.height / 2),
-                            Offset(head, size.height / 2), strokeWidth = 6.dp.toPx(), cap = StrokeCap.Round)
+                        drawSettingsModeTravel(movingColor, start, end, size.height / 2, movement.value)
                     }
                 }
                 modes.forEachIndexed { index, mode ->
@@ -213,4 +206,17 @@ fun <T> SettingsModeStrip(
             }
         }
     }
+}
+
+
+/** The Manager's selection streak between the facing edges of two mode discs. */
+fun DrawScope.drawSettingsModeTravel(color: Color, start: Float, end: Float, y: Float, fraction: Float) {
+    val distance = kotlin.math.abs(end - start)
+    val direction = if (end >= start) 1f else -1f
+    val maximumLength = 2 * distance / 3
+    val travelled = (distance + maximumLength) * fraction
+    val head = start + direction * minOf(travelled, distance)
+    val length = if (travelled >= distance) maximumLength - (travelled - distance) else minOf(travelled, maximumLength)
+    drawLine(color, Offset(head - direction * length, y), Offset(head, y),
+        strokeWidth = 6.dp.toPx(), cap = StrokeCap.Round)
 }
