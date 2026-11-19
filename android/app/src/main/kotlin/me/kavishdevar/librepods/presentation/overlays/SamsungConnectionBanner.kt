@@ -5,14 +5,12 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -25,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
@@ -39,9 +38,8 @@ import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.devices.Battery
 import me.kavishdevar.librepods.core.devices.BatteryComponent
 import me.kavishdevar.librepods.core.devices.BatteryStatus
-import me.kavishdevar.librepods.presentation.icons.LocalIcons
 
-/** Samsung Easy Setup 11.1.24.8's battery banner dimensions, with LibrePods content. */
+/** Compact connection and battery summary for the Samsung theme. */
 @Composable
 internal fun SamsungConnectionBanner(
     name: String,
@@ -101,40 +99,29 @@ internal fun SamsungConnectionBanner(
             // A neutral backing keeps text legible at the touch-through window's opacity cap.
             color = if (darkTheme) Color(0xFF454548) else Color(0xFFF2F2F4),
         ) {
-            // Balance the space used by the leading badge while keeping the banner content-sized.
             Box(Modifier.padding(horizontal = 15.dp, vertical = 10.dp), Alignment.CenterStart) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Box(
-                        modifier = Modifier.size(24.dp).background(
-                            color = if (darkTheme) Color(0xFF183D76) else Color(0xFFD9E8FF),
-                            shape = RoundedCornerShape(8.dp),
-                        ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            LocalIcons.current.Bluetooth,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = if (darkTheme) Color(0xFFD4E5FF) else Color(0xFF164987),
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = name,
-                            style = bannerTextStyle,
-                            color = if (darkTheme) Color.White else Color(0xFF252528),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (batteryText.isNotEmpty()) {
+                    Text(
+                        text = name,
+                        style = bannerTextStyle,
+                        color = if (darkTheme) Color.White else Color(0xFF252528),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (batteryText.isNotEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_connection_banner_battery),
+                                contentDescription = null,
+                                tint = supportingColor,
+                            )
                             Text(
                                 text = batteryText,
                                 style = bannerTextStyle,
