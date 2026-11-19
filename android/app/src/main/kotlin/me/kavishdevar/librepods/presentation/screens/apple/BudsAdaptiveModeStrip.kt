@@ -31,6 +31,7 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -100,6 +101,13 @@ internal fun BudsAdaptiveModeStrip(
     Box(Modifier.fillMaxWidth().padding(horizontal = stripInset, vertical = 16.dp), Alignment.TopCenter) {
         BoxWithConstraints(Modifier.widthIn(max = 412.dp).fillMaxWidth().selectableGroup()) {
             val captionWidth = ((maxWidth.value - 20f) * .2f).toInt().coerceIn(44, 80).dp
+            // Off and Transparency begin at the same anchor when the capsule
+            // is open. Delay Off's return until the captions can fit side by side.
+            val collapsedStep = ((maxWidth.value - 64f) / modes.lastIndex).coerceAtLeast(1f)
+            val offReveal = (captionWidth.value / collapsedStep).coerceAtMost(.98f)
+            val offHasSpace by remember(offReveal) {
+                derivedStateOf { 1f - expansion.value > offReveal }
+            }
             Canvas(Modifier.matchParentSize()) {
                 val radius = 44.dp.roundToPx() / 2f
                 val inset = 10.dp.roundToPx() + radius
@@ -128,7 +136,7 @@ internal fun BudsAdaptiveModeStrip(
                         )
                         val input = when {
                             mode == 4 && expanded -> Modifier
-                            mode == 1 && expanded -> Modifier.clearAndSetSemantics {}
+                            mode == 1 && (expanded || !offHasSpace) -> Modifier.clearAndSetSemantics {}
                             else -> Modifier.selectable(
                                 selected = active,
                                 enabled = enabled,
@@ -140,7 +148,7 @@ internal fun BudsAdaptiveModeStrip(
                         }
                         Column(
                             input.then(if (mode == 1) Modifier.graphicsLayer {
-                                alpha = (1f - expansion.value).coerceIn(0f, 1f)
+                                alpha = ((1f - expansion.value - offReveal) / (1f - offReveal)).coerceIn(0f, 1f)
                             } else Modifier),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {

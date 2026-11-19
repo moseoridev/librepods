@@ -143,7 +143,7 @@ class DeviceSettingsScreenTest {
             val closingCenter = transparency.fetchSemanticsNode().boundsInRoot.center.x
             assertTrue("Transparency must also move continuously while collapsing",
                 closingCenter > minOf(collapsedCenter, expandedCenter) && closingCenter < maxOf(collapsedCenter, expandedCenter))
-            off.assertExists()
+            off.assertDoesNotExist()
             capture("adaptive-closing")
             compose.onNodeWithContentDescription(text(R.string.adaptive)).performClick()
             compose.mainClock.advanceTimeBy(1000)
