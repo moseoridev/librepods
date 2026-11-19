@@ -3,7 +3,6 @@ package me.kavishdevar.librepods.presentation.overlays
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.PixelFormat
-import android.hardware.input.InputManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -249,10 +248,6 @@ class ProximityCardWindow(
                 samsung -> margin + 16
                 isTabletDevice -> 0
                 else -> cardSettings.offsetY.roundToInt() + margin
-            }
-            if (samsung && windowType == WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY) {
-                // Android also checks opacity for touch-through to a different UID.
-                alpha = context.getSystemService(InputManager::class.java).maximumObscuringOpacityForTouch
             }
 
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER

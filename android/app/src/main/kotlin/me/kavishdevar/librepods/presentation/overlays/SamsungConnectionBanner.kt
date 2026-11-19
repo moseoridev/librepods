@@ -104,9 +104,9 @@ internal fun SamsungConnectionBanner(
             modifier = Modifier.widthIn(max = 268.dp).height(BannerHeight),
             shape = RoundedCornerShape(26.dp),
             // Easy Setup blurs `?android:colorBackground` behind the popup. App overlays
-            // cannot blur, so this is the rendered dark backing measured over the S25 capture,
-            // compensated for the window's touch-through opacity. Light is unmeasured.
-            color = if (darkTheme) Color(0xFF484848) else Color(0xFFF2F2F4),
+            // cannot blur, so this is the rendered dark backing measured on the S25 capture.
+            // Light is unmeasured.
+            color = if (darkTheme) Color(0xFF3A3A3A) else Color(0xFFF2F2F4),
         ) {
             Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 12.dp)) {
                 Text(
