@@ -1,8 +1,5 @@
 import java.util.Properties
 
-val appVersionName = rootProject.extra["appVersionName"] as String
-val appVersionCode = rootProject.extra["appVersionCode"] as Int
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -14,6 +11,9 @@ plugins {
 //    alias(libs.plugins.hilt)
     id("kotlin-parcelize")
 }
+
+val appVersionName = rootProject.extra["appVersionName"] as String
+val appVersionCode = rootProject.extra["appVersionCode"] as Int
 
 val localPropsFile = rootProject.file("local.properties")
 val props = Properties().apply {
