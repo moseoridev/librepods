@@ -106,6 +106,10 @@ class ProximityCardWindow(
             return
         }
 
+        if (appSettings.designSystem != DesignSystem.Samsung) {
+            autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
+            autoCloseRunnable = null
+        }
         this.appSettings = appSettings
         this.currentAppSettings = appSettings
 
@@ -254,24 +258,34 @@ class ProximityCardWindow(
                     fontSettings = currentAppSettings.fontSettings,
                     darkTheme = darkTheme
                 ) {
-                    ProximityCardContent(
-                        name = name,
-                        batteries = batteries,
-                        settings = currentAppSettings.proximityCardSettings,
-                        samsung = currentAppSettings.designSystem == DesignSystem.Samsung,
-
-                        primaryImageRes = spec.primaryImageRes,
-                        caseImageRes = spec.caseImageRes,
-                        videoResId = spec.videoResId,
-
-                        cardState = cardState,
-                        onConnect = onConnect,
-                        onDismiss = ::close,
-                        onClosed = {
-                            cleanupAndRemoveView()
-                        },
-                        airPodsConnected = airPodsConnected
-                    )
+                    val onClosed = ::cleanupAndRemoveView
+                    if (currentAppSettings.designSystem == DesignSystem.Samsung) {
+                        SamsungProximityCardContent(
+                            name = name,
+                            batteries = batteries,
+                            settings = currentAppSettings.proximityCardSettings,
+                            primaryImageRes = spec.primaryImageRes,
+                            videoResId = spec.videoResId,
+                            cardState = cardState,
+                            onConnect = onConnect,
+                            onDismiss = ::close,
+                            onClosed = onClosed,
+                            airPodsConnected = airPodsConnected,
+                        )
+                    } else {
+                        ProximityCardContent(
+                            name = name,
+                            batteries = batteries,
+                            settings = currentAppSettings.proximityCardSettings,
+                            primaryImageRes = spec.primaryImageRes,
+                            caseImageRes = spec.caseImageRes,
+                            videoResId = spec.videoResId,
+                            cardState = cardState,
+                            onConnect = onConnect,
+                            onClosed = onClosed,
+                            airPodsConnected = airPodsConnected,
+                        )
+                    }
                 }
             }
         }

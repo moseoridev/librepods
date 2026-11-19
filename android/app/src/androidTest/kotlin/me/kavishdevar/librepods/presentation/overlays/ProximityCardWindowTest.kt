@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods.presentation.overlays
 
 import android.os.SystemClock
+import android.graphics.Bitmap
 import android.provider.Settings
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -26,6 +27,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 class ProximityCardWindowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -39,23 +41,43 @@ class ProximityCardWindowTest {
         compose.setContent {
             Box(Modifier.fillMaxSize()) {
                 Button(onClick = { clicked = true },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 222.dp)) {
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 230.dp)) {
                     Text("Underlying menu")
                 }
             }
         }
         val target = compose.onNodeWithText("Underlying menu").fetchSemanticsNode().boundsInWindow.center
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val background = instrumentation.uiAutomation.takeScreenshot()
         val windowLocation = IntArray(2)
         compose.runOnUiThread {
             activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activity.window.decorView.getLocationOnScreen(windowLocation)
             card.show("Connected AirPods", setOf(
                 Battery(BatteryComponent.LEFT, 70, BatteryStatus.NOT_CHARGING, BatterySource.AACP, 0L),
+                Battery(BatteryComponent.RIGHT, 83, BatteryStatus.CHARGING, BatterySource.AACP, 0L),
+                Battery(BatteryComponent.CASE, 42, BatteryStatus.NOT_CHARGING, BatterySource.AACP, 0L),
             ), airPodsConnected = true)
         }
         try {
-            val instrumentation = InstrumentationRegistry.getInstrumentation()
-            instrumentation.waitForIdleSync()
+            val directory = File(context.getExternalFilesDir(null), "settings-fixtures").apply { mkdirs() }
+            // The overlay uses a separate ComposeView and Android draw clock.
+            // Confirm it has actually drawn before injecting the underlying tap.
+            compose.waitUntil(3_000) {
+                val frame = instrumentation.uiAutomation.takeScreenshot()
+                val x = frame.width / 2
+                val y = frame.height * 9 / 10
+                val onScreen = frame.getPixel(x, y) != background.getPixel(x, y)
+                frame.recycle()
+                onScreen
+            }
+            // Snapshot after the overlay's independent 180ms fade completes.
+            SystemClock.sleep(200)
+            val settled = instrumentation.uiAutomation.takeScreenshot()
+            File(directory, "samsung-connection-card.png").outputStream().use {
+                assertTrue(settled.compress(Bitmap.CompressFormat.PNG, 100, it))
+            }
+            settled.recycle()
             val x = windowLocation[0] + target.x
             val y = windowLocation[1] + target.y
             val downAt = SystemClock.uptimeMillis()
@@ -73,6 +95,7 @@ class ProximityCardWindowTest {
                 assertTrue("The underlying menu should receive the tap", clicked)
             }
         } finally {
+            background.recycle()
             compose.runOnUiThread { card.forceClose() }
         }
     }
