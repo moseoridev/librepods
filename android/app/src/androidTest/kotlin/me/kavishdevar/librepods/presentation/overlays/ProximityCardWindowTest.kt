@@ -71,8 +71,9 @@ class ProximityCardWindowTest {
                 frame.recycle()
                 onScreen
             }
-            // Snapshot after the overlay's independent 180ms fade completes.
-            SystemClock.sleep(200)
+            // Advance the Compose clock as well as waiting for Android's window draw.
+            compose.mainClock.advanceTimeBy(240)
+            compose.waitForIdle()
             val settled = instrumentation.uiAutomation.takeScreenshot()
             File(directory, "samsung-connection-card.png").outputStream().use {
                 assertTrue(settled.compress(Bitmap.CompressFormat.PNG, 100, it))
