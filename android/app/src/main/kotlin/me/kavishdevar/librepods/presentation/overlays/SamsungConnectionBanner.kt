@@ -95,12 +95,14 @@ internal fun SamsungConnectionBanner(
 
     AnimatedVisibility(transition, enter = fadeIn(tween(180)), exit = fadeOut(tween(160))) {
         Surface(
-            modifier = Modifier.widthIn(max = 268.dp).heightIn(min = 58.dp),
+            // Fit the rendered backing on the reference S25, including the dialog's extra height.
+            modifier = Modifier.widthIn(max = 268.dp).heightIn(min = 62.dp),
             shape = RoundedCornerShape(26.dp),
             // A neutral backing keeps text legible at the touch-through window's opacity cap.
             color = if (darkTheme) Color(0xFF454548) else Color(0xFFF2F2F4),
         ) {
-            Box(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), Alignment.CenterStart) {
+            // Balance the space used by the leading badge while keeping the banner content-sized.
+            Box(Modifier.padding(horizontal = 15.dp, vertical = 10.dp), Alignment.CenterStart) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
