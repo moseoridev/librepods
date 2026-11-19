@@ -117,13 +117,16 @@ fun PermissionsPage(
                     onClick = { grantStep = PermissionStep.Bluetooth },
                     modifier = Modifier.weight(1f),
                     enabled = !allGranted && grantStep == null,
-                    style = SettingsButtonStyle.Tonal,
+                    style = if (bluetoothGranted) SettingsButtonStyle.Tonal else SettingsButtonStyle.Filled,
+                    fill = OnboardingStyle.WearablePrimaryFill,
+                    label = OnboardingStyle.WearablePrimaryLabel,
                 )
                 OnboardingPrimaryButton(
                     text = stringResource(R.string.onboarding_done),
                     onClick = onForward,
                     modifier = Modifier.weight(1f),
                     enabled = bluetoothGranted && grantStep == null,
+                    style = if (bluetoothGranted) SettingsButtonStyle.Filled else SettingsButtonStyle.Tonal,
                     fill = OnboardingStyle.WearablePrimaryFill,
                     label = OnboardingStyle.WearablePrimaryLabel,
                 )

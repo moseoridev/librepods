@@ -291,7 +291,7 @@ Onboarding always uses the Samsung presentation. The button-driven sequence uses
 | --- | --- | --- |
 | Welcome | Galaxy Wearable `wm-01` | Centered 30sp app name above the artwork, 14sp description and a 200×52dp monochrome Start pill. The artwork uses the AirPods silhouettes already shipped by LibrePods. |
 | Privacy policy | Buds `buds-02` notice and `buds-04` consent | Regular 24sp toolbar title after the 60dp back slot, blue app mark and bold 27sp body title, followed by the scrollable policy and a 48dp blue consent pill. |
-| Permissions | Wearable `wm-10` and upstream LibrePods onboarding | Required and optional Samsung cards. Each row pairs a permission icon and purpose with an Allow chip or a granted check. Grant all runs the outstanding requests in order. Done is available once Bluetooth has been granted. |
+| Permissions | Wearable `wm-10` and upstream LibrePods onboarding | Required and optional Samsung cards. Each row pairs a permission icon and purpose with an Allow chip or a granted check. Grant all runs the outstanding requests in order. Done becomes the primary action once Bluetooth has been granted. |
 | Compatibility notice | Wearable toolbar shape | The shared header frames the notice. The bypass control remains available in the FOSS build. |
 
 The toolbar title starts at 60dp. Welcome and permissions use Wearable's monochrome pill colors, and privacy consent uses the Buds blue `#387AFF`. The page-by-page comparison records which other choices are adapted for LibrePods. [Onboarding comparison](/Users/moseoridev/programming/android/librepods/evidence/onboarding-polish-20261118/gaps.md).

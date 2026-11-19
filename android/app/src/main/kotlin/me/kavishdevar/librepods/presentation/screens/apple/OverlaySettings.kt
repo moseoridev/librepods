@@ -32,10 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItem
 import me.kavishdevar.librepods.presentation.components.primitives.StyledListItemOrientation
 import me.kavishdevar.librepods.presentation.components.primitives.StyledScaffold
 import me.kavishdevar.librepods.presentation.components.primitives.StyledToggle
+import me.kavishdevar.librepods.presentation.design.LocalDesign
 import me.kavishdevar.librepods.presentation.viewmodel.AppleViewModel
 
 @Composable
@@ -58,10 +60,10 @@ fun OverlaySettingsRoute(
             }
         },
         proxCardEnabled = uiState.settings.showBottomSheetPopup,
-        onProxCardEnabledChanged = {
+        onProxCardEnabledChanged = { enabled ->
             viewModel.updateSettings {
                 it.copy(
-                    showBottomSheetPopup = it.showBottomSheetPopup
+                    showBottomSheetPopup = enabled
                 )
             }
         }
@@ -77,6 +79,7 @@ fun OverlaySettingsScreen(
     onProxCardEnabledChanged: (Boolean) -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    val samsung = LocalDesign.current.system == DesignSystem.Samsung
 
     StyledScaffold(
         title = stringResource(R.string.overlay_settings),
@@ -98,8 +101,8 @@ fun OverlaySettingsScreen(
             )
 
             StyledToggle(
-                label = stringResource(R.string.proximity_card),
-                description = stringResource(R.string.proximity_card_description),
+                label = stringResource(if (samsung) R.string.connection_banner else R.string.proximity_card),
+                description = stringResource(if (samsung) R.string.connection_banner_description else R.string.proximity_card_description),
                 checked = proxCardEnabled,
                 onCheckedChange = onProxCardEnabledChanged
             )

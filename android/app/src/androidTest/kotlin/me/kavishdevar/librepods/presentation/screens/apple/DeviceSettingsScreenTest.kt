@@ -7,6 +7,7 @@ import android.view.WindowManager
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -134,6 +135,32 @@ class DeviceSettingsScreenTest {
         slider.assertIsEnabled()
         off.assertDoesNotExist()
         capture("adaptive-expanded")
+
+        compose.mainClock.autoAdvance = false
+        try {
+            transparency.performClick()
+            compose.mainClock.advanceTimeBy(96)
+            val closingCenter = transparency.fetchSemanticsNode().boundsInRoot.center.x
+            assertTrue("Transparency must also move continuously while collapsing",
+                closingCenter > minOf(collapsedCenter, expandedCenter) && closingCenter < maxOf(collapsedCenter, expandedCenter))
+            off.assertExists()
+            capture("adaptive-closing")
+            compose.onNodeWithContentDescription(text(R.string.adaptive)).performClick()
+            compose.mainClock.advanceTimeBy(1000)
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        assertEquals("Reopening mid-transition must return to the same anchor", expandedCenter,
+            transparency.fetchSemanticsNode().boundsInRoot.center.x, 1.5f)
+        slider.assertIsEnabled()
+        off.assertDoesNotExist()
+        slider.performTouchInput {
+            swipe(Offset(width * .68f, centerY), Offset(width - 2f, centerY), durationMillis = 240)
+        }
+        compose.waitUntil(5_000) {
+            fixture.events.any { it.startsWith("AUTO_ANC_STRENGTH: ") &&
+                (it.substringAfter(": ").toIntOrNull() ?: 0) >= 90 }
+        }
     }
 
     @Test fun connectedControlsWithMissingReportsUseFallbacksAndStillWrite() {

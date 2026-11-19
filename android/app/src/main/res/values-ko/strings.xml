@@ -19,6 +19,9 @@
     <string name="press_and_hold_listening_mode_description">AirPods의 기둥 부분을 길게 누르면 선택한 소음 제어 모드가 차례로 전환됩니다.</string>
     <string name="head_gestures">고개 제스처</string>
     <string name="left">왼쪽</string>
+    <string name="connection_banner">연결 배너</string>
+    <string name="connection_banner_description">AirPods가 연결되면 화면 상단에 배터리 잔량을 표시합니다.</string>
+    <string name="preview_connection_banner">배너 미리보기</string>
     <string name="right">오른쪽</string>
     <string name="conversation_awareness">대화 인지</string>
     <string name="conversation_awareness_description">다른 사람에게 말을 걸면 미디어 음량과 배경 소음을 줄입니다.</string>
@@ -276,7 +279,7 @@
     <string name="permission_description_notification">배터리 상태, 심박수 이상 알림(지원 모델) 등을 표시합니다.</string>
     <string name="permission_description_phone">머리 제스처로 전화를 받습니다.</string>
     <string name="permission_healthconnect">Health Connect에 심박수 기록</string>
-    <string name="permission_description_healthconnect">앱이 Android의 Health Connect 플랫폼에 심박수 데이터를 기록하도록 허용합니다.</string>
+    <string name="permission_description_healthconnect">지원되는 AirPods가 측정한 심박수를 Health Connect에 저장합니다.</string>
     <string name="onboarding_permission_allow">허용</string>
     <string name="onboarding_permission_allowed">허용됨</string>
     <string name="onboarding_permission_heading">AirPods 사용을 위한 접근 권한</string>
@@ -284,7 +287,7 @@
     <string name="onboarding_done">완료</string>
     <string name="grant_all">모두 허용</string>
     <string name="permission_overlay">다른 앱 위에 표시</string>
-    <string name="permission_description_overlay">AirPods가 근처에 있거나 오디오가 AirPods로 전환될 때 팝업을 표시합니다.</string>
+    <string name="permission_description_overlay">AirPods가 연결되거나 오디오 기기가 전환될 때 팝업을 표시합니다.</string>
     <string name="privacy_policy">개인정보 처리방침</string>
     <string name="i_agree">동의합니다</string>
 

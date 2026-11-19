@@ -268,7 +268,7 @@ class LibrePodsService: Service() {
             it.level in 0..100 && it.status in setOf(BatteryStatus.NOT_CHARGING, BatteryStatus.CHARGING, BatteryStatus.OPTIMIZED_CHARGING) }
         if (!connectionPopupPolicy.consumeReady(device.macAddress.value,
                 device.connectionState.value == ConnectionState.CONNECTED, state.batteryReceived, usable)) return
-        // Consumption precedes preference/permission/display checks: no hidden bottom-card replay.
+        // Consumption precedes preference/permission/display checks so a hidden popup cannot replay.
         if (!device.settings.value.showBottomSheetPopup || !displayReady() ||
             (!proximityCardWindow.usingAccessibilityService && !Settings.canDrawOverlays(this))) return
         clearPendingIsland()
@@ -1092,6 +1092,11 @@ class LibrePodsService: Service() {
         }
         clearPendingIsland()
         if (islandWindow.isVisible) return
+        if (type != IslandType.CONNECTED && proximityCardWindow.isSamsungBannerVisible) {
+            // An audio handoff can arrive while the connection banner still occupies the top.
+            proximityCardWindow.forceClose()
+            bottomOwner = null
+        }
         Log.d(TAG, "Showing island window")
 
         val state = device.state.value

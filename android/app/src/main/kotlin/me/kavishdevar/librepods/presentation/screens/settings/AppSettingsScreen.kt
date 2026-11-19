@@ -58,6 +58,7 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeInput
 import me.kavishdevar.librepods.BuildConfig
+import me.kavishdevar.librepods.LibrePodsApplication
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.presentation.components.common.AppInfoCard
@@ -173,19 +174,31 @@ fun AppSettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                StyledList(
-                    title = stringResource(R.string.proximity_card),
-                    rowsCoverGroupCorners = true,
-                    description = stringResource(R.string.proximity_card_description)
-                ) {
-                    styledListItem(
-                        contentText = stringResource(R.string.size_and_position),
-                        onClick = navigateToProxCardSizeAndPosition
-                    )
-                    styledListItem(
-                        contentText = stringResource(R.string.customize),
-                        onClick = navigateToProxCardCustomize
-                    )
+                if (samsung) {
+                    StyledList(title = stringResource(R.string.connection_banner), rowsCoverGroupCorners = true) {
+                        styledListItem(
+                            contentText = stringResource(R.string.preview_connection_banner),
+                            onClick = {
+                                (context.applicationContext as LibrePodsApplication)
+                                    .proximityCardWindow.previewConnectionBanner()
+                            },
+                        )
+                    }
+                } else {
+                    StyledList(
+                        title = stringResource(R.string.proximity_card),
+                        rowsCoverGroupCorners = true,
+                        description = stringResource(R.string.proximity_card_description)
+                    ) {
+                        styledListItem(
+                            contentText = stringResource(R.string.size_and_position),
+                            onClick = navigateToProxCardSizeAndPosition
+                        )
+                        styledListItem(
+                            contentText = stringResource(R.string.customize),
+                            onClick = navigateToProxCardCustomize
+                        )
+                    }
                 }
             }
 

@@ -83,7 +83,8 @@ fun ProximityCardSizeAndPositionRoute(
                     System.currentTimeMillis()
                 )
             ),
-            spec = AirPodsSpecs.getSpec(AirPodsModel.AIRPODS_PRO_3)
+            spec = AirPodsSpecs.getSpec(AirPodsModel.AIRPODS_PRO_3),
+            airPodsConnected = false,
         )
         onDispose {
             proximityCardWindow.close()

@@ -3,6 +3,7 @@ package me.kavishdevar.librepods.presentation.overlays
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.hardware.input.InputManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -26,10 +27,14 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.devices.AirPodsModel
 import me.kavishdevar.librepods.core.devices.AirPodsSpec
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.Battery
+import me.kavishdevar.librepods.core.devices.BatteryComponent
+import me.kavishdevar.librepods.core.devices.BatterySource
+import me.kavishdevar.librepods.core.devices.BatteryStatus
 import me.kavishdevar.librepods.data.app.Design
 import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.data.app.NightTheme
@@ -88,6 +93,9 @@ class ProximityCardWindow(
     val isVisible: Boolean
         get() = composeView?.parent != null && composeView?.visibility == View.VISIBLE
 
+    val isSamsungBannerVisible: Boolean
+        get() = isVisible && appSettings.designSystem == DesignSystem.Samsung
+
     fun updateContext(context: Context) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             Handler(Looper.getMainLooper()).post { updateContext(context) }
@@ -106,14 +114,12 @@ class ProximityCardWindow(
             return
         }
 
-        if (appSettings.designSystem != DesignSystem.Samsung) {
-            autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
-            autoCloseRunnable = null
-        }
+        val designChanged = this.appSettings.designSystem != appSettings.designSystem
         this.appSettings = appSettings
         this.currentAppSettings = appSettings
 
         updateWindowParams()
+        if (designChanged) scheduleBannerDismissal()
     }
 
     fun updateBatteries(batteries: Set<Battery>) {
@@ -122,6 +128,20 @@ class ProximityCardWindow(
 
     fun updateConnectionState(airPodsConnected: Boolean) {
         this.airPodsConnected = airPodsConnected
+    }
+
+    fun previewConnectionBanner() {
+        if (appSettings.designSystem != DesignSystem.Samsung) return
+        val timestamp = System.currentTimeMillis()
+        show(
+            name = context.getString(R.string.airpods_label),
+            batteries = setOf(
+                Battery(BatteryComponent.LEFT, 86, BatteryStatus.NOT_CHARGING, BatterySource.AACP, timestamp),
+                Battery(BatteryComponent.RIGHT, 86, BatteryStatus.NOT_CHARGING, BatterySource.AACP, timestamp),
+                Battery(BatteryComponent.CASE, 63, BatteryStatus.NOT_CHARGING, BatterySource.AACP, timestamp),
+            ),
+            airPodsConnected = true,
+        )
     }
 
     fun show(
@@ -167,8 +187,12 @@ class ProximityCardWindow(
         } else {
             updateWindowParams()
         }
+        scheduleBannerDismissal()
+    }
+
+    private fun scheduleBannerDismissal() {
         autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
-        autoCloseRunnable = if (isVisible && airPodsConnected && appSettings.designSystem == DesignSystem.Samsung) {
+        autoCloseRunnable = if (isSamsungBannerVisible) {
             Runnable(::close).also { autoCloseHandler.postDelayed(it, 5_000L) }
         } else null
     }
@@ -196,34 +220,40 @@ class ProximityCardWindow(
         val margin = (16 * density).roundToInt()
         val availableWidth = windowManager.currentWindowMetrics.bounds.width() - 2 * margin
         val samsung = appSettings.designSystem == DesignSystem.Samsung
-        val width = if (samsung) {
-            minOf(cardSettings.width.toInt(), (311 * density).roundToInt())
-        } else {
-            cardSettings.width.toInt() - 2 * margin
-        }
+        val width = if (samsung) WindowManager.LayoutParams.WRAP_CONTENT
+            else minOf(cardSettings.width.toInt() - 2 * margin, availableWidth).coerceAtLeast(1)
         val height = if (samsung) WindowManager.LayoutParams.WRAP_CONTENT
             else (cardSettings.height.toInt() - 2 * margin).coerceAtLeast(1)
         val isTabletDevice = isTablet() && cardSettings.centerOnTablet
 
         return WindowManager.LayoutParams(
-            minOf(width, availableWidth).coerceAtLeast(1),
+            width,
             height,
             windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
+                (if (samsung) WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE else WindowManager.LayoutParams.FLAG_SPLIT_TOUCH),
             PixelFormat.TRANSPARENT
         ).apply {
             setFitInsetsTypes(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout())
             setFitInsetsIgnoringVisibility(true)
-            gravity = if (isTabletDevice) {
-                Gravity.CENTER
-            } else {
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            gravity = when {
+                samsung -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                isTabletDevice -> Gravity.CENTER
+                else -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             }
 
             x = 0
-            y = if (isTabletDevice) 0 else cardSettings.offsetY.roundToInt() + margin
+            y = when {
+                // Easy Setup adds 16 raw pixels to the 16dp top inset of its drawable.
+                samsung -> margin + 16
+                isTabletDevice -> 0
+                else -> cardSettings.offsetY.roundToInt() + margin
+            }
+            if (samsung && windowType == WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY) {
+                // Android also checks opacity for touch-through to a different UID.
+                alpha = context.getSystemService(InputManager::class.java).maximumObscuringOpacityForTouch
+            }
 
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
         }
@@ -260,17 +290,12 @@ class ProximityCardWindow(
                 ) {
                     val onClosed = ::cleanupAndRemoveView
                     if (currentAppSettings.designSystem == DesignSystem.Samsung) {
-                        SamsungProximityCardContent(
+                        SamsungConnectionBanner(
                             name = name,
                             batteries = batteries,
-                            settings = currentAppSettings.proximityCardSettings,
-                            primaryImageRes = spec.primaryImageRes,
-                            videoResId = spec.videoResId,
+                            darkTheme = darkTheme,
                             cardState = cardState,
-                            onConnect = onConnect,
-                            onDismiss = ::close,
                             onClosed = onClosed,
-                            airPodsConnected = airPodsConnected,
                         )
                     } else {
                         ProximityCardContent(
