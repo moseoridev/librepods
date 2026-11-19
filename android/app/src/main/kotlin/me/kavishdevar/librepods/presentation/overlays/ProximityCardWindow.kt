@@ -31,8 +31,8 @@ import me.kavishdevar.librepods.core.devices.AirPodsSpec
 import me.kavishdevar.librepods.core.devices.AirPodsSpecs
 import me.kavishdevar.librepods.core.devices.Battery
 import me.kavishdevar.librepods.data.app.Design
+import me.kavishdevar.librepods.data.app.DesignSystem
 import me.kavishdevar.librepods.data.app.NightTheme
-import me.kavishdevar.librepods.data.app.ProximityCardSettings
 import me.kavishdevar.librepods.database.app.AppSettingsEntity
 import me.kavishdevar.librepods.presentation.design.LibrePodsTheme
 import me.kavishdevar.librepods.services.LibrePodsAccessibilityService
@@ -64,7 +64,7 @@ class ProximityCardWindow(
         screenContext = context
     }
 
-    private var autoCloseHandler: Handler? = null
+    private val autoCloseHandler = Handler(Looper.getMainLooper())
     private var autoCloseRunnable: Runnable? = null
 
     private var currentAppSettings by mutableStateOf(appSettings)
@@ -163,6 +163,10 @@ class ProximityCardWindow(
         } else {
             updateWindowParams()
         }
+        autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
+        autoCloseRunnable = if (isVisible && airPodsConnected && appSettings.designSystem == DesignSystem.Samsung) {
+            Runnable(::close).also { autoCloseHandler.postDelayed(it, 5_000L) }
+        } else null
     }
 
     private fun updateWindowParams() {
@@ -184,14 +188,25 @@ class ProximityCardWindow(
         }
 
         val cardSettings = appSettings.proximityCardSettings
-
+        val density = context.resources.displayMetrics.density
+        val margin = (16 * density).roundToInt()
+        val availableWidth = windowManager.currentWindowMetrics.bounds.width() - 2 * margin
+        val samsung = appSettings.designSystem == DesignSystem.Samsung
+        val width = if (samsung) {
+            minOf(cardSettings.width.toInt(), (311 * density).roundToInt())
+        } else {
+            cardSettings.width.toInt() - 2 * margin
+        }
+        val height = if (samsung) WindowManager.LayoutParams.WRAP_CONTENT
+            else (cardSettings.height.toInt() - 2 * margin).coerceAtLeast(1)
         val isTabletDevice = isTablet() && cardSettings.centerOnTablet
 
         return WindowManager.LayoutParams(
-            cardSettings.width.toInt(),
-            cardSettings.height.toInt(),
+            minOf(width, availableWidth).coerceAtLeast(1),
+            height,
             windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
             PixelFormat.TRANSPARENT
         ).apply {
@@ -204,7 +219,7 @@ class ProximityCardWindow(
             }
 
             x = 0
-            y = if (isTabletDevice) 0 else cardSettings.offsetY.roundToInt()
+            y = if (isTabletDevice) 0 else cardSettings.offsetY.roundToInt() + margin
 
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
         }
@@ -243,6 +258,7 @@ class ProximityCardWindow(
                         name = name,
                         batteries = batteries,
                         settings = currentAppSettings.proximityCardSettings,
+                        samsung = currentAppSettings.designSystem == DesignSystem.Samsung,
 
                         primaryImageRes = spec.primaryImageRes,
                         caseImageRes = spec.caseImageRes,
@@ -250,6 +266,7 @@ class ProximityCardWindow(
 
                         cardState = cardState,
                         onConnect = onConnect,
+                        onDismiss = ::close,
                         onClosed = {
                             cleanupAndRemoveView()
                         },
@@ -266,10 +283,9 @@ class ProximityCardWindow(
             return
         }
 
-        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
+        autoCloseRunnable = null
         cardState = ProximityCardState.CLOSED
-
-
     }
 
     /** Immediate teardown for screen-off/disconnect; animated close is only for ordinary dismissal. */
@@ -278,13 +294,11 @@ class ProximityCardWindow(
             Handler(Looper.getMainLooper()).post { forceClose() }
             return
         }
-        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
-        autoCloseRunnable = null
         cleanupAndRemoveView()
     }
 
     private fun cleanupAndRemoveView() {
-        autoCloseRunnable?.let { autoCloseHandler?.removeCallbacks(it) }
+        autoCloseRunnable?.let(autoCloseHandler::removeCallbacks)
         autoCloseRunnable = null
         screenContext?.let { runCatching { it.unregisterReceiver(screenReceiver) } }
         screenContext = null

@@ -2,14 +2,12 @@ package me.kavishdevar.librepods.presentation.overlays
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
-import android.graphics.SurfaceTexture
-import android.media.MediaMetadataRetriever
-import android.media.MediaPlayer
-import android.net.Uri
-import android.view.TextureView
 import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
@@ -29,11 +27,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,22 +54,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.devices.Battery
 import me.kavishdevar.librepods.core.devices.BatteryComponent
+import me.kavishdevar.librepods.core.devices.BatteryStatus
 import me.kavishdevar.librepods.data.app.OverlayBackgroundColor
 import me.kavishdevar.librepods.data.app.ProximityCardSettings
 import me.kavishdevar.librepods.data.app.resolve
@@ -82,7 +82,6 @@ import me.kavishdevar.librepods.presentation.components.primitives.StyledButton
 import me.kavishdevar.librepods.presentation.icons.LocalIcons
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import android.view.Surface as AndroidSurface
 import me.kavishdevar.librepods.core.R as coreR
 
 @SuppressLint("LocalContextResourcesRead", "LocalContextConfigurationRead")
@@ -98,14 +97,18 @@ fun ProximityCardContent(
 
     cardState: ProximityCardState,
     onConnect: () -> Unit,
+    onDismiss: () -> Unit,
     onClosed: () -> Unit,
-    airPodsConnected: Boolean = false
+    airPodsConnected: Boolean = false,
+    samsung: Boolean = false,
 ) {
     val visibilityState = remember {
-        MutableTransitionState(false)
+        MutableTransitionState(false).apply { targetState = cardState == ProximityCardState.VISIBLE }
     }
+    val offsetY = remember { Animatable(0f) }
 
     LaunchedEffect(cardState) {
+        if (cardState == ProximityCardState.VISIBLE) offsetY.snapTo(0f)
         visibilityState.targetState = cardState == ProximityCardState.VISIBLE
     }
 
@@ -116,9 +119,12 @@ fun ProximityCardContent(
     }
 
     val coroutineScope = rememberCoroutineScope()
-    val offsetY = remember { Animatable(0f) }
 
-    val backgroundColor = settings.backgroundColor.resolve().copy(alpha = settings.backgroundAlpha)
+    val samsungDefault = samsung && settings.backgroundColor is OverlayBackgroundColor.Default
+    val backgroundColor = if (samsungDefault) {
+        if (MaterialTheme.colorScheme.surface.luminance() < .5f) Color(0xFF252528) else Color(0xFFFCFCFF)
+    } else settings.backgroundColor.resolve()
+    val panelColor = backgroundColor.copy(alpha = settings.backgroundAlpha)
 
     val darkTheme = backgroundColor.luminance() < 0.5f
     val textColor = if (settings.backgroundColor is OverlayBackgroundColor.Default) if (darkTheme) Color.White else Color.Black else contentColorFor(backgroundColor)
@@ -142,100 +148,72 @@ fun ProximityCardContent(
 
     val density = LocalDensity.current
 
-    val widthDp = with(density) { settings.width.toDp() }
     val heightDp = with(density) { settings.height.toDp() }
-    val borderRadiusDp = with(density) { settings.borderRadius.toDp() }
+    val borderRadiusDp = if (samsung && settings.borderRadius == 78f) 26.dp
+        else with(density) { settings.borderRadius.toDp() }
 
     val shape = RoundedCornerShape(borderRadiusDp)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomCenter
+    AnimatedVisibility(
+        visibleState = visibilityState,
+        enter = if (samsung) fadeIn(tween(180)) else slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = tween(durationMillis = 300)
+        ),
+        exit = if (samsung) fadeOut(tween(160)) else slideOutVertically(
+            targetOffsetY = { it },
+            animationSpec = tween(durationMillis = 250)
+        )
     ) {
-        AnimatedVisibility(
-            visibleState = visibilityState,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = tween(durationMillis = 300)
-            ),
-            exit = slideOutVertically(
-                targetOffsetY = { it },
-                animationSpec = tween(durationMillis = 250)
-            )
-        ) {
-            Surface(
-                modifier = Modifier
-                    .width(widthDp)
-                    .height(heightDp)
-                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                    .draggable(
-                        orientation = Orientation.Vertical,
-                        state = draggableState,
-                        onDragStopped = { velocity ->
-                            coroutineScope.launch {
-                                if (offsetY.value > 120f || velocity > 1000f) {
-                                    offsetY.animateTo(600f, tween(150))
-                                    onClosed()
-                                } else {
-                                    offsetY.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (samsung) Modifier.heightIn(max = heightDp) else Modifier.fillMaxHeight())
+                .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = draggableState,
+                    onDragStopped = { velocity ->
+                        coroutineScope.launch {
+                            if (offsetY.value > 120f || velocity > 1000f) {
+                                    onDismiss()
+                            } else {
+                                offsetY.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
                                     )
-                                }
+                                )
                             }
                         }
-                    )
-                    .clip(shape)
-                    .background(backgroundColor)
-                    .then(
-                        if (settings.borderWidth > 0f) {
-                            Modifier.border(settings.borderWidth.dp, textColor.copy(0.2f), shape)
-                        } else {
-                            Modifier
-                        }
-                    ),
-                color = backgroundColor,
-                shape = shape
-            ) {
-                if (settings.showCloseButton){
-                    Box(Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = LocalIcons.current.Close,
-                            contentDescription = stringResource(R.string.hide_prox_card),
-                            tint = textColor,
-                            modifier = Modifier
-                                .clickable(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            offsetY.animateTo(600f, tween(150))
-                                            onClosed()
-                                        }
-                                    }
-                                )
-                                .align(Alignment.TopEnd)
-                                .offset(x = (-24).dp, y = 24.dp)
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(textColor.copy(alpha = 0.2f))
-                                .padding(10.dp)
-                        )
                     }
-                }
+                )
+                .clip(shape)
+                .then(if (samsung) Modifier else Modifier.background(panelColor))
+                .then(
+                    if (settings.borderWidth > 0f) {
+                        Modifier.border(settings.borderWidth.dp, textColor.copy(0.2f), shape)
+                    } else {
+                        Modifier
+                    }
+                ),
+            color = panelColor,
+            shape = shape
+        ) {
+            Box {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(28.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                        .fillMaxWidth()
+                        .then(if (samsung) Modifier else Modifier.fillMaxHeight())
+                        .padding(if (samsung) 16.dp else 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (samsung) 10.dp else 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = name,
-                        style = MaterialTheme.typography.headlineSmallEmphasized.copy(fontWeight = FontWeight.SemiBold),
+                        style = if (samsung) MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                            else MaterialTheme.typography.headlineSmallEmphasized.copy(fontWeight = FontWeight.SemiBold),
                         color = textColor,
                         maxLines = 2,
                         softWrap = true,
@@ -244,12 +222,14 @@ fun ProximityCardContent(
                     )
 
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth()
+                            .then(if (samsung) Modifier else Modifier.weight(1f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (settings.useVideo) {
+                        if (samsung) {
+                            SamsungConnectionBatteries(batteries, primaryImageRes, videoResId,
+                                settings.useVideo, backgroundColor, textColor, videoContext)
+                        } else if (settings.useVideo) {
                             androidx.compose.runtime.CompositionLocalProvider(LocalContext provides videoContext) {
                                 VideoBatteryLayout(batteryList = batteries, videoResId = videoResId,
                                     fallbackImageRes = primaryImageRes, surfaceColor = backgroundColor)
@@ -280,7 +260,70 @@ fun ProximityCardContent(
                         }
                     }
                 }
+                if (settings.showCloseButton) {
+                    Box(Modifier.matchParentSize()) {
+                        Icon(
+                            imageVector = LocalIcons.current.Close,
+                            contentDescription = stringResource(R.string.hide_prox_card),
+                            tint = textColor,
+                            modifier = Modifier.align(Alignment.TopEnd)
+                                .padding(if (samsung) 8.dp else 24.dp)
+                                .size(if (samsung) 40.dp else 32.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onDismiss)
+                                .then(if (samsung) Modifier else Modifier.background(textColor.copy(alpha = .2f)))
+                                .padding(if (samsung) 11.dp else 10.dp),
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+// Easy Setup's battery_reconnection sheet uses one centred device image and a
+// compact strip of readings below it. The AirPods imagery is already bundled.
+@Composable
+private fun SamsungConnectionBatteries(
+    batteries: Set<Battery>,
+    @DrawableRes primaryImageRes: Int,
+    @RawRes videoResId: Int,
+    useVideo: Boolean,
+    backgroundColor: Color,
+    textColor: Color,
+    videoContext: android.content.Context,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val artwork = Modifier.width(132.dp).height(109.dp)
+        if (useVideo) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalContext provides videoContext) {
+                ConnectionVideo(resource = videoResId, fallback = primaryImageRes,
+                    loadingColor = backgroundColor, modifier = artwork)
+            }
+        } else {
+            Image(painterResource(primaryImageRes), contentDescription = null, modifier = artwork)
+        }
+        val icons = LocalIcons.current
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.Center) {
+            batteries.sortedBy { it.component.ordinal }
+                .filter { it.level in 0..100 && it.status != BatteryStatus.DISCONNECTED }
+                .forEach { battery ->
+                    val (label, icon) = when (battery.component) {
+                        BatteryComponent.LEFT -> R.string.left to icons.LeftCircleFill
+                        BatteryComponent.RIGHT -> R.string.right to icons.RightCircleFill
+                        BatteryComponent.CASE -> R.string.case_alt to icons.AirPods4Case
+                        BatteryComponent.HEADSET -> R.string.airpods_label to icons.Headphones
+                    }
+                    Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(icon, stringResource(label), Modifier.size(14.dp), tint = textColor)
+                        Text("${battery.level}%", color = textColor, fontSize = 13.sp,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (battery.status == BatteryStatus.CHARGING || battery.status == BatteryStatus.OPTIMIZED_CHARGING) {
+                            Icon(icons.Bolt, stringResource(R.string.charging_label), Modifier.size(10.dp), tint = textColor)
+                        }
+                    }
+                }
         }
     }
 }
