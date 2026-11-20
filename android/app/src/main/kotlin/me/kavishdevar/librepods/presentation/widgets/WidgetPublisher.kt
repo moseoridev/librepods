@@ -13,6 +13,7 @@ import android.graphics.*
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.util.LruCache
+import android.util.DisplayMetrics
 import android.util.SizeF
 import android.util.TypedValue
 import android.view.View
@@ -33,6 +34,8 @@ object WidgetPublisher {
     private data class ControlMask(val diameter: Float, val link: Float, val seam: Float,
                                    val join: Int, val active: Boolean, val color: Int)
     private val controlMasks = LruCache<ControlMask, Bitmap>(12)
+    private val lightDivider by lazy { controlDividerBitmap(0xB3242424.toInt()) }
+    private val darkDivider by lazy { controlDividerBitmap(0xB3F8F8F8.toInt()) }
     // The source Glance TextViews enable linear/subpixel text; weight and family alone differ in width.
     private val controlTextFlags = Paint().flags or Paint.ANTI_ALIAS_FLAG or Paint.LINEAR_TEXT_FLAG or Paint.SUBPIXEL_TEXT_FLAG
     private val buttons = intArrayOf(R.id.widget_off_button, R.id.widget_transparency_button, R.id.widget_adaptive_button, R.id.widget_anc_button)
@@ -189,12 +192,6 @@ object WidgetPublisher {
         val compactLevels = layout.compact && !disconnected
         val alignEarLabels = compactLevels && !combined && ears.size == 2 &&
             ears.any { it.charging }
-        val density = context.resources.displayMetrics.density
-        val lightArtwork = 0xFF252525.toInt()
-        val darkArtwork = 0xFFFAFAFA.toInt()
-        val dayArtwork = if (colors.day.foreground == Color.WHITE) darkArtwork else lightArtwork
-        val nightArtwork = if (colors.night.foreground == Color.WHITE) darkArtwork else lightArtwork
-        val darkDivider = 0xFFF9F9F9.toInt()
         if (!layout.compact) box(R.id.widget_control_batteries, MATCH_PARENT.toFloat(), WRAP_CONTENT.toFloat())
         removeAllViews(R.id.widget_control_batteries)
         if (batteryRows.isEmpty()) return
@@ -220,14 +217,13 @@ object WidgetPublisher {
                     val child = if (item.divider) RemoteViews(context.packageName, R.layout.widget_control_battery_divider).apply {
                         val height = minOf(8f * layout.scale * fit, rowHeight)
                         box(R.id.widget_control_divider, layout.scale * fit, height)
-                        // Keep the divider's layout slot while centering its intrinsic-height fill on whole pixels.
-                        val inset = ((height * density).roundToInt() - (8f * density).roundToInt()).coerceAtLeast(0)
-                        setViewPadding(R.id.widget_control_divider, 0, inset / 2, 0, inset - inset / 2)
                         setViewLayoutMargin(R.id.widget_control_divider, RemoteViews.MARGIN_START, 4f * layout.scale * fit, TypedValue.COMPLEX_UNIT_DIP)
                         setViewLayoutMargin(R.id.widget_control_divider, RemoteViews.MARGIN_END, 4f * layout.scale * fit, TypedValue.COMPLEX_UNIT_DIP)
-                        tint(R.id.widget_control_divider,
-                            if (colors.day.foreground == Color.WHITE) darkDivider else lightArtwork,
-                            if (colors.night.foreground == Color.WHITE) darkDivider else lightArtwork)
+                        val day = if (colors.day.foreground == Color.WHITE) darkDivider else lightDivider
+                        val night = if (colors.night.foreground == Color.WHITE) darkDivider else lightDivider
+                        if (day === night) setImageViewBitmap(R.id.widget_control_divider, day)
+                        else setIcon(R.id.widget_control_divider, "setImageIcon",
+                            Icon.createWithBitmap(day), Icon.createWithBitmap(night))
                     } else RemoteViews(context.packageName, if (compactLevels) R.layout.widget_control_battery_compact_item
                         else R.layout.widget_control_battery_item).apply {
                         val low = 0xFFFF5941.toInt()
@@ -247,8 +243,16 @@ object WidgetPublisher {
                             val height = minOf(16f * layout.scale * fit, rowHeight)
                             box(R.id.widget_control_charge, width, height)
                             if (item.charging) {
-                                tint(R.id.widget_control_charge, if (item.low) low else dayArtwork,
-                                    if (item.low) low else nightArtwork)
+                                fun chargeDrawable(palette: Palette) = when {
+                                    item.low -> R.drawable.widget_charge_low
+                                    palette.foreground == Color.WHITE -> R.drawable.widget_charge_on_dark
+                                    else -> R.drawable.widget_charge_on_light
+                                }
+                                val day = chargeDrawable(colors.day)
+                                val night = chargeDrawable(colors.night)
+                                if (day == night) setImageViewResource(R.id.widget_control_charge, day)
+                                else setIcon(R.id.widget_control_charge, "setImageIcon",
+                                    Icon.createWithResource(context, day), Icon.createWithResource(context, night))
                                 setContentDescription(R.id.widget_control_value,
                                     context.getString(R.string.widget_charging_description, item.text))
                             }
@@ -260,6 +264,13 @@ object WidgetPublisher {
             addView(R.id.widget_control_batteries, row)
         }
     }
+
+    private fun controlDividerBitmap(color: Int): Bitmap =
+        Bitmap.createBitmap(3, 24, Bitmap.Config.ARGB_8888).apply {
+            // Preserve the intrinsic size and premultiplied fill before ImageView scales it.
+            density = DisplayMetrics.DENSITY_DEFAULT
+            eraseColor(color)
+        }
 
     private fun RemoteViews.controlViews(context: Context, state: WidgetState, colors: Appearance,
                                          size: WidgetGeometry, open: PendingIntent, widgetId: Int) {
