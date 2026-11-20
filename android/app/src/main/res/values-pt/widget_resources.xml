@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">Desconectado</string>
+  <string name="widget_unsaved_changes">Salvar suas alterações ou descartá-las?</string>
+  <string name="widget_discard_changes">Descartar</string>
 </resources>

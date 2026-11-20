@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">Getrennt</string>
+  <string name="widget_unsaved_changes">Änderungen speichern oder verwerfen?</string>
+  <string name="widget_discard_changes">Verwerfen</string>
 </resources>

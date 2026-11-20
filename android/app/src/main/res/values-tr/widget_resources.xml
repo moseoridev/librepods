@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">Bğlantı kesildi</string>
+  <string name="widget_unsaved_changes">Değişiklikleriniz kaydedilsin veya silinsin mi?</string>
+  <string name="widget_discard_changes">Sil</string>
 </resources>

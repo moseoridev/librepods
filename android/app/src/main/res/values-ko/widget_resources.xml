@@ -25,4 +25,6 @@
   <string name="widget_devices">표시할 기기</string>
   <string name="widget_save">저장</string>
   <string name="widget_charging_description">%1$s, 충전 중</string>
+  <string name="widget_unsaved_changes">변경사항을 저장할까요?</string>
+  <string name="widget_discard_changes">저장 안 함</string>
 </resources>

@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">接続解除</string>
+  <string name="widget_unsaved_changes">変更を保存または破棄しますか？</string>
+  <string name="widget_discard_changes">破棄</string>
 </resources>

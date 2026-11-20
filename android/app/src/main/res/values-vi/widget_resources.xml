@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">Đã ngắt kết nối</string>
+  <string name="widget_unsaved_changes">Lưu hay hủy các thay đổi của bạn?</string>
+  <string name="widget_discard_changes">Hủy bỏ</string>
 </resources>

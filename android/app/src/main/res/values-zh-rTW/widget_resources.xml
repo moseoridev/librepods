@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">已中斷連接</string>
+  <string name="widget_unsaved_changes">儲存您的變更或要捨棄？</string>
+  <string name="widget_discard_changes">捨棄</string>
 </resources>

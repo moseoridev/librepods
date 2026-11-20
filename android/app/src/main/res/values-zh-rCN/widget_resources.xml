@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">已断开</string>
+  <string name="widget_unsaved_changes">您有未保存的更改，是否保存？</string>
+  <string name="widget_discard_changes">放弃</string>
 </resources>

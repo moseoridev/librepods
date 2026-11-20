@@ -1,6 +1,7 @@
 package me.kavishdevar.librepods.presentation.widgets
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.res.Configuration
@@ -11,6 +12,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.window.OnBackInvokedDispatcher
 import android.widget.*
 import me.kavishdevar.librepods.R
 import kotlin.math.roundToInt
@@ -35,8 +37,10 @@ class WidgetSettingsActivity : Activity() {
         if (info?.provider?.packageName != packageName || info.provider.className != NoiseControlWidget::class.java.name) {
             finish(); return
         }
-        draft = WidgetPreferences.read(this, widgetId)
-        deviceAddress = WidgetDataSource.address(this, widgetId)
+        val initialPreferences = WidgetPreferences.read(this, widgetId)
+        val initialAddress = WidgetDataSource.address(this, widgetId)
+        draft = initialPreferences
+        deviceAddress = initialAddress
         savedInstanceState?.getString("device_address")?.let { value ->
             deviceAddress = runCatching { me.kavishdevar.librepods.core.bluetooth.MacAddress(value) }.getOrNull()
         }
@@ -153,20 +157,34 @@ class WidgetSettingsActivity : Activity() {
         actions.addView(Button(this).apply { setText(android.R.string.cancel); setOnClickListener { finish() } }, LinearLayout.LayoutParams(0, dp(52), 1f))
         actions.addView(Button(this).apply {
             setText(R.string.widget_save)
-            setOnClickListener {
-                deviceAddress?.let { address ->
-                    (application as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.setWidgetConfig(
-                        me.kavishdevar.librepods.database.widget.WidgetConfigEntity(widgetId, address))
-                }
-                WidgetPreferences.write(this@WidgetSettingsActivity, widgetId, draft)
-                WidgetPublisher.update(this@WidgetSettingsActivity, forceIds = setOf(widgetId))
-                setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
-                finish()
-            }
+            setOnClickListener { save() }
         }, LinearLayout.LayoutParams(0, dp(52), 1f))
         root.addView(actions)
         setContentView(root)
         updateEnabled()
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            if (draft == initialPreferences && deviceAddress == initialAddress) {
+                finish()
+            } else {
+                AlertDialog.Builder(this)
+                    .setMessage(R.string.widget_unsaved_changes)
+                    .setNeutralButton(android.R.string.cancel, null)
+                    .setNegativeButton(R.string.widget_discard_changes) { _, _ -> finish() }
+                    .setPositiveButton(R.string.widget_save) { _, _ -> save() }
+                    .show()
+            }
+        }
+    }
+
+    private fun save() {
+        deviceAddress?.let { address ->
+            (application as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.setWidgetConfig(
+                me.kavishdevar.librepods.database.widget.WidgetConfigEntity(widgetId, address))
+        }
+        WidgetPreferences.write(this, widgetId, draft)
+        WidgetPublisher.update(this, forceIds = setOf(widgetId))
+        setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
+        finish()
     }
 
     override fun onSaveInstanceState(out: Bundle) {

@@ -1,3 +1,5 @@
 <resources>
   <string name="widget_disconnected">Відключено</string>
+  <string name="widget_unsaved_changes">Зберегти зміни або відхилити їх?</string>
+  <string name="widget_discard_changes">Видалити</string>
 </resources>
