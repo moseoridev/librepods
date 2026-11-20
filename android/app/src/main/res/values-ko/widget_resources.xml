@@ -1,8 +1,8 @@
 <resources>
   <string name="widget_controls_name">AirPods 제어</string>
   <string name="widget_case">케이스</string>
-  <string name="widget_receiving">상태 확인 중…</string>
-  <string name="widget_disconnected">연결 안 됨</string>
+  <string name="widget_battery_unavailable">배터리 상태를 확인할 수 없음</string>
+  <string name="widget_disconnected">연결 해제됨</string>
   <string name="widget_open_to_connect">LibrePods를 열어 연결 상태를 확인하세요.</string>
   <string name="widget_control_action">%1$s로 변경</string>
   <string name="widget_control_selected">%1$s, 선택됨</string>

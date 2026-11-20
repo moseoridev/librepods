@@ -23,11 +23,13 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import me.kavishdevar.librepods.presentation.activities.MainActivity
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
+import kotlin.math.roundToInt
 
 /** Complete, event-driven views. Geometry/appearance belong to each widget, not the service. */
 object WidgetPublisher {
     private val published = mutableMapOf<Int, Publication>()
-    private val controlGlyphs = LruCache<Pair<Int, Int>, Bitmap>(4)
+    private data class ControlGlyph(val resource: Int, val densityDpi: Int, val enabled: Boolean)
+    private val controlGlyphs = LruCache<ControlGlyph, Bitmap>(8)
     private data class ControlMask(val diameter: Float, val link: Float, val seam: Float,
                                    val join: Int, val active: Boolean, val color: Int)
     private val controlMasks = LruCache<ControlMask, Bitmap>(12)
@@ -174,47 +176,83 @@ object WidgetPublisher {
                 addAll(tallEars)
                 case?.let { if (isNotEmpty()) add(ControlBatteryText("", divider = true)); add(it) }
             }).filter { it.isNotEmpty() }
-        }.ifEmpty { listOf(listOf(ControlBatteryText(context.getString(
-            if (state.connected) R.string.widget_receiving else R.string.widget_disconnected)))) }
+        }
+        val disconnected = !state.connected && rows.isEmpty()
+        val batteryRows = if (disconnected) {
+            listOf(listOf(ControlBatteryText(context.getString(R.string.widget_disconnected))))
+        } else rows
+        setContentDescription(R.id.noise_control_widget, if (state.connected && rows.isEmpty()) {
+            context.getString(R.string.widget_battery_unavailable)
+        } else null)
         val rowHeight = layout.batteryRowHeight
-        // One known earbud is vertically centered in the same compact two-row slot.
+        val chargeWidth = 11f * layout.scale
+        val compactLevels = layout.compact && !disconnected
+        val alignEarLabels = compactLevels && !combined && ears.size == 2 &&
+            ears.any { it.charging }
+        val density = context.resources.displayMetrics.density
+        val lightArtwork = 0xFF252525.toInt()
+        val darkArtwork = 0xFFFAFAFA.toInt()
+        val dayArtwork = if (colors.day.foreground == Color.WHITE) darkArtwork else lightArtwork
+        val nightArtwork = if (colors.night.foreground == Color.WHITE) darkArtwork else lightArtwork
+        val darkDivider = 0xFFF9F9F9.toInt()
         if (!layout.compact) box(R.id.widget_control_batteries, MATCH_PARENT.toFloat(), WRAP_CONTENT.toFloat())
         removeAllViews(R.id.widget_control_batteries)
+        if (batteryRows.isEmpty()) return
         val paint = Paint().apply {
             flags = controlTextFlags
-            typeface = Typeface.create(Typeface.create("sec", Typeface.NORMAL), if (layout.compact) 600 else 400, false)
+            typeface = Typeface.create(Typeface.create("sec", Typeface.NORMAL), if (compactLevels) 600 else 400, false)
             textSize = layout.batterySize
         }
-        rows.forEach { entries ->
-            val naturalWidth = entries.sumOf { item ->
+        val rowWidths = batteryRows.map { entries ->
+            entries.sumOf { item ->
                 (if (item.divider) 9f * layout.scale else paint.measureText(item.text) +
-                    if (item.charging) 11f * layout.scale else 0f).toDouble()
+                    if (item.charging || alignEarLabels) chargeWidth else 0f).toDouble()
             }.toFloat()
-            val fit = minOf(1f, layout.headerWidth / naturalWidth.coerceAtLeast(1f))
+        }
+        batteryRows.forEachIndexed { index, entries ->
+            val naturalWidth = if (alignEarLabels) rowWidths.max() else rowWidths[index]
+            val fit = if (disconnected) 1f else minOf(1f, layout.headerWidth / naturalWidth.coerceAtLeast(1f))
             val row = RemoteViews(context.packageName, R.layout.widget_control_battery_row).apply {
                 box(R.id.widget_control_battery_row, if (layout.compact) layout.headerWidth else MATCH_PARENT.toFloat(), WRAP_CONTENT.toFloat())
                 setInt(R.id.widget_control_battery_row, "setGravity", Gravity.CENTER_VERTICAL or
                     if (layout.centered) Gravity.CENTER_HORIZONTAL else Gravity.START)
                 entries.forEach { item ->
                     val child = if (item.divider) RemoteViews(context.packageName, R.layout.widget_control_battery_divider).apply {
-                        box(R.id.widget_control_divider, layout.scale * fit, minOf(8f * layout.scale * fit, rowHeight))
+                        val height = minOf(8f * layout.scale * fit, rowHeight)
+                        box(R.id.widget_control_divider, layout.scale * fit, height)
+                        // Keep the divider's layout slot while centering its intrinsic-height fill on whole pixels.
+                        val inset = ((height * density).roundToInt() - (8f * density).roundToInt()).coerceAtLeast(0)
+                        setViewPadding(R.id.widget_control_divider, 0, inset / 2, 0, inset - inset / 2)
                         setViewLayoutMargin(R.id.widget_control_divider, RemoteViews.MARGIN_START, 4f * layout.scale * fit, TypedValue.COMPLEX_UNIT_DIP)
                         setViewLayoutMargin(R.id.widget_control_divider, RemoteViews.MARGIN_END, 4f * layout.scale * fit, TypedValue.COMPLEX_UNIT_DIP)
-                        tint(R.id.widget_control_divider, colors.day.foreground, colors.night.foreground)
-                    } else RemoteViews(context.packageName, if (layout.compact) R.layout.widget_control_battery_compact_item
+                        tint(R.id.widget_control_divider,
+                            if (colors.day.foreground == Color.WHITE) darkDivider else lightArtwork,
+                            if (colors.night.foreground == Color.WHITE) darkDivider else lightArtwork)
+                    } else RemoteViews(context.packageName, if (compactLevels) R.layout.widget_control_battery_compact_item
                         else R.layout.widget_control_battery_item).apply {
                         val low = 0xFFFF5941.toInt()
                         setTextViewText(R.id.widget_control_value, item.text)
                         setInt(R.id.widget_control_value, "setPaintFlags", controlTextFlags)
                         setTextViewTextSize(R.id.widget_control_value, TypedValue.COMPLEX_UNIT_DIP, layout.batterySize * fit)
+                        if (disconnected) setInt(R.id.widget_control_value, "setMaxLines", 2)
                         setColorInt(R.id.widget_control_value, "setTextColor", if (item.low) low else colors.day.foreground,
                             if (item.low) low else colors.night.foreground)
-                        setViewVisibility(R.id.widget_control_charge, if (item.charging) View.VISIBLE else View.GONE)
-                        box(R.id.widget_control_charge, 11f * layout.scale * fit, minOf(16f * layout.scale * fit, rowHeight))
-                        tint(R.id.widget_control_charge, if (item.low) low else colors.day.foreground,
-                            if (item.low) low else colors.night.foreground)
-                        if (item.charging) setContentDescription(R.id.widget_control_value,
-                            context.getString(R.string.widget_charging_description, item.text))
+                        setViewVisibility(R.id.widget_control_charge, when {
+                            item.charging -> View.VISIBLE
+                            alignEarLabels -> View.INVISIBLE
+                            else -> View.GONE
+                        })
+                        if (item.charging || alignEarLabels) {
+                            val width = chargeWidth * fit
+                            val height = minOf(16f * layout.scale * fit, rowHeight)
+                            box(R.id.widget_control_charge, width, height)
+                            if (item.charging) {
+                                tint(R.id.widget_control_charge, if (item.low) low else dayArtwork,
+                                    if (item.low) low else nightArtwork)
+                                setContentDescription(R.id.widget_control_value,
+                                    context.getString(R.string.widget_charging_description, item.text))
+                            }
+                        }
                     }
                     addView(R.id.widget_control_battery_row, child)
                 }
@@ -260,7 +298,7 @@ object WidgetPublisher {
         setTextViewTextSize(R.id.widget_device_name, TypedValue.COMPLEX_UNIT_DIP, layout.titleSize)
         if (size.short) box(R.id.widget_device_name, layout.headerWidth, layout.titleHeight, layout.headerX, layout.headerY)
         else box(R.id.widget_device_name, if (single) WRAP_CONTENT.toFloat() else MATCH_PARENT.toFloat(), WRAP_CONTENT.toFloat())
-        setInt(R.id.widget_device_name, "setGravity", Gravity.CENTER_VERTICAL or if (layout.centered) Gravity.CENTER_HORIZONTAL else Gravity.START)
+        setInt(R.id.widget_device_name, "setGravity", Gravity.TOP or Gravity.START)
         setColorInt(R.id.widget_device_name, "setTextColor", colors.day.foreground, colors.night.foreground)
         controlBatteries(context, state, colors, layout)
         val labels = listOf(R.string.off, R.string.transparency, R.string.adaptive, R.string.noise_cancellation)
@@ -287,11 +325,11 @@ object WidgetPublisher {
                     join, active, if (active) selected else colors.day.idle or Color.BLACK)),
                 Icon.createWithBitmap(controlMask(context, diameter, 6f * scale, size.controlSeamScale,
                     join, active, if (active) selected else colors.night.idle or Color.BLACK)))
-            tint(glyphs[index], Color.WHITE)
-            setImageViewBitmap(glyphs[index], controlGlyph(context, index))
+            setColorStateList(glyphs[index], "setImageTintList", null)
+            setImageViewBitmap(glyphs[index], controlGlyph(context, index, state.connected))
             // Older publications dimmed the entire button; reset it when the host reapplies views.
             setFloat(buttons[index], "setAlpha", 1f)
-            setFloat(glyphs[index], "setAlpha", if (state.connected) 1f else .4f)
+            setFloat(glyphs[index], "setAlpha", 1f)
             setBoolean(buttons[index], "setEnabled", state.connected)
             val label = context.getString(labels[index])
             setContentDescription(buttons[index], if (single && state.connected) context.getString(R.string.widget_cycle_description, label)
@@ -317,12 +355,12 @@ object WidgetPublisher {
     }
 
     /** Rasterize inset upstream artwork; the shared drawables also size static previews. */
-    private fun controlGlyph(context: Context, index: Int): Bitmap {
-        val resource = intArrayOf(R.drawable.widget_glyph_noise_cancellation, R.drawable.widget_glyph_transparency,
+    private fun controlGlyph(context: Context, index: Int, enabled: Boolean): Bitmap {
+        val resource = intArrayOf(R.drawable.widget_glyph_off, R.drawable.widget_glyph_transparency,
             R.drawable.widget_glyph_adaptive, R.drawable.widget_glyph_noise_cancellation)[index]
-        val key = resource to context.resources.displayMetrics.densityDpi
+        val key = ControlGlyph(resource, context.resources.displayMetrics.densityDpi, enabled)
         return controlGlyphs.get(key) ?: requireNotNull(context.getDrawable(resource)).let { drawable ->
-            val edge = (80f * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+            val edge = (80f * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
             Bitmap.createBitmap(edge, edge, Bitmap.Config.ARGB_8888).also { bitmap ->
                 val ratio = minOf(edge.toFloat() / drawable.intrinsicWidth.coerceAtLeast(1),
                     edge.toFloat() / drawable.intrinsicHeight.coerceAtLeast(1))
@@ -332,6 +370,15 @@ object WidgetPublisher {
                 val top = (edge - height) / 2
                 drawable.setBounds(left, top, left + width, top + height)
                 drawable.draw(Canvas(bitmap))
+                // Normalize the mask before host scaling so filtering sees the final opacity.
+                val pixels = IntArray(edge * edge)
+                bitmap.getPixels(pixels, 0, edge, 0, 0, edge, edge)
+                val opacity = if (enabled) 1f else .4f
+                pixels.indices.forEach { i ->
+                    val alpha = (Color.alpha(pixels[i]) * opacity).roundToInt()
+                    pixels[i] = (alpha shl 24) or 0xFFFFFF
+                }
+                bitmap.setPixels(pixels, 0, edge, 0, 0, edge, edge)
                 controlGlyphs.put(key, bitmap)
             }
         }
