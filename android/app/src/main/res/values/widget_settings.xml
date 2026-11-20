@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget configuration metrics and colours. Values follow Buds Manager 9.0.10.1724's
+     sec_widget_setting_layout / sec_widget_setting_bottom_layout resources unless noted. -->
+<resources>
+    <!-- Window: a transparent background over the system wallpaper, as WidgetSettingTheme. -->
+    <style name="Theme.LibrePods.WidgetSettings" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">@bool/widget_settings_light_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/widget_settings_light_bars</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <bool name="widget_settings_light_bars">true</bool>
+
+    <!-- Collapsed SESL toolbar: sesl_toolbar_content_inset; the title size is measured. -->
+    <dimen name="widget_settings_toolbar_height">64dp</dimen>
+    <dimen name="widget_settings_toolbar_inset">28dp</dimen>
+    <dimen name="widget_settings_title_size">20sp</dimen>
+    <!-- SESL centres the title in the toolbar; the measured baseline sits 2dp lower. -->
+    <dimen name="widget_settings_title_offset">2dp</dimen>
+    <!-- semSetRoundedCorners on the preview, list card and shape card. -->
+    <dimen name="widget_settings_corner_radius">26dp</dimen>
+    <dimen name="widget_settings_preview_height">242dp</dimen>
+    <dimen name="widget_settings_preview_margin_bottom">20dp</dimen>
+    <dimen name="widget_settings_list_min_height">56dp</dimen>
+    <dimen name="widget_settings_row_padding">18dp</dimen>
+    <dimen name="widget_settings_divider">1dp</dimen>
+    <dimen name="widget_settings_divider_padding">16dp</dimen>
+    <dimen name="widget_settings_primary_text">17sp</dimen>
+    <dimen name="widget_settings_secondary_text">12sp</dimen>
+    <dimen name="widget_settings_subheader_text">13sp</dimen>
+    <dimen name="widget_settings_opacity_icon_size">32dp</dimen>
+    <!-- SeslSeekBar mode 8 insets its track inside the view; measured on the reference. -->
+    <dimen name="widget_settings_seek_bar_inset">16dp</dimen>
+    <dimen name="widget_settings_seek_bar_padding_bottom">11dp</dimen>
+    <!-- Measured marker inset inside the track; SeslSeekBar's level mode uses 3.33dp, not half a thumb. -->
+    <dimen name="widget_settings_seek_bar_tick_inset">3.33dp</dimen>
+    <!-- The source centres the 42dp seek bar one pixel higher than our row arithmetic does. -->
+    <dimen name="widget_settings_seek_bar_offset">-0.33dp</dimen>
+    <dimen name="widget_settings_subheader_padding_top">12dp</dimen>
+    <dimen name="widget_settings_subheader_padding_bottom">6dp</dimen>
+    <dimen name="widget_settings_shape_container_height">160dp</dimen>
+    <dimen name="widget_settings_shape_margin_edge">30dp</dimen>
+    <dimen name="widget_settings_shape_item_margin">12dp</dimen>
+    <dimen name="widget_settings_shape_width">58dp</dimen>
+    <dimen name="widget_settings_shape_height">68dp</dimen>
+    <dimen name="widget_settings_bottom_spacing">140dp</dimen>
+    <!-- sesl_fading_edge_extra_bottom_height. -->
+    <dimen name="widget_settings_fade_height">120dp</dimen>
+    <!-- sec_widget_colors_options_layout and its PopupWindow. -->
+    <dimen name="widget_settings_popup_width">270dp</dimen>
+    <dimen name="widget_settings_popup_padding_vertical">6dp</dimen>
+    <dimen name="widget_settings_popup_padding_horizontal">24dp</dimen>
+    <dimen name="widget_settings_popup_item_height">44dp</dimen>
+    <dimen name="widget_settings_popup_check_size">24dp</dimen>
+    <dimen name="widget_settings_popup_radius">16dp</dimen>
+    <!-- DividerButtonLayout. -->
+    <dimen name="widget_settings_floating_margin_bottom">10dp</dimen>
+    <dimen name="widget_settings_floating_padding">6dp</dimen>
+    <dimen name="widget_settings_floating_elevation">4dp</dimen>
+    <dimen name="widget_settings_floating_button_height">40dp</dimen>
+    <dimen name="widget_settings_floating_button_min_width">90.5dp</dimen>
+    <dimen name="widget_settings_floating_button_max_width">173.5dp</dimen>
+    <dimen name="widget_settings_floating_button_side_padding">10dp</dimen>
+    <dimen name="widget_settings_floating_highlight_top">2dp</dimen>
+    <dimen name="widget_settings_floating_highlight_bottom">4dp</dimen>
+    <dimen name="widget_settings_floating_highlight_horizontal">6dp</dimen>
+    <dimen name="widget_settings_floating_text">17dp</dimen>
+    <dimen name="widget_settings_floating_divider_height">16dp</dimen>
+
+    <color name="widget_settings_page">#FFF3F3F5</color>
+    <color name="widget_settings_card">#FFFCFCFC</color>
+    <color name="widget_settings_text">#FF010102</color>
+    <color name="widget_settings_accent">#FF2E65D4</color>
+    <color name="widget_settings_divider">#FFE4E4E7</color>
+    <color name="widget_settings_subheader">#FF848487</color>
+    <color name="widget_settings_shape">#FFDEDEE1</color>
+    <color name="widget_settings_shape_selected">#80000000</color>
+    <color name="widget_settings_shape_check">#FFFCFCFF</color>
+    <color name="widget_settings_floating">#EBFCFCFF</color>
+    <color name="widget_settings_floating_divider">#3B848487</color>
+    <color name="widget_settings_pressed">#1A000000</color>
+    <color name="widget_settings_opacity_outline">#FF848487</color>
+    <color name="widget_settings_opacity_light">#66D2D2D2</color>
+    <color name="widget_settings_opacity_dark">#66343434</color>
+</resources>

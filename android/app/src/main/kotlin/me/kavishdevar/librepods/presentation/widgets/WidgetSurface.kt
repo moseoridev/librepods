@@ -66,8 +66,9 @@ internal object WidgetSurface {
     }
 
     // One UI Home's SmoothRoundedCorner/SeslRoundedCorner curve. Only used in the finite settings UI.
+    // Corners are top-left, top-right, bottom-right, bottom-left.
     // Each corner has three cubic segments; unlike addRoundRect, the curve eases into the straight edge.
-    private fun smoothPath(width: Float, height: Float, corners: List<Float>): Path {
+    fun smoothPath(width: Float, height: Float, corners: List<Float>): Path {
         val half = minOf(width, height) / 2f
         return Path().apply {
             moveTo(width / 2f, 0f)

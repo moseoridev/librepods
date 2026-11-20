@@ -65,7 +65,7 @@ internal fun SettingsRowSwitch(
     checked: Boolean,
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    startInset: Dp = 5.5.dp,
+    startInset: Dp = SettingsStyle.SwitchFeedbackInset,
     visualEnabled: Boolean = enabled,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -130,7 +130,7 @@ internal fun SettingsSwitchVisual(
     checked: Boolean,
     enabled: Boolean,
     dimControl: Boolean = true,
-    startInset: Dp = 5.5.dp,
+    startInset: Dp = SettingsStyle.SwitchFeedbackInset,
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource? = null,
     feedbackEnabled: Boolean = enabled,
@@ -166,7 +166,7 @@ internal fun SettingsSwitchVisual(
     val thumbFeedback = if (interactionSource == null) Modifier else
         settingsSwitchThumbFeedback(feedbackEnabled, interactionSource)
     Layout(modifier = modifier.graphicsLayer { alpha = if (dimControl) disabledAlpha else 1f }
-        .padding(start = startInset, end = 5.5.dp).then(coreFeedback), content = {
+        .padding(start = startInset, end = SettingsStyle.SwitchFeedbackInset).then(coreFeedback), content = {
         Box(Modifier.size(32.dp, 20.dp)
             .background(track, RoundedCornerShape(50)))
         Box(Modifier.padding(2.dp).size(16.dp)

@@ -2,4 +2,16 @@
   <string name="widget_disconnected">已中斷連接</string>
   <string name="widget_unsaved_changes">儲存您的變更或要捨棄？</string>
   <string name="widget_discard_changes">捨棄</string>
+  <string name="widget_settings_title">Widget 設定</string>
+  <string name="widget_background">背景</string>
+  <string name="widget_opacity">不透明度</string>
+  <string name="widget_colors">色彩</string>
+  <string name="widget_follow_phone">與手機設定同步</string>
+  <string name="widget_light">淺色</string>
+  <string name="widget_dark">深色</string>
+  <string name="widget_shape">形狀</string>
+  <string name="widget_shape_label">形狀 %1$d</string>
+  <string name="widget_dialog_cancel">取消</string>
+  <string name="widget_cancel">取消</string>
+  <string name="widget_save">儲存</string>
 </resources>

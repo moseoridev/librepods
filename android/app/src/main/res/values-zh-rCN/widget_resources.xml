@@ -2,4 +2,16 @@
   <string name="widget_disconnected">已断开</string>
   <string name="widget_unsaved_changes">您有未保存的更改，是否保存？</string>
   <string name="widget_discard_changes">放弃</string>
+  <string name="widget_settings_title">小组件设置</string>
+  <string name="widget_background">背景</string>
+  <string name="widget_opacity">不透明度</string>
+  <string name="widget_colors">颜色</string>
+  <string name="widget_follow_phone">匹配手机设置</string>
+  <string name="widget_light">浅色</string>
+  <string name="widget_dark">深色</string>
+  <string name="widget_shape">形状</string>
+  <string name="widget_shape_label">形状 %1$d</string>
+  <string name="widget_dialog_cancel">取消</string>
+  <string name="widget_cancel">取消</string>
+  <string name="widget_save">保存</string>
 </resources>

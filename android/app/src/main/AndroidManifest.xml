@@ -107,7 +107,7 @@
              exported and advertise the APPWIDGET_CONFIGURE action. -->
         <activity android:name=".presentation.widgets.WidgetSettingsActivity"
             android:exported="true" android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.DeviceDefault.DayNight">
+            android:theme="@style/Theme.LibrePods.WidgetSettings">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>

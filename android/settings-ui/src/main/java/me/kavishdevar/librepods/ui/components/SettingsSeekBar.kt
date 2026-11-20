@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import me.kavishdevar.librepods.ui.theme.SettingsStyle
@@ -70,6 +71,15 @@ private val ThumbRadius = 6.5.dp
 
 /** `dimen/sesl_seekbar_thumb_stroke`; the thumb core is inset from the ring by this much. */
 private val ThumbStroke = 2.dp
+
+private val StandardThumbDiameter = 20.dp
+private val TickDiameter = 8.dp
+
+/** wm.m0's marker padding. */
+val SettingsSeekBarTickInset = 4.dp
+
+/** SeslSeekBar's level mode centres each marker on a thumb stop. */
+val SettingsSeekBarThumbStopTickInset = (StandardThumbDiameter - TickDiameter) / 2
 
 /** The current Compose slider and the earlier narrow widget have distinct geometry. */
 enum class SettingsSeekBarStyle { Standard, Slim }
@@ -97,6 +107,7 @@ fun SettingsSeekBar(
     tickCount: Int = 0,
     activeTrackColor: Color = Color.Unspecified,
     onValueChangeFinished: (() -> Unit)? = null,
+    tickInset: Dp = SettingsSeekBarTickInset,
 ) {
     require(steps >= 0) { "steps must be nonnegative" }
     require(tickCount >= 0) { "tickCount must be nonnegative" }
@@ -106,7 +117,7 @@ fun SettingsSeekBar(
         return
     }
     SettingsStandardSeekBar(value, onValueChange, valueRange, modifier, enabled, steps, tickCount,
-        onValueChangeFinished, if (enabled) 1f else .4f, activeTrackColor)
+        onValueChangeFinished, if (enabled) 1f else .4f, activeTrackColor, tickInset)
 }
 
 @Composable
@@ -114,6 +125,7 @@ private fun SettingsStandardSeekBar(
     value: Float, onValueChange: (Float) -> Unit, valueRange: ClosedFloatingPointRange<Float>,
     modifier: Modifier, enabled: Boolean, steps: Int, tickCount: Int,
     onValueChangeFinished: (() -> Unit)?, contentAlpha: Float, activeTrackColor: Color,
+    tickInset: Dp = SettingsSeekBarTickInset,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val measurement = remember { SettingsSeekBarMeasurement() }
@@ -176,11 +188,12 @@ private fun SettingsStandardSeekBar(
                         })
                     // wm.m0 draws 8dp markers with 4dp horizontal padding, independently
                     // from selectable steps. The active thumb covers a marker at an endpoint.
+                    // SeslSeekBar's level mode instead centres them on the 20dp thumb stops.
                     if (tickCount > 0) Row(Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically) {
                         repeat(tickCount) {
-                            Box(Modifier.padding(horizontal = 4.dp).size(8.dp)
+                            Box(Modifier.padding(horizontal = tickInset).size(TickDiameter)
                                 .background(colors.outline, CircleShape))
                         }
                     }

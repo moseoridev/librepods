@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Desconectado</string>
   <string name="widget_unsaved_changes">¿Quieres guardar los cambios o descartarlos?</string>
   <string name="widget_discard_changes">Descartar</string>
+  <string name="widget_settings_title">Ajustes de widgets</string>
+  <string name="widget_background">Fondo</string>
+  <string name="widget_opacity">Opacidad</string>
+  <string name="widget_colors">Colores</string>
+  <string name="widget_follow_phone">Igual que el ajuste del teléfono</string>
+  <string name="widget_light">Claro</string>
+  <string name="widget_dark">Oscuro</string>
+  <string name="widget_shape">Forma</string>
+  <string name="widget_shape_label">Forma %1$d</string>
+  <string name="widget_dialog_cancel">Cancelar</string>
+  <string name="widget_cancel">Cancelar</string>
+  <string name="widget_save">Guardar</string>
 </resources>

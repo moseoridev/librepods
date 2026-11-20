@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Đã ngắt kết nối</string>
   <string name="widget_unsaved_changes">Lưu hay hủy các thay đổi của bạn?</string>
   <string name="widget_discard_changes">Hủy bỏ</string>
+  <string name="widget_settings_title">Cài đặt widget</string>
+  <string name="widget_background">Nền</string>
+  <string name="widget_opacity">Mờ</string>
+  <string name="widget_colors">Màu sắc</string>
+  <string name="widget_follow_phone">Khớp với cài đặt điện thoại</string>
+  <string name="widget_light">Sáng</string>
+  <string name="widget_dark">Tối</string>
+  <string name="widget_shape">Hình dạng</string>
+  <string name="widget_shape_label">Hình %1$d</string>
+  <string name="widget_dialog_cancel">Thoát</string>
+  <string name="widget_cancel">Thoát</string>
+  <string name="widget_save">Lưu</string>
 </resources>

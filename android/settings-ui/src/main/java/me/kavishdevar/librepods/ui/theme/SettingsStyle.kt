@@ -28,6 +28,8 @@ object SettingsStyle {
     // n1.l.d: 50% smooth corners clamp to half the shorter axis at any button height.
     val PillShape = SettingsGroupShape(Dp.Infinity)
     val RowInset = 18.dp
+    // ww.s: the switch control pads its 32dp track so the thumb feedback stays inside its bounds.
+    val SwitchFeedbackInset = 5.5.dp
     // 9.0.10.1704: wm.k1.d pads the text column by 14dp; leading controls
     // stay outside that padding (wm.e0). This also keeps multi-line rows natural.
     val RowVerticalPadding = 14.dp
@@ -45,14 +47,16 @@ object SettingsStyle {
 
     /** gm.g2 -> m3.i.x: responsive page width, independent of row text insets. */
     @Composable
-    fun pageInset() = LocalConfiguration.current.let { configuration ->
-        val width = configuration.screenWidthDp
+    fun pageInset() = LocalConfiguration.current.let { responsiveMargin(it.screenWidthDp, it.screenHeightDp).dp }
+
+    /** The responsive margin value shared by gm.g2 and the View-based j30.g.x. */
+    fun responsiveMargin(widthDp: Int, heightDp: Int): Int {
         val fraction = when {
-            width >= 990 -> .75f
-            width >= 589 && configuration.screenHeightDp > 411 -> .86f
+            widthDp >= 990 -> .75f
+            widthDp >= 589 && heightDp > 411 -> .86f
             else -> 1f
         }
-        ((width - (width * fraction).toInt()) / 2).let { if (it == 0) 10 else it }.dp
+        return ((widthDp - (widthDp * fraction).toInt()) / 2).let { if (it == 0) 10 else it }
     }
 
     /**

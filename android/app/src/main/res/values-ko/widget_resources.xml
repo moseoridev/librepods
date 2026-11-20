@@ -12,19 +12,18 @@
   <string name="widget_cycle_description">%1$s. 눌러서 소음 제어 변경</string>
   <string name="widget_background">배경</string>
   <string name="widget_colors">색상</string>
-  <string name="widget_follow_phone">휴대전화 설정에 맞춤</string>
-  <string name="widget_light">밝게</string>
-  <string name="widget_dark">어둡게</string>
-  <string name="widget_opacity">불투명도</string>
+  <string name="widget_follow_phone">폰 설정 따름</string>
+  <string name="widget_light">라이트</string>
+  <string name="widget_dark">다크</string>
+  <string name="widget_opacity">투명도</string>
   <string name="widget_shape">모양</string>
-  <string name="widget_shape_round">둥근 모서리</string>
-  <string name="widget_shape_leaf_left">나뭇잎, 왼쪽</string>
-  <string name="widget_shape_leaf_right">나뭇잎, 오른쪽</string>
-  <string name="widget_shape_corner_right">오른쪽 위 작은 모서리</string>
-  <string name="widget_shape_corner_left">왼쪽 위 작은 모서리</string>
   <string name="widget_devices">표시할 기기</string>
   <string name="widget_save">저장</string>
   <string name="widget_charging_description">%1$s, 충전 중</string>
   <string name="widget_unsaved_changes">변경사항을 저장할까요?</string>
   <string name="widget_discard_changes">저장 안 함</string>
+  <string name="widget_settings_title">위젯 설정</string>
+  <string name="widget_shape_label">모양 %1$d</string>
+  <string name="widget_dialog_cancel">취소</string>
+  <string name="widget_cancel">취소</string>
 </resources>

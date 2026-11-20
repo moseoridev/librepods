@@ -18,19 +18,18 @@
   <string name="widget_cycle_description">%1$s. Tap to change noise control.</string>
   <string name="widget_background">Background</string>
   <string name="widget_colors">Colors</string>
-  <string name="widget_follow_phone">Match phone settings</string>
+  <string name="widget_follow_phone">Match phone setting</string>
   <string name="widget_light">Light</string>
   <string name="widget_dark">Dark</string>
   <string name="widget_opacity">Opacity</string>
   <string name="widget_shape">Shape</string>
-  <string name="widget_shape_round">Rounded</string>
-  <string name="widget_shape_leaf_left">Leaf, left</string>
-  <string name="widget_shape_leaf_right">Leaf, right</string>
-  <string name="widget_shape_corner_right">Small top-right corner</string>
-  <string name="widget_shape_corner_left">Small top-left corner</string>
   <string name="widget_devices">Devices to show</string>
   <string name="widget_save">Save</string>
   <color name="widget_control_foreground">#FF000000</color>
   <string name="widget_unsaved_changes">Save your changes or discard them?</string>
   <string name="widget_discard_changes">Discard</string>
+  <string name="widget_settings_title">Widget settings</string>
+  <string name="widget_shape_label">Shape %1$d</string>
+  <string name="widget_dialog_cancel">Cancel</string>
+  <string name="widget_cancel">Cancel</string>
 </resources>

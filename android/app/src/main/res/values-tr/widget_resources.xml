@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Bğlantı kesildi</string>
   <string name="widget_unsaved_changes">Değişiklikleriniz kaydedilsin veya silinsin mi?</string>
   <string name="widget_discard_changes">Sil</string>
+  <string name="widget_settings_title">Widget ayarları</string>
+  <string name="widget_background">Arka plan</string>
+  <string name="widget_opacity">Opaklık</string>
+  <string name="widget_colors">Renkler</string>
+  <string name="widget_follow_phone">Telefon ayarıyla eşleştir</string>
+  <string name="widget_light">Açık</string>
+  <string name="widget_dark">Koyu</string>
+  <string name="widget_shape">Şekil</string>
+  <string name="widget_shape_label">Şekil %1$d</string>
+  <string name="widget_dialog_cancel">İptal et</string>
+  <string name="widget_cancel">İptal</string>
+  <string name="widget_save">Kaydet</string>
 </resources>

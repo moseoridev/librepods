@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Відключено</string>
   <string name="widget_unsaved_changes">Зберегти зміни або відхилити їх?</string>
   <string name="widget_discard_changes">Видалити</string>
+  <string name="widget_settings_title">Налаштування віджета</string>
+  <string name="widget_background">Фон</string>
+  <string name="widget_opacity">Прозорість</string>
+  <string name="widget_colors">Кольори</string>
+  <string name="widget_follow_phone">Відповідно до налаштувань телефона</string>
+  <string name="widget_light">Світла</string>
+  <string name="widget_dark">Темна</string>
+  <string name="widget_shape">Форма</string>
+  <string name="widget_shape_label">Форма %1$d</string>
+  <string name="widget_dialog_cancel">Скасувати</string>
+  <string name="widget_cancel">Скасувати</string>
+  <string name="widget_save">Зберегти</string>
 </resources>

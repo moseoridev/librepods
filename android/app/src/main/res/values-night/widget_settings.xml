@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="widget_settings_light_bars">false</bool>
+    <color name="widget_settings_page">#FF010102</color>
+    <color name="widget_settings_card">#FF171717</color>
+    <color name="widget_settings_text">#FFFCFCFF</color>
+    <color name="widget_settings_accent">#FF598FFF</color>
+    <color name="widget_settings_divider">#FF3A3A3D</color>
+    <color name="widget_settings_subheader">#FFA3A3A7</color>
+    <color name="widget_settings_shape">#FF5A5A5D</color>
+    <color name="widget_settings_shape_selected">#80FFFFFF</color>
+    <color name="widget_settings_floating">#EB252528</color>
+    <color name="widget_settings_floating_divider">#3BA3A3A7</color>
+    <color name="widget_settings_pressed">#33FFFFFF</color>
+</resources>

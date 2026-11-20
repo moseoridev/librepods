@@ -307,3 +307,36 @@ private const val SharedMain = """
         return half4(faded.rgb, faded.a);
     }
 """
+
+/**
+ * A View-system bottom fading edge: SESL's `SeslFadingEdgeHelperImpl` draws the same band math
+ * over a NestedScrollView. Draw the returned shader as a [height]-tall rectangle whose top is
+ * at y = 0; it paints [background] with the band's inverse alpha over opaque content.
+ */
+fun settingsBottomFadeOverlay(background: Int, height: Float, lowAlpha: Float,
+    curve: FloatArray, strength: Float = 1f): RuntimeShader =
+    RuntimeShader(EdgeMath + BottomOverlayMain).apply {
+        val color = Color(background)
+        setFloatUniform("background", color.red, color.green, color.blue, color.alpha)
+        setFloatUniform("fadeHeight", height)
+        setFloatUniform("recordingHeight", height)
+        setFloatUniform("lowAlpha", lowAlpha)
+        setFloatUniform("innerAlpha", 1f)
+        setFloatUniform("curvePoints", curve[0], curve[1], curve[2], curve[3])
+        setFloatUniform("ditherStrength", 3f)
+        setFloatUniform("strength", strength)
+        setIntUniform("customXfer", 0)
+        // EdgeMath declares the content input; this overlay never samples it.
+        setInputShader("content", android.graphics.LinearGradient(0f, 0f, 0f, 1f, 0, 0,
+            android.graphics.Shader.TileMode.CLAMP))
+    }
+
+private const val BottomOverlayMain = """
+    uniform float strength;
+    half4 main(float2 coord) {
+        float alpha = fadeAlpha((fadeHeight - coord.y) / fadeHeight, lowAlpha, curvePoints);
+        alpha = clamp(alpha + noise(coord), 0.0, 1.0);
+        float cover = (1.0 - alpha) * strength * background.a;
+        return half4(background.rgb * cover, cover);
+    }
+"""

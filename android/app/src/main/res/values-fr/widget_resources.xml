@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Déconnectée</string>
   <string name="widget_unsaved_changes">Enregistrer vos modifications ou les ignorer ?</string>
   <string name="widget_discard_changes">Ignorer</string>
+  <string name="widget_settings_title">Paramètres des widgets</string>
+  <string name="widget_background">Arrière-plan</string>
+  <string name="widget_opacity">Opacité</string>
+  <string name="widget_colors">Couleurs</string>
+  <string name="widget_follow_phone">Utiliser le paramètre du téléphone</string>
+  <string name="widget_light">Lumineux</string>
+  <string name="widget_dark">Sombre</string>
+  <string name="widget_shape">Forme</string>
+  <string name="widget_shape_label">Forme %1$d</string>
+  <string name="widget_dialog_cancel">Annuler</string>
+  <string name="widget_cancel">Annuler</string>
+  <string name="widget_save">Enregistrer</string>
 </resources>

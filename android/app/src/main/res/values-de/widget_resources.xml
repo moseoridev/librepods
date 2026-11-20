@@ -2,4 +2,16 @@
   <string name="widget_disconnected">Getrennt</string>
   <string name="widget_unsaved_changes">Änderungen speichern oder verwerfen?</string>
   <string name="widget_discard_changes">Verwerfen</string>
+  <string name="widget_settings_title">Widget-Einstellungen</string>
+  <string name="widget_background">Hintergrund</string>
+  <string name="widget_opacity">Deckkraft</string>
+  <string name="widget_colors">Farben</string>
+  <string name="widget_follow_phone">Telefoneinstellung zuordnen</string>
+  <string name="widget_light">Hell</string>
+  <string name="widget_dark">Dunkel</string>
+  <string name="widget_shape">Form</string>
+  <string name="widget_shape_label">Form %1$d</string>
+  <string name="widget_dialog_cancel">Abbrechen</string>
+  <string name="widget_cancel">Abbrechen</string>
+  <string name="widget_save">Speichern</string>
 </resources>
