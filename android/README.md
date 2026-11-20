@@ -25,7 +25,7 @@ If you need Xposed because of the [root requirement](#root-requirement), you wil
 ### As a system app (root module)
 
 If you want LibrePods to have privileged Bluetooth permissions to 
-- show battery status in the system settings and widgets
+- show battery status in the system settings
 - show AirPods icon in the system settings (xposed is also currently required for this)
 - switch audio to phone speakers when you are not wearing your AirPods
 
@@ -48,7 +48,7 @@ Want to try the latest features before they're officially released? You can grab
 | ![Settings 1](./imgs/settings-1.png)                                            | ![Settings 2](./imgs/settings-2.png)       | ![Head Tracking and Gestures](./imgs/head-tracking-and-gestures.png) |
 | ![Long Press Configuration](./imgs/long-press.png)                              | ![Customizations 1](./imgs/customizations-1.png)                                | ![accessibility](./imgs/accessibility.png) |
 | ![transparency](./imgs/transparency.png)                                        | ![hearing-aid](./imgs/hearing-aid.png)     | ![hearing-test](./imgs/hearing-test.png)   |
-| ![hearing-aid-adjustments](./imgs/hearing-aid-adjustments.png)                  | ![Battery Notification and QS Tile for NC Mode](./imgs/notification-and-qs.png) | ![Widget](./imgs/widget.png)               |
+| ![hearing-aid-adjustments](./imgs/hearing-aid-adjustments.png)                  | ![Battery Notification and QS Tile for NC Mode](./imgs/notification-and-qs.png) | |
 
 
 here's a very unprofessional demo video

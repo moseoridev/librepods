@@ -11,7 +11,6 @@ import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.Icon
-import android.os.BatteryManager
 import android.os.Bundle
 import android.util.LruCache
 import android.util.SizeF
@@ -23,142 +22,103 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import me.kavishdevar.librepods.presentation.activities.MainActivity
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.bluetooth.NearbyDetection
-import me.kavishdevar.librepods.core.devices.Battery
 import me.kavishdevar.librepods.core.bluetooth.MacAddress
-import me.kavishdevar.librepods.bluetooth.CompanionConnection
 
 /** Complete, event-driven views. Geometry/appearance belong to each widget, not the service. */
 object WidgetPublisher {
-    private val published = mutableMapOf<Int, Any>()
-    private val arcs = LruCache<Pair<Int?, Int>, Bitmap>(12)
+    private val published = mutableMapOf<Int, Publication>()
     private val controlGlyphs = LruCache<Pair<Int, Int>, Bitmap>(4)
     private data class ControlMask(val diameter: Float, val link: Float, val seam: Float,
                                    val join: Int, val active: Boolean, val color: Int)
     private val controlMasks = LruCache<ControlMask, Bitmap>(12)
     // The source Glance TextViews enable linear/subpixel text; weight and family alone differ in width.
     private val controlTextFlags = Paint().flags or Paint.ANTI_ALIAS_FLAG or Paint.LINEAR_TEXT_FLAG or Paint.SUBPIXEL_TEXT_FLAG
-    private val cells = intArrayOf(R.id.widget_cell_0, R.id.widget_cell_1, R.id.widget_cell_2, R.id.widget_cell_3, R.id.widget_cell_4, R.id.widget_cell_5, R.id.widget_cell_6, R.id.widget_cell_7)
-    private val rings = intArrayOf(R.id.widget_arc_0, R.id.widget_arc_1, R.id.widget_arc_2, R.id.widget_arc_3, R.id.widget_arc_4, R.id.widget_arc_5, R.id.widget_arc_6, R.id.widget_arc_7)
-    private val icons = intArrayOf(R.id.widget_icon_0, R.id.widget_icon_1, R.id.widget_icon_2, R.id.widget_icon_3, R.id.widget_icon_4, R.id.widget_icon_5, R.id.widget_icon_6, R.id.widget_icon_7)
-    private val values = intArrayOf(R.id.widget_value_0, R.id.widget_value_1, R.id.widget_value_2, R.id.widget_value_3, R.id.widget_value_4, R.id.widget_value_5, R.id.widget_value_6, R.id.widget_value_7)
-    private val rows = intArrayOf(R.id.widget_value_row_0, R.id.widget_value_row_1, R.id.widget_value_row_2, R.id.widget_value_row_3, R.id.widget_value_row_4, R.id.widget_value_row_5, R.id.widget_value_row_6, R.id.widget_value_row_7)
-    private val charging = intArrayOf(R.id.widget_charge_0, R.id.widget_charge_1, R.id.widget_charge_2, R.id.widget_charge_3, R.id.widget_charge_4, R.id.widget_charge_5, R.id.widget_charge_6, R.id.widget_charge_7)
     private val buttons = intArrayOf(R.id.widget_off_button, R.id.widget_transparency_button, R.id.widget_adaptive_button, R.id.widget_anc_button)
     private val backgrounds = intArrayOf(R.id.widget_off_background, R.id.widget_transparency_background, R.id.widget_adaptive_background, R.id.widget_anc_background)
     private val glyphs = intArrayOf(R.id.widget_off_icon, R.id.widget_transparency_icon, R.id.widget_adaptive_icon, R.id.widget_anc_icon)
     private val links = intArrayOf(R.id.widget_link_0, R.id.widget_link_1, R.id.widget_link_2)
     private val modes = listOf(1, 3, 4, 2)
-    private data class Snapshot(val state: WidgetState, val phone: WidgetBattery)
-    private data class Palette(val foreground: Int, val surface: Int, val track: Int, val idle: Int)
+    private data class Palette(val foreground: Int, val surface: Int, val idle: Int)
     private data class Appearance(val day: Palette, val night: Palette)
-    private data class Publication(val content: Any, val prefs: WidgetPreferences, val appearance: Appearance,
+    private data class Publication(val state: WidgetState, val prefs: WidgetPreferences, val appearance: Appearance,
                                    val sizes: List<WidgetGeometry>, val locale: String, val hostOwnsOutline: Boolean)
 
-    fun forget(ids: IntArray) { ids.forEach { published.remove(it) }; WidgetHostMetrics.forget(ids) }
-    fun hasBatteryWidgets(context: Context): Boolean = AppWidgetManager.getInstance(context)
-        .getAppWidgetIds(ComponentName(context, BatteryWidget::class.java)).isNotEmpty()
-    fun needsPhoneBattery(context: Context): Boolean = AppWidgetManager.getInstance(context)
-        .getAppWidgetIds(ComponentName(context, BatteryWidget::class.java))
-        .any { 0 in WidgetPreferences.read(context, it, controls = false).items }
-
-    private fun snapshot(context: Context, id: Int? = null, readPhone: Boolean = true, address: MacAddress? = null): Snapshot {
-        val state = WidgetDataSource.state(context, id, address)
-        val phone = if (readPhone) {
-            val battery = context.getSystemService(BatteryManager::class.java)
-            val level = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY).takeIf { it in 0..100 }
-            val status = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_STATUS)
-            WidgetBattery(level, level != null && status in listOf(BatteryManager.BATTERY_STATUS_CHARGING, BatteryManager.BATTERY_STATUS_FULL))
-        } else WidgetBattery()
-        return Snapshot(state, phone)
+    fun forget(ids: IntArray) {
+        ids.forEach { published.remove(it) }
     }
 
     fun update(context: Context, forceIds: Set<Int> = emptySet()) {
         val manager = AppWidgetManager.getInstance(context)
-        val batteryIds = manager.getAppWidgetIds(ComponentName(context, BatteryWidget::class.java)).toSet()
-        val controlIds = manager.getAppWidgetIds(ComponentName(context, NoiseControlWidget::class.java)).toSet()
-        val installed = batteryIds + controlIds
+        val installed = manager.getAppWidgetIds(ComponentName(context, NoiseControlWidget::class.java)).toSet()
         if (installed.isEmpty()) return
         published.keys.retainAll(installed)
-        val configs = installed.associateWith { WidgetPreferences.read(context, it, controls = it in controlIds) }
-        val phone = snapshot(context, readPhone = batteryIds.any { 0 in configs.getValue(it).items }).phone
-        val snapshots = mutableMapOf<MacAddress?, Snapshot>()
+        val states = mutableMapOf<MacAddress?, WidgetState>()
         val locale = context.resources.configuration.locales.toLanguageTags()
         installed.forEach { id ->
-            val current = snapshots.getOrPut(WidgetDataSource.address(context, id)) {
-                snapshot(context, id, readPhone = false).copy(phone = phone)
+            val state = states.getOrPut(WidgetDataSource.address(context, id)) {
+                WidgetDataSource.state(context, id)
             }
-            val prefs = configs.getValue(id)
-            val battery = id in batteryIds
+            val prefs = WidgetPreferences.read(context, id)
             val options = manager.getAppWidgetOptions(id)
-            val sizes = if (battery) WidgetHostMetrics.apply(manager, id, options, sizes(options, true), id in forceIds)
-                else sizes(options, false)
-            val colors = appearance(prefs, battery)
-            val content = if (battery) listOf(current.state.left, current.state.right, current.state.case,
-                current.phone.takeIf { 0 in prefs.items }) else current.state
+            val sizes = sizes(options)
+            val colors = appearance(prefs)
             val hostOwnsOutline = WidgetSurface.hostOwnsOutline(options)
-            val key = Publication(content, prefs, colors, sizes, locale, hostOwnsOutline)
+            val key = Publication(state, prefs, colors, sizes, locale, hostOwnsOutline)
             if (id in forceIds || published[id] != key) {
                 val variants = sizes.associate { size -> SizeF(size.width, size.height) to
-                    render(context, current, prefs, colors, size, battery, hostOwnsOutline, id) }
+                    render(context, state, prefs, colors, size, hostOwnsOutline, id) }
                 manager.updateAppWidget(id, if (variants.size == 1) variants.values.first() else RemoteViews(variants))
                 published[id] = key
             }
         }
     }
 
-    private fun sizes(options: Bundle, battery: Boolean): List<WidgetGeometry> {
+    private fun sizes(options: Bundle): List<WidgetGeometry> {
         val sizes = options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, SizeF::class.java)
             ?.filter { it.width.isFinite() && it.height.isFinite() && it.width > 0 && it.height > 0 }
             ?.distinct()?.take(16).orEmpty()
         if (sizes.isNotEmpty()) return sizes.map {
-            WidgetGeometry.from(it.width, it.height, if (sizes.size == 1) options.getInt("semWidgetSize", 0) else 0, controls = !battery)
+            WidgetGeometry.from(it.width, it.height, if (sizes.size == 1) options.getInt("semWidgetSize", 0) else 0)
         }
         // The two minima can belong to different orientations. Never combine them into one size.
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 270).coerceAtLeast(60).toFloat()
-        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, if (battery) 52 else 130).coerceAtLeast(if (battery) 40 else 30).toFloat()
+        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 130).coerceAtLeast(30).toFloat()
         return WidgetGeometry.fromBounds(minWidth, minHeight,
             options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minWidth.toInt()).toFloat().coerceAtLeast(minWidth),
-            options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minHeight.toInt()).toFloat().coerceAtLeast(minHeight), controls = !battery)
+            options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minHeight.toInt()).toFloat().coerceAtLeast(minHeight))
     }
 
     fun previewGeometry(context: Context, id: Int): WidgetGeometry {
         val manager = AppWidgetManager.getInstance(context)
-        val battery = manager.getAppWidgetInfo(id)?.provider?.className == BatteryWidget::class.java.name
         val options = manager.getAppWidgetOptions(id)
-        val variants = if (battery) WidgetHostMetrics.apply(manager, id, options, sizes(options, true), false) else sizes(options, false)
+        val variants = sizes(options)
         return if (context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
             variants.maxBy { it.width } else variants.minBy { it.width }
     }
 
     /** Configuration preview uses the same renderer, without writing preferences or posting widgets. */
     fun preview(context: Context, id: Int, prefs: WidgetPreferences, width: Float, height: Float, address: MacAddress? = null): RemoteViews {
-        val manager = AppWidgetManager.getInstance(context)
-        val battery = manager.getAppWidgetInfo(id)?.provider?.className == BatteryWidget::class.java.name
         val geometry = previewGeometry(context, id).resized(width, height)
-        return render(context, snapshot(context, id, address = address), prefs, appearance(prefs, battery), geometry, battery, widgetId = id)
+        return render(context, WidgetDataSource.state(context, id, address), prefs, appearance(prefs), geometry, widgetId = id)
     }
 
-    private fun appearance(prefs: WidgetPreferences, battery: Boolean): Appearance {
+    private fun appearance(prefs: WidgetPreferences): Appearance {
         fun palette(dark: Boolean): Palette {
-            val levels = if (battery) intArrayOf(77, 166, 255) else intArrayOf(128, 191, 255)
+            val levels = intArrayOf(128, 191, 255)
             val alpha = if (prefs.background) levels[prefs.opacity] else 0
-            return Palette(if (!battery) { if (dark) Color.WHITE else Color.BLACK }
-                else if (dark) 0xFFFAFAFF.toInt() else 0xFF010102.toInt(),
+            return Palette(if (dark) Color.WHITE else Color.BLACK,
                 (alpha shl 24) or if (dark) 0x010102 else 0xFCFCFF,
-                if (dark) 0x33FCFCFF else 0x1A000000,
                 if (dark) 0x26FCFCFF else 0x26000000)
         }
         // RemoteViews resolves these in the host's configuration, even with our process absent.
         return Appearance(palette(prefs.color == 2), palette(prefs.color != 1))
     }
 
-    private fun render(context: Context, snapshot: Snapshot, prefs: WidgetPreferences, colors: Appearance,
-                       size: WidgetGeometry, battery: Boolean, hostOwnsOutline: Boolean = false, widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID): RemoteViews {
+    private fun render(context: Context, state: WidgetState, prefs: WidgetPreferences, colors: Appearance,
+                       size: WidgetGeometry, hostOwnsOutline: Boolean = false, widgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID): RemoteViews {
         val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        return RemoteViews(context.packageName, if (battery) R.layout.battery_widget
-            else if (size.short) R.layout.noise_control_widget_compact
+        return RemoteViews(context.packageName, if (size.short) R.layout.noise_control_widget_compact
             else if (size.narrow) R.layout.noise_control_widget_medium else R.layout.noise_control_widget).apply {
             WidgetSurface.apply(this, size, prefs.shape, hostOwnsOutline)
             setColorStateList(R.id.widget_frame, "setBackgroundTintList", ColorStateList.valueOf(Color.TRANSPARENT))
@@ -166,8 +126,7 @@ object WidgetPublisher {
             // On supported One UI hosts the transparent outer shape conveys corners without clipping.
             setColorInt(android.R.id.background, "setBackgroundColor", colors.day.surface, colors.night.surface)
             setOnClickPendingIntent(android.R.id.background, open)
-            if (battery) batteryViews(context, snapshot, prefs, colors, size, open)
-            else controlViews(context, snapshot.state, colors, size, open, widgetId)
+            controlViews(context, state, colors, size, open, widgetId)
         }
     }
 
@@ -187,80 +146,6 @@ object WidgetPublisher {
         // The source Glance translator truncates dp padding independently before measuring children.
         setViewPadding(id, ((if (rtl) end else start) * density).toInt(), (top * density).toInt(),
             ((if (rtl) start else end) * density).toInt(), (bottom * density).toInt())
-    }
-
-    private fun RemoteViews.batteryViews(context: Context, snapshot: Snapshot, prefs: WidgetPreferences,
-                                        colors: Appearance, size: WidgetGeometry, open: PendingIntent) {
-        setOnClickPendingIntent(R.id.battery_widget, open)
-        val data = listOf(snapshot.phone, snapshot.state.left, snapshot.state.right, snapshot.state.case)
-        val visible = prefs.items.filter { !prefs.automatic || data[it].level != null }
-        val metrics = size.batteryMetrics ?: WidgetBatteryMetrics.fallback(size)
-        val padding = metrics.horizontal.coerceAtMost(size.width / 8)
-        val vertical = metrics.vertical.coerceAtMost(size.height / 8)
-        val gap = metrics.gap.coerceAtMost(minOf(size.width, size.height) / 8)
-        val width = (size.width - padding * 2 - gap * (size.columns - 1)) / size.columns
-        val height = (size.height - vertical * 2 - gap * (size.rows - 1)) / size.rows
-        val ring = minOf(width, height) * .8f
-        val labels = intArrayOf(R.string.widget_phone, R.string.widget_left, R.string.widget_right, R.string.widget_case)
-        val images = intArrayOf(R.drawable.widget_glyph_phone, R.drawable.widget_original_airpods_pro_left_notification,
-            R.drawable.widget_original_airpods_pro_right_notification, R.drawable.widget_original_airpods_pro_case_notification)
-        val textPaint = Paint().apply { typeface = Typeface.create(Typeface.create("sec", Typeface.NORMAL), 500, false) }
-        cells.indices.forEach { i ->
-            val showing = i < size.columns * size.rows
-            setViewVisibility(cells[i], if (showing) View.VISIBLE else View.GONE)
-            if (!showing) return@forEach
-            val item = visible.getOrNull(i)
-            val value = item?.let { data[it] }
-            box(cells[i], width, height, padding + (i % size.columns) * (width + gap), vertical + (i / size.columns) * (height + gap))
-            box(rings[i], ring, ring)
-            setIcon(rings[i], "setImageIcon", Icon.createWithBitmap(arc(context, value?.level, colors.day.track)),
-                Icon.createWithBitmap(arc(context, value?.level, colors.night.track)))
-            setViewVisibility(icons[i], if (item == null) View.GONE else View.VISIBLE)
-            if (item != null) {
-                setImageViewResource(icons[i], images[item])
-                tint(icons[i], colors.day.foreground, colors.night.foreground)
-            }
-            box(icons[i], height * .33f, height * .33f, y = height * .33f)
-            box(rows[i], width, height * (if (size.short) .28f else .30f), y = height * .66f)
-            val text = if (item == null) "" else value?.level?.toString() ?: "—"
-            setTextViewText(values[i], text)
-            setColorInt(values[i], "setTextColor", colors.day.foreground, colors.night.foreground)
-            val rowHeight = height * (if (size.short) .28f else .30f)
-            val font = metrics.fonts.drop(if (size.short) 13 else 10).firstOrNull { candidate ->
-                textPaint.textSize = candidate
-                textPaint.measureText(text) <= width - 2f && textPaint.fontMetrics.let { it.bottom - it.top } <= rowHeight
-            } ?: minOf(metrics.fonts.last(), rowHeight * .7f)
-            setTextViewTextSize(values[i], TypedValue.COMPLEX_UNIT_DIP, font)
-            setViewVisibility(charging[i], if (value?.charging == true) View.VISIBLE else View.GONE)
-            box(charging[i], height * .12f, height * .22f)
-            tint(charging[i], colors.day.foreground, colors.night.foreground)
-            setContentDescription(cells[i], if (item == null) "" else context.getString(labels[item]) + ": " +
-                if (value?.level == null) context.getString(R.string.widget_unavailable)
-                else context.getString(if (value.charging) R.string.widget_charging_value else R.string.widget_battery_value, value.level))
-        }
-    }
-
-    private fun arc(context: Context, level: Int?, track: Int): Bitmap {
-        val key = level to track
-        arcs.get(key)?.let { return it }
-        val bitmap = Bitmap.createBitmap(208, 208, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.scale(208f / 138f, 208f / 138f)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE; strokeWidth = 18f; strokeCap = Paint.Cap.ROUND; color = track
-        }
-        val bounds = RectF(9f, 9.021f, 129f, 129.021f)
-        canvas.drawArc(bounds, 156.44f, 227.12f, false, paint)
-        if (level != null && level > 0) {
-            // A shader still multiplies Paint alpha: reset the translucent track alpha first.
-            paint.alpha = 255
-            if (level <= 15) paint.color = context.getColor(R.color.widget_low_battery)
-            else paint.shader = LinearGradient(14f, 93f, 69f, 33f,
-                context.getColor(R.color.widget_battery_start), context.getColor(R.color.widget_battery_end), Shader.TileMode.CLAMP)
-            canvas.drawArc(bounds, 156.44f, 227.12f * level / 100, false, paint)
-        }
-        arcs.put(key, bitmap)
-        return bitmap
     }
 
     private data class ControlBatteryText(val text: String, val charging: Boolean = false, val low: Boolean = false,

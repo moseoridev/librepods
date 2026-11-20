@@ -39,12 +39,12 @@ class NoiseControlWidget : AppWidgetProvider() {
     override fun onDeleted(context: Context, ids: IntArray) {
         (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.delete(ids)
         WidgetPublisher.forget(ids)
-        WidgetPreferences.delete(context, ids, controls = true)
+        WidgetPreferences.delete(context, ids)
     }
 
     override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
         (context.applicationContext as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.restore(oldIds, newIds)
-        WidgetPreferences.restore(context, oldIds, newIds, controls = true)
+        WidgetPreferences.restore(context, oldIds, newIds)
         WidgetPublisher.forget(oldIds)
         WidgetPublisher.update(context, forceIds = newIds.toSet())
     }

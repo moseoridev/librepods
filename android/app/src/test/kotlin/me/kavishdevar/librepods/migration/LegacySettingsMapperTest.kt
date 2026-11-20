@@ -69,9 +69,9 @@ class LegacySettingsMapperTest {
         assertSame(current, LegacySettingsMapper.mergeDevice(current, incompleteLegacy))
     }
 
-    @Test fun widgetSettingsKeepProviderIdsAndPurchaseKeysAreIgnored() {
+    @Test fun controlsSettingsKeepWidgetIdsAndPurchaseKeysAreIgnored() {
         assertEquals(setOf(11, 12), LegacySettingsMapper.widgetIds(
-            mapOf("11_items" to "3,1", "nonsense" to true), mapOf("12_opacity" to 2, "11_color" to 0)))
+            mapOf("11_shape" to 3, "12_opacity" to 2, "11_color" to 0, "nonsense" to true)))
         // Purchase-era keys must not resurrect a paid state; the import still completes.
         val plan = LegacySettingsMapper.plan(values().apply {
             put("premium_expiry_time", 99L); put("foss_upgraded", true)

@@ -133,8 +133,6 @@
     <string name="adjust_media">Điều chỉnh Media</string>
     <string name="adjust_calls">Điều chỉnh cuộc gọi</string>
     <string name="widget">Widget</string>
-    <string name="show_phone_battery_in_widget">Hiển thị pin điện thoại trong widget</string>
-    <string name="show_phone_battery_in_widget_description">Hiển thị pin điện thoại trong widget cùng với pin AirPods</string>
     <string name="conversation_awareness_volume">Âm lượng nhận biết hội thoại</string>
     <string name="quick_settings_tile">Ô cài đặt nhanh</string>
     <string name="open_dialog_for_controlling">Mở hộp thoại để điều khiển</string>

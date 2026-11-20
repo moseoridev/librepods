@@ -135,8 +135,6 @@
         <string name="adjust_media">Regola Musica e Video</string>
         <string name="adjust_calls">Regola Chiamate</string>
         <string name="widget">Widget</string>
-        <string name="show_phone_battery_in_widget">Mostra la batteria del telefono nel widget</string>
-        <string name="show_phone_battery_in_widget_description">Visualizza il livello della batteria del tuo telefono nel widget accanto alla batteria degli AirPods</string>
         <string name="conversation_awareness_volume">Volume Consapevolezza Conversazionale</string>
         <string name="quick_settings_tile">Tile Impostazioni Rapide</string>
         <string name="open_dialog_for_controlling">Apri finestra di dialogo per il controllo</string>

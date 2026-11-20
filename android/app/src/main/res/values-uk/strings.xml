@@ -133,8 +133,6 @@
     <string name="adjust_media">Налаштувати музику та відео</string>
     <string name="adjust_calls">Налаштувати дзвінки</string>
     <string name="widget">Віджет</string>
-    <string name="show_phone_battery_in_widget">Показати заряд телефону у віджеті</string>
-    <string name="show_phone_battery_in_widget_description">Відображати рівень заряду вашого телефону у віджеті разом із зарядом AirPods</string>
     <string name="conversation_awareness_volume">Гучність Усвідомлення Розмови</string>
     <string name="quick_settings_tile">Плитка Швидких Налаштувань</string>
     <string name="open_dialog_for_controlling">Відкрити діалог для керування</string>

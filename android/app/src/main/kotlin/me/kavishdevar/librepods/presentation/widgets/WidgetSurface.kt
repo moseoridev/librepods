@@ -33,7 +33,7 @@ internal object WidgetSurface {
             // No corners means its default shape, rather than a custom four-corner 19dp shape.
             hostShapes[if (size.type == WidgetGeometry.MEDIUM) shape else 0]
         } else {
-            if (size.short) R.drawable.widget_battery_surface
+            if (size.short) R.drawable.widget_compact_surface
             else if (size.type == WidgetGeometry.MEDIUM) fallbackShapes[shape]
             else R.drawable.widget_controls_surface
         }

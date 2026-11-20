@@ -6,7 +6,7 @@ The source policies below are ported. The physical-device evidence at the end be
 
 Ownership/Reverse/Reconnect events use per-device session checks. Profile acquisition waits at most1.5s per profile; late callbacks only close the proxy. Platform binder calls themselves depend on Android responding. Existing privileged policy changes require the corresponding granted permissions. Manual reconnect/reverse reuses saved valid self MAC or a permitted adapter address; it never fabricates the Android placeholder address. Automatic connected-session routing additionally requires the vendor hook, the existing per-trigger settings and a60s per-device cooldown; manual actions bypass the cooldown. This can delay another automatic routing attempt after a failed one. No fresh firmware/profile/assistant behavior is established.
 
-Widget rendering and phone-battery refresh are in [widget notes](android-widgets.md); tools/evidence are in the [development guide](android-development.md#reverse-engineering-and-local-evidence). Resume state is in [rewrite migration](rewrite-migration.md).
+Controls widget state and rendering are in [widget notes](android-widgets.md); tools/evidence are in the [development guide](android-development.md#reverse-engineering-and-local-evidence). Resume state is in [rewrite migration](rewrite-migration.md).
 
 ## Connection ownership
 
@@ -41,7 +41,7 @@ Contracts: [Bluetooth sockets](https://developer.android.com/reference/android/b
 
 ## Secondary work and popups
 
-The notification updates for connection, battery, name and Reverse/Reconnect changes. Identical visible content is skipped while the notification exists; disconnect clears the cache. Accepted battery packets publish once through the shared battery path. Repeated packets still reach metadata/audio consumers; unchanged widget content is skipped. Phone-battery changes refresh only widgets. No widget views are built when none are installed.
+The notification updates for connection, battery, name and Reverse/Reconnect changes. Identical visible content is skipped while the notification exists; disconnect clears the cache. Accepted battery packets publish once through the shared battery path. Repeated packets still reach metadata/audio consumers; unchanged widget content is skipped. Widget publication skips building views when no controls widgets are installed.
 
 Packet diagnostics retain at most64 packets per device, including battery packets. The old per-packet SharedPreferences archive is not restored; old `packet_logs` data remains untouched. The app no longer initializes Play billing on resume or on first UI access, because the fork has no paid tier; there is no billing client or connection to release. These are reductions in code-side work, not measured energy savings.
 

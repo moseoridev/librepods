@@ -142,8 +142,6 @@
     <string name="adjust_media">Adjust Music and Video</string>
     <string name="adjust_calls">Adjust Calls</string>
     <string name="widget">Widget</string>
-    <string name="show_phone_battery_in_widget">Show phone battery in widget</string>
-    <string name="show_phone_battery_in_widget_description">Display your phone\'s battery level in the widget alongside AirPods battery</string>
     <string name="popup_animations">Popup Animations</string>
     <string name="show_bottom_sheet_popup">Bottom sheet popup</string>
     <string name="show_bottom_sheet_popup_description">Show the iOS-style modal popup at the bottom when AirPods connect.</string>

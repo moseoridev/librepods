@@ -133,8 +133,6 @@
     <string name="adjust_media">Ajuster la musique et les vidéos</string>
     <string name="adjust_calls">Ajuster les appels</string>
     <string name="widget">Widget</string>
-    <string name="show_phone_battery_in_widget">Afficher la batterie du téléphone dans le widget</string>
-    <string name="show_phone_battery_in_widget_description">Affiche le niveau de batterie du téléphone dans le widget avec celle des AirPods</string>
     <string name="conversation_awareness_volume">Volume de détection des conversations</string>
     <string name="quick_settings_tile">Tuile des réglages rapides</string>
     <string name="open_dialog_for_controlling">Ouvrir le dialogue de contrôle</string>

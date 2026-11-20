@@ -13,17 +13,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.bluetooth.CompanionConnection
 import kotlin.math.roundToInt
 
 /** A finite configuration screen: draft changes are previewed locally and only Save persists them. */
 class WidgetSettingsActivity : Activity() {
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var draft = WidgetPreferences()
-    private var battery = false
     private var deviceAddress: me.kavishdevar.librepods.core.bluetooth.MacAddress? = null
     private lateinit var preview: FrameLayout
-    private lateinit var deviceRows: LinearLayout
     private val backgroundControls = mutableListOf<View>()
     private val textColor: Int get() = if (dark) Color.WHITE else 0xFF010102.toInt()
     private val dark: Boolean get() = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -35,18 +32,17 @@ class WidgetSettingsActivity : Activity() {
         setResult(RESULT_CANCELED)
         widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         val info = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)
-        if (info?.provider?.packageName != packageName || info.provider.className !in listOf(BatteryWidget::class.java.name, NoiseControlWidget::class.java.name)) {
+        if (info?.provider?.packageName != packageName || info.provider.className != NoiseControlWidget::class.java.name) {
             finish(); return
         }
-        battery = info.provider.className == BatteryWidget::class.java.name
-        draft = WidgetPreferences.read(this, widgetId, controls = !battery)
+        draft = WidgetPreferences.read(this, widgetId)
         deviceAddress = WidgetDataSource.address(this, widgetId)
         savedInstanceState?.getString("device_address")?.let { value ->
             deviceAddress = runCatching { me.kavishdevar.librepods.core.bluetooth.MacAddress(value) }.getOrNull()
         }
         savedInstanceState?.let {
             draft = draft.copy(background = it.getBoolean("background"), color = it.getInt("color"), opacity = it.getInt("opacity"),
-                shape = it.getInt("shape"), automatic = it.getBoolean("automatic"), items = it.getIntArray("items")?.toList() ?: draft.items)
+                shape = it.getInt("shape"))
         }
         actionBar?.hide()
         val root = LinearLayout(this).apply {
@@ -59,7 +55,7 @@ class WidgetSettingsActivity : Activity() {
             insets
         }
         val header = TextView(this).apply {
-            text = getString(if (battery) R.string.widget_battery_name else R.string.widget_controls_name)
+            text = getString(R.string.widget_controls_name)
             textSize = 26f; setTextColor(textColor); typeface = Typeface.create("sec", Typeface.BOLD)
             setPadding(dp(24), dp(24), dp(24), dp(20))
             isAccessibilityHeading = true
@@ -70,7 +66,7 @@ class WidgetSettingsActivity : Activity() {
         scroll.addView(content)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         preview = FrameLayout(this).apply { setPadding(dp(8), dp(16), dp(8), dp(16)) }
-        content.addView(preview, LinearLayout.LayoutParams(-1, dp(if (battery) 106 else 180)))
+        content.addView(preview, LinearLayout.LayoutParams(-1, dp(180)))
         preview.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
             if (right - left != oldRight - oldLeft) refreshPreview()
         }
@@ -120,7 +116,7 @@ class WidgetSettingsActivity : Activity() {
         appearance.addView(opacity, LinearLayout.LayoutParams(-1, dp(48)))
         backgroundControls.add(opacity)
         val levels = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        for (percent in if (battery) listOf("30%", "65%", "100%") else listOf("50%", "75%", "100%")) levels.addView(TextView(this).apply {
+        for (percent in listOf("50%", "75%", "100%")) levels.addView(TextView(this).apply {
             text = percent; gravity = Gravity.CENTER; setTextColor(textColor); textSize = 12f
         }, LinearLayout.LayoutParams(0, -2, 1f))
         appearance.addView(levels)
@@ -153,15 +149,6 @@ class WidgetSettingsActivity : Activity() {
             selectShape()
             shapeCard.addView(shapes)
         }
-        if (battery) {
-            val devices = section(content, R.string.widget_devices)
-            toggle(devices, R.string.widget_automatic_devices, draft.automatic) {
-                draft = draft.copy(automatic = it); refreshPreview()
-            }
-            deviceRows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            devices.addView(deviceRows)
-            rebuildDeviceRows()
-        }
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(16), dp(8), dp(16), dp(12)) }
         actions.addView(Button(this).apply { setText(android.R.string.cancel); setOnClickListener { finish() } }, LinearLayout.LayoutParams(0, dp(52), 1f))
         actions.addView(Button(this).apply {
@@ -171,8 +158,7 @@ class WidgetSettingsActivity : Activity() {
                     (application as me.kavishdevar.librepods.LibrePodsApplication).widgetConfigRepository.setWidgetConfig(
                         me.kavishdevar.librepods.database.widget.WidgetConfigEntity(widgetId, address))
                 }
-                WidgetPreferences.write(this@WidgetSettingsActivity, widgetId, draft, controls = !battery)
-                CompanionConnection.activeEngine?.synchronizeWidgetBatteryReceiver()
+                WidgetPreferences.write(this@WidgetSettingsActivity, widgetId, draft)
                 WidgetPublisher.update(this@WidgetSettingsActivity, forceIds = setOf(widgetId))
                 setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
                 finish()
@@ -188,7 +174,6 @@ class WidgetSettingsActivity : Activity() {
         deviceAddress?.let { out.putString("device_address", it.value) }
         out.putBoolean("background", draft.background); out.putInt("color", draft.color)
         out.putInt("opacity", draft.opacity); out.putInt("shape", draft.shape)
-        out.putBoolean("automatic", draft.automatic); out.putIntArray("items", draft.items.toIntArray())
     }
 
     private fun section(parent: LinearLayout, title: Int): LinearLayout {
@@ -209,34 +194,6 @@ class WidgetSettingsActivity : Activity() {
         }, LinearLayout.LayoutParams(-1, -2))
     }
     private fun updateEnabled() { backgroundControls.forEach { it.isEnabled = draft.background; it.alpha = if (draft.background) 1f else .4f } }
-
-    private fun rebuildDeviceRows() {
-        deviceRows.removeAllViews()
-        val labels = listOf(R.string.widget_phone, R.string.widget_left, R.string.widget_right, R.string.widget_case)
-        val order = draft.items + (0..3).filter { it !in draft.items }
-        order.forEach { item ->
-            val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-            row.addView(CheckBox(this).apply {
-                setText(labels[item]); setTextColor(textColor); isChecked = item in draft.items; minHeight = dp(48)
-                setOnCheckedChangeListener { _, enabled ->
-                    draft = draft.copy(items = if (enabled) draft.items + item else draft.items - item)
-                    rebuildDeviceRows(); refreshPreview()
-                }
-            }, LinearLayout.LayoutParams(0, -2, 1f))
-            for (delta in listOf(-1, 1)) row.addView(Button(this).apply {
-                text = if (delta < 0) "↑" else "↓"
-                contentDescription = getString(if (delta < 0) R.string.widget_move_up else R.string.widget_move_down, getString(labels[item]))
-                val index = draft.items.indexOf(item)
-                isEnabled = index >= 0 && index + delta in draft.items.indices
-                setOnClickListener {
-                    val moved = draft.items.toMutableList()
-                    java.util.Collections.swap(moved, moved.indexOf(item), moved.indexOf(item) + delta)
-                    draft = draft.copy(items = moved); rebuildDeviceRows(); refreshPreview()
-                }
-            }, LinearLayout.LayoutParams(dp(48), dp(48)))
-            deviceRows.addView(row)
-        }
-    }
 
     private fun refreshPreview() {
         val width = (preview.width - preview.paddingLeft - preview.paddingRight) / resources.displayMetrics.density

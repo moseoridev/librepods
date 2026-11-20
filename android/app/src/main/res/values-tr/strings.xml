@@ -133,8 +133,6 @@
     <string name="adjust_media">Müzik ve Videoyu Ayarla</string>
     <string name="adjust_calls">Aramaları Ayarla</string>
     <string name="widget">Widget</string>
-    <string name="show_phone_battery_in_widget">Widget\'ta telefon pilini göster</string>
-    <string name="show_phone_battery_in_widget_description">Widget\'ta AirPods piliyle birlikte telefonunuzun pil seviyesini göster</string>
     <string name="conversation_awareness_volume">Konuşma Farkındalığı Sesi</string>
     <string name="quick_settings_tile">Hızlı Ayarlar Döşemesi</string>
     <string name="open_dialog_for_controlling">Kontrol için iletişim kutusunu aç</string>

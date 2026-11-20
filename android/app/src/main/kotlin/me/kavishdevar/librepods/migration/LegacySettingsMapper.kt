@@ -100,7 +100,7 @@ internal object LegacySettingsMapper {
         return current.copy(cache = current.cache.copy(magicKeys = legacy.cache.magicKeys + current.cache.magicKeys))
     }
 
-    fun widgetIds(vararg stores: Map<String, *>): Set<Int> = stores.flatMap { store -> store.keys.mapNotNull { key ->
-        Regex("^(\\d+)_(background|color|opacity|shape|automatic|items)$").matchEntire(key)?.groupValues?.get(1)?.toIntOrNull()
-    } }.toSet()
+    fun widgetIds(store: Map<String, *>): Set<Int> = store.keys.mapNotNull { key ->
+        Regex("^(\\d+)_(background|color|opacity|shape)$").matchEntire(key)?.groupValues?.get(1)?.toIntOrNull()
+    }.toSet()
 }

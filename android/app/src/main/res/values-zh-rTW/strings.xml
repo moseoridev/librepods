@@ -136,8 +136,6 @@
     <string name="adjust_media">調整音樂與影片</string>
     <string name="adjust_calls">調整通話</string>
     <string name="widget">小工具</string>
-    <string name="show_phone_battery_in_widget">在小工具中顯示手機電量</string>
-    <string name="show_phone_battery_in_widget_description">在小工具中同時顯示手機電量與 AirPods 電量</string>
     <string name="conversation_awareness_volume">對話感知音量</string>
     <string name="quick_settings_tile">快速設定方塊</string>
     <string name="open_dialog_for_controlling">開啟控制對話方塊</string>

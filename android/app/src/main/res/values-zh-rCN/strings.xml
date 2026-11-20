@@ -135,8 +135,6 @@
     <string name="adjust_media">调整音乐和视频</string>
     <string name="adjust_calls">调整通话</string>
     <string name="widget">小组件</string>
-    <string name="show_phone_battery_in_widget">在小组件中显示手机电量</string>
-    <string name="show_phone_battery_in_widget_description">在小组件中与 AirPods 电量一同显示手机电量。</string>
     <string name="popup_animations">弹窗动画</string>
     <string name="show_bottom_sheet_popup">底部弹窗</string>
     <string name="show_bottom_sheet_popup_description">连接 AirPods 时在底部显示 iOS 风格的弹窗。</string>

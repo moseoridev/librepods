@@ -12,13 +12,11 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.os.BatteryManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -31,7 +29,6 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.View
-import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.health.connect.client.permission.HealthPermission
@@ -81,7 +78,6 @@ import me.kavishdevar.librepods.presentation.activities.MainActivity
 import me.kavishdevar.librepods.presentation.overlays.IslandType
 import me.kavishdevar.librepods.presentation.overlays.IslandWindow
 import me.kavishdevar.librepods.presentation.overlays.ProximityCardWindow
-import me.kavishdevar.librepods.presentation.widgets.BatteryWidget
 import me.kavishdevar.librepods.utils.MediaController
 import me.kavishdevar.librepods.utils.calculateLevel
 import java.time.ZoneOffset
@@ -378,7 +374,6 @@ class LibrePodsService: Service() {
         runtimeActive = wanted
         if (wanted) {
             me.kavishdevar.librepods.core.utils.GestureFeedback.init(this)
-            synchronizeWidgetBatteryReceiver()
             if (!observingDisplay) {
                 registerReceiver(displayReceiver, IntentFilter().apply {
                     addAction(Intent.ACTION_SCREEN_OFF); addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_USER_PRESENT)
@@ -403,7 +398,6 @@ class LibrePodsService: Service() {
         islandWindow.forceClose(); proximityCardWindow.forceClose()
         islandOwner = null; bottomOwner = null
         if (observingDisplay) { runCatching { unregisterReceiver(displayReceiver) }; observingDisplay = false }
-        synchronizeWidgetBatteryReceiver()
         me.kavishdevar.librepods.core.utils.GestureFeedback.release()
         MediaController.release()
         if (phoneRegistered) {
@@ -1239,24 +1233,7 @@ class LibrePodsService: Service() {
     }
 
     fun updateWidgets() {
-        synchronizeWidgetBatteryReceiver()
         me.kavishdevar.librepods.presentation.widgets.WidgetPublisher.update(this)
-    }
-
-    private var widgetBatteryReceiver: BroadcastReceiver? = null
-    fun synchronizeWidgetBatteryReceiver() {
-        val publisher = me.kavishdevar.librepods.presentation.widgets.WidgetPublisher
-        val needed = runtimeActive && publisher.hasBatteryWidgets(this) && publisher.needsPhoneBattery(this)
-        if (needed && widgetBatteryReceiver == null) {
-            val receiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) { publisher.update(context) }
-            }
-            widgetBatteryReceiver = receiver
-            registerReceiver(receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
-        } else if (!needed && widgetBatteryReceiver != null) {
-            runCatching { unregisterReceiver(checkNotNull(widgetBatteryReceiver)) }
-            widgetBatteryReceiver = null
-        }
     }
 
     private fun processComponentStateChange(
