@@ -1,6 +1,6 @@
 package me.kavishdevar.librepods.presentation.widgets
 
-/** Buds 4 Manager 9.0.00.1604 home layout: xm.b0, xm.m, xm.q0, xm.r0 and xm.j. */
+/** Buds 4 Manager 9.0.10.1724 home layout: ln.w, ln.n, ln.q0 and ln.j. */
 internal data class WidgetControlLayout(
     val scale: Float,
     val buttonX: Float, val buttonY: Float, val diameter: Float, val gap: Float,

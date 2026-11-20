@@ -34,8 +34,8 @@ object WidgetPublisher {
     private data class ControlMask(val diameter: Float, val link: Float, val seam: Float,
                                    val join: Int, val active: Boolean, val color: Int)
     private val controlMasks = LruCache<ControlMask, Bitmap>(12)
-    private val lightDivider by lazy { controlDividerBitmap(0xB3242424.toInt()) }
-    private val darkDivider by lazy { controlDividerBitmap(0xB3F8F8F8.toInt()) }
+    private val lightDivider by lazy { controlDividerBitmap(0xB3252525.toInt()) }
+    private val darkDivider by lazy { controlDividerBitmap(0xB3F9F9F9.toInt()) }
     // The source Glance TextViews enable linear/subpixel text; weight and family alone differ in width.
     private val controlTextFlags = Paint().flags or Paint.ANTI_ALIAS_FLAG or Paint.LINEAR_TEXT_FLAG or Paint.SUBPIXEL_TEXT_FLAG
     private val buttons = intArrayOf(R.id.widget_off_button, R.id.widget_transparency_button, R.id.widget_adaptive_button, R.id.widget_anc_button)

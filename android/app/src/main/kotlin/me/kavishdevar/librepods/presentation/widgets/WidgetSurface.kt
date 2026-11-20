@@ -6,6 +6,7 @@ import android.os.Process
 import android.os.UserHandle
 import android.graphics.Outline
 import android.graphics.Path
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.RemoteViews
@@ -46,20 +47,19 @@ internal object WidgetSurface {
     fun applyPreviewOutline(view: View, options: Bundle, source: WidgetGeometry, shape: Int, scale: Float) {
         if (!hostOwnsOutline(options)) return
         val frame = view.findViewById<View>(R.id.widget_frame)
-        val density = view.resources.displayMetrics.density * scale
         val defaultRadius = options.getFloat("semShapeRadius", 24f).takeIf { it.isFinite() && it > 0f } ?: 24f
-        val corners = if (source.type != WidgetGeometry.MEDIUM || shape == 0) FloatArray(4) { defaultRadius }
-            else when (shape) { // Clockwise from top left.
-                1 -> floatArrayOf(32f, 12f, 32f, 12f)
-                2 -> floatArrayOf(12f, 32f, 12f, 32f)
-                3 -> floatArrayOf(32f, 12f, 32f, 32f)
-                else -> floatArrayOf(12f, 32f, 32f, 32f)
-            }
+        val corners = if (source.type == WidgetGeometry.MEDIUM && shape != 0) {
+            val radii = checkNotNull((view.context.getDrawable(hostShapes[shape]) as GradientDrawable).cornerRadii)
+            List(4) { radii[it * 2] * scale }
+        } else {
+            val radius = defaultRadius * view.resources.displayMetrics.density * scale
+            List(4) { radius }
+        }
         frame.outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(view: View, outline: Outline) {
                 if (source.short) outline.setRoundRect(0, 0, view.width, view.height, view.height / 2f)
                 else if (view.width > 0 && view.height > 0)
-                    outline.setPath(smoothPath(view.width.toFloat(), view.height.toFloat(), corners.map { it * density }))
+                    outline.setPath(smoothPath(view.width.toFloat(), view.height.toFloat(), corners))
             }
         }
         frame.clipToOutline = true

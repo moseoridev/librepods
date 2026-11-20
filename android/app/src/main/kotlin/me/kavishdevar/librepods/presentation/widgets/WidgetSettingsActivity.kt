@@ -125,7 +125,7 @@ class WidgetSettingsActivity : Activity() {
             val shapeCard = section(content, R.string.widget_shape)
             val shapes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             val labels = listOf(R.string.widget_shape_round, R.string.widget_shape_leaf_left, R.string.widget_shape_leaf_right,
-                R.string.widget_shape_corner_right, R.string.widget_shape_corner_left)
+                R.string.widget_shape_corner_left, R.string.widget_shape_corner_right)
             val drawables = listOf(R.drawable.widget_shape_0, R.drawable.widget_shape_1, R.drawable.widget_shape_2,
                 R.drawable.widget_shape_3, R.drawable.widget_shape_4)
             val choices = mutableListOf<TextView>()
